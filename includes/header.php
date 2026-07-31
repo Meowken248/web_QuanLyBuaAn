@@ -52,12 +52,63 @@ require_once __DIR__ . '/../config/app.php';
             <div class="d-flex align-items-center">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <?php
-                        // Đếm số thông báo chưa đọc
                         if (!isset($conn)) {
                             require_once __DIR__ . '/../config/database.php';
                             $db = new Database();
                             $conn = $db->getConnection();
                         }
+                        
+                        // 1. Kiểm tra và kích hoạt các Nhắc nhở (Reminders)
+                        $current_time = date('H:i:00');
+                        $current_date = date('Y-m-d');
+                        $day_of_week = date('N'); // 1 (Mon) - 7 (Sun)
+                        
+                        $stmtReminders = $conn->prepare("SELECT * FROM reminders WHERE user_id = :user_id AND status = 'active' AND (last_triggered_date IS NULL OR last_triggered_date < :current_date)");
+                        $stmtReminders->execute([
+                            ':user_id' => $_SESSION['user_id'],
+                            ':current_date' => $current_date
+                        ]);
+                        $pending_reminders = $stmtReminders->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        foreach ($pending_reminders as $r) {
+                            $should_trigger = false;
+                            
+                            if ($r['reminder_time'] <= $current_time) {
+                                if ($r['repeat_type'] === 'daily' || $r['repeat_type'] === 'once') {
+                                    $should_trigger = true;
+                                } elseif ($r['repeat_type'] === 'weekdays' && $day_of_week <= 5) {
+                                    $should_trigger = true;
+                                } elseif ($r['repeat_type'] === 'weekly' && date('N', strtotime($r['created_at'])) == $day_of_week) {
+                                    $should_trigger = true;
+                                }
+                            }
+                            
+                            if ($should_trigger) {
+                                // Tạo thông báo
+                                $msg = "Đã đến giờ cho: " . $r['title'];
+                                $stmtInsert = $conn->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (:user_id, :title, :message, 'info')");
+                                $stmtInsert->execute([
+                                    ':user_id' => $_SESSION['user_id'],
+                                    ':title' => '⏰ Nhắc nhở: ' . $r['title'],
+                                    ':message' => $msg
+                                ]);
+                                
+                                // Cập nhật ngày trigger
+                                $stmtUpdate = $conn->prepare("UPDATE reminders SET last_triggered_date = :current_date WHERE id = :id");
+                                $stmtUpdate->execute([
+                                    ':current_date' => $current_date,
+                                    ':id' => $r['id']
+                                ]);
+                                
+                                // Nếu loại là once, tắt nhắc nhở luôn
+                                if ($r['repeat_type'] === 'once') {
+                                    $stmtOff = $conn->prepare("UPDATE reminders SET status = 'inactive' WHERE id = :id");
+                                    $stmtOff->execute([':id' => $r['id']]);
+                                }
+                            }
+                        }
+
+                        // 2. Đếm số thông báo chưa đọc
                         $stmtNotif = $conn->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :user_id AND is_read = 0");
                         $stmtNotif->execute([':user_id' => $_SESSION['user_id']]);
                         $unread_count = $stmtNotif->fetchColumn();

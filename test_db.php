@@ -2,7 +2,9 @@
 require 'config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
-$stmt = $conn->query("DESCRIBE notifications");
-print_r($stmt->fetchAll(PDO::FETCH_ASSOC));
-$stmt = $conn->query("DESCRIBE reminders");
-print_r($stmt->fetchAll(PDO::FETCH_ASSOC));
+try {
+    $conn->query("ALTER TABLE reminders ADD COLUMN last_triggered_date DATE NULL AFTER status");
+    echo "Thanh cong";
+} catch (Exception $e) {
+    echo "Loi: " . $e->getMessage();
+}
