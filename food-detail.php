@@ -1,6 +1,7 @@
 <?php
 // food-detail.php
 require_once __DIR__ . '/config/app.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/models/FoodModel.php';
 
 $food_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -21,7 +22,7 @@ if (!$food) {
 $page_title = $food['name'];
 require_once __DIR__ . '/includes/header.php';
 
-$img_src = !empty($food['image']) ? BASE_URL . '/assets/uploads/foods/' . htmlspecialchars($food['image']) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
+$img_src = food_image_url($food['image'] ?? null);
 ?>
 
 <div class="container py-5">

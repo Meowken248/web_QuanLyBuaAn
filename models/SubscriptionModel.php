@@ -74,7 +74,7 @@ class SubscriptionModel {
         $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
 
-        if ($stmt->rowCount() > 0) {
+        if ($stmt->fetch(PDO::FETCH_ASSOC)) {
             $update = "UPDATE user_subscriptions SET plan_id = :plan_id, start_date = :start, end_date = :end, status = 'active' WHERE user_id = :user_id";
             $upStmt = $this->conn->prepare($update);
             $upStmt->bindParam(':plan_id', $plan_id);

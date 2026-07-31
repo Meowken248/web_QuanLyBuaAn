@@ -18,7 +18,7 @@ class UserModel {
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         
-        return $stmt->rowCount() > 0;
+        return (bool)$stmt->fetchColumn();
     }
 
     // Đăng ký người dùng mới
@@ -46,9 +46,8 @@ class UserModel {
         $stmt->bindParam(':email', $email);
         $stmt->execute();
 
-        if ($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
             // Kiểm tra trạng thái tài khoản
             if ($row['status'] !== 'active') {
                 return ['status' => false, 'message' => 'Tài khoản của bạn đã bị khóa.'];

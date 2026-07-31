@@ -78,13 +78,10 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title">Thanh toán (Mock Payment)</h5>
+                            <h5 class="modal-title">Thanh toán</h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="alert alert-warning small">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Đây là hệ thống thanh toán mô phỏng phục vụ mục đích học tập. Website không xử lý hoặc thu tiền thật.
-                            </div>
                             
                             <p><strong>Gói:</strong> <?php echo htmlspecialchars($plan['name']); ?></p>
                             <p><strong>Số tiền:</strong> <span class="text-danger fw-bold"><?php echo number_format($plan['price'], 0, ',', '.'); ?>đ</span></p>

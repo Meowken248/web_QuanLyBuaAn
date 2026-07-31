@@ -2,13 +2,42 @@
 // admin/users.php
 require_once __DIR__ . '/../includes/admin-check.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 $database = new Database();
 $conn = $database->getConnection();
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_status') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Yêu cầu không hợp lệ.');
+    } else {
+        $target_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($target_id && $target_id !== (int)$_SESSION['user_id']) {
+            $stmt = $conn->prepare("UPDATE users SET status = IF(status = 'active', 'locked', 'active') WHERE id = :id AND role <> 'admin'");
+            $stmt->execute([':id' => $target_id]);
+            set_flash_message($stmt->rowCount() ? 'success' : 'warning', $stmt->rowCount() ? 'Đã cập nhật trạng thái tài khoản.' : 'Không thể thay đổi tài khoản này.');
+        }
+    }
+    redirect('/admin/users.php');
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_user') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Yêu cầu không hợp lệ.');
+    } else {
+        $target_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($target_id && $target_id !== (int)$_SESSION['user_id']) {
+            $stmt = $conn->prepare("DELETE FROM users WHERE id = :id AND role <> 'admin'");
+            $stmt->execute([':id' => $target_id]);
+            set_flash_message($stmt->rowCount() ? 'success' : 'warning', $stmt->rowCount() ? 'Đã xóa người dùng.' : 'Không thể xóa người dùng này (có thể là Admin).');
+        } else {
+            set_flash_message('danger', 'Không thể xóa tài khoản của chính mình.');
+        }
+    }
+    redirect('/admin/users.php');
+}
+
 // Lấy danh sách users
 $users = $conn->query("
-    SELECT u.id, u.full_name, u.email, u.role, u.created_at, 
+    SELECT u.id, u.full_name, u.email, u.role, u.status, u.created_at, 
            s.plan_id, s.end_date, s.status as sub_status 
     FROM users u 
     LEFT JOIN user_subscriptions s ON u.id = s.user_id AND s.status = 'active'
@@ -26,7 +55,13 @@ require_once __DIR__ . '/../includes/header.php';
             <?php require __DIR__ . '/includes/sidebar.php'; ?>
         </div>
         <div class="col-md-10">
-            <h3 class="fw-bold mb-4">Quản lý Người dùng</h3>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold mb-0">Quản lý Người dùng</h3>
+                <div>
+                    <?php display_flash_message(); ?>
+                    <a href="<?php echo BASE_URL; ?>/admin/user-edit.php" class="btn btn-success"><i class="bi bi-person-plus me-2"></i>Thêm người dùng</a>
+                </div>
+            </div>
             
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
@@ -66,10 +101,24 @@ require_once __DIR__ . '/../includes/header.php';
                                     </td>
                                     <td><?php echo date('d/m/Y', strtotime($u['created_at'])); ?></td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary" title="Xem chi tiết" data-bs-toggle="modal" data-bs-target="#userModal<?php echo $u['id']; ?>"><i class="bi bi-eye"></i></button>
-                                        <?php if ($u['id'] !== $_SESSION['user_id']): ?>
-                                            <button class="btn btn-sm btn-outline-danger" title="Khóa/Xóa" onclick="alert('Chức năng khóa/xóa người dùng đang được cập nhật!');"><i class="bi bi-trash"></i></button>
-                                        <?php endif; ?>
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-sm btn-outline-info" title="Xem chi tiết" data-bs-toggle="modal" data-bs-target="#userModal<?php echo $u['id']; ?>"><i class="bi bi-eye"></i></button>
+                                            <a href="<?php echo BASE_URL; ?>/admin/user-edit.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                            <?php if ($u['id'] !== $_SESSION['user_id']): ?>
+                                                <form method="POST" class="d-inline" onsubmit="return confirm('Xác nhận thay đổi trạng thái tài khoản?');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                                                    <input type="hidden" name="action" value="toggle_status">
+                                                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                                    <button type="submit" class="btn btn-sm <?php echo $u['status'] === 'active' ? 'btn-outline-warning' : 'btn-outline-success'; ?>" title="<?php echo $u['status'] === 'active' ? 'Khóa' : 'Mở khóa'; ?>"><i class="bi <?php echo $u['status'] === 'active' ? 'bi-lock' : 'bi-unlock'; ?>"></i></button>
+                                                </form>
+                                                <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này không? Hành động này không thể hoàn tác.');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                                                    <input type="hidden" name="action" value="delete_user">
+                                                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                                 
@@ -106,7 +155,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                     </li>
                                                 </ul>
                                                 <div class="alert alert-info mt-3 mb-0 small">
-                                                    <i class="bi bi-info-circle me-1"></i> Tính năng xem hồ sơ sức khỏe chi tiết của user đang được cập nhật.
+                                                    <i class="bi bi-info-circle me-1"></i> Trạng thái tài khoản: <?php echo $u['status'] === 'active' ? 'Đang hoạt động' : 'Đã khóa'; ?>.
                                                 </div>
                                             </div>
                                             <div class="modal-footer border-0">

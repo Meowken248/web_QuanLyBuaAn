@@ -51,3 +51,39 @@ body {
         background-color: hsl(200, 20%, 95%);
     }
 }
+/* Company logo */
+.company-brand {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 1.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.company-logo {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.company-logo-navbar {
+    height: 48px;
+    max-width: 190px;
+}
+
+.company-logo-footer {
+    height: 72px;
+    max-width: 240px;
+}
+
+@media (max-width: 575.98px) {
+    .company-logo-navbar {
+        height: 40px;
+        max-width: 145px;
+    }
+
+    .company-brand {
+        margin-right: 0.5rem;
+    }
+}

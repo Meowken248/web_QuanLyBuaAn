@@ -6,6 +6,22 @@ require_once __DIR__ . '/../config/database.php';
 $database = new Database();
 $conn = $database->getConnection();
 
+require_once __DIR__ . '/../includes/functions.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_food') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Yêu cầu không hợp lệ.');
+    } else {
+        $target_id = filter_var($_POST['food_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($target_id) {
+            $stmt = $conn->prepare("DELETE FROM foods WHERE id = :id");
+            $stmt->execute([':id' => $target_id]);
+            set_flash_message($stmt->rowCount() ? 'success' : 'warning', $stmt->rowCount() ? 'Đã xóa món ăn thành công.' : 'Không tìm thấy món ăn để xóa.');
+        }
+    }
+    redirect('/admin/foods.php');
+}
+
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $limit = 10;
@@ -17,7 +33,7 @@ $total_pages = ceil($total_foods / $limit);
 
 // Lấy danh sách món ăn
 $stmt = $conn->prepare("
-    SELECT f.id, f.name, f.calories, f.protein, f.carbs, f.fat, f.status, c.name as category_name
+    SELECT f.id, f.name, f.image, f.calories, f.protein, f.carbs, f.fat, f.status, c.name as category_name
     FROM foods f 
     LEFT JOIN food_categories c ON f.category_id = c.id
     ORDER BY f.id DESC LIMIT :limit OFFSET :offset
@@ -40,7 +56,10 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="fw-bold mb-0">Quản lý Món ăn</h3>
-                <button class="btn btn-success"><i class="bi bi-plus-circle me-2"></i>Thêm món mới</button>
+                <div>
+                    <?php display_flash_message(); ?>
+                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php" class="btn btn-success"><i class="bi bi-plus-circle me-2"></i>Thêm món mới</a>
+                </div>
             </div>
             
             <div class="card shadow-sm border-0">
@@ -63,9 +82,18 @@ require_once __DIR__ . '/../includes/header.php';
                                 <tr>
                                     <td><?php echo $f['id']; ?></td>
                                     <td>
-                                        <a href="<?php echo BASE_URL; ?>/food-detail.php?id=<?php echo $f['id']; ?>" target="_blank" class="text-decoration-none fw-bold text-dark">
-                                            <?php echo htmlspecialchars($f['name']); ?>
-                                        </a>
+                                        <div class="d-flex align-items-center">
+                                            <?php if (!empty($f['image'])): ?>
+                                                <img src="<?php echo food_image_url($f['image']); ?>" alt="Hình ảnh" class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            <?php else: ?>
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2 text-muted" style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-image"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                            <a href="<?php echo BASE_URL; ?>/food-detail.php?id=<?php echo $f['id']; ?>" target="_blank" class="text-decoration-none fw-bold text-dark">
+                                                <?php echo htmlspecialchars($f['name']); ?>
+                                            </a>
+                                        </div>
                                     </td>
                                     <td><span class="badge bg-light text-success border border-success"><?php echo htmlspecialchars($f['category_name'] ?? 'Khác'); ?></span></td>
                                     <td class="text-danger fw-bold"><?php echo $f['calories']; ?> kcal</td>
@@ -80,8 +108,15 @@ require_once __DIR__ . '/../includes/header.php';
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary" title="Sửa" onclick="alert('Tính năng chỉnh sửa đang được cập nhật!');"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="alert('Tính năng xóa đang được cập nhật!');"><i class="bi bi-trash"></i></button>
+                                        <div class="d-flex gap-1">
+                                            <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $f['id']; ?>" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                            <form method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa món ăn này không?');" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                                                <input type="hidden" name="action" value="delete_food">
+                                                <input type="hidden" name="food_id" value="<?php echo $f['id']; ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

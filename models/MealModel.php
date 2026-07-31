@@ -29,8 +29,8 @@ class MealModel {
         $stmt->bindParam(':meal_type', $meal_type);
         $stmt->execute();
 
-        if ($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
             return $row['id'];
         }
 

@@ -12,7 +12,11 @@ require_once __DIR__ . '/includes/header.php';
                 <h1 class="display-4 fw-bold mb-3">Quản lý dinh dưỡng, nâng cao sức khỏe</h1>
                 <p class="lead mb-4">Theo dõi bữa ăn, tính toán calories và nhận lời khuyên từ trợ lý AI thông minh để đạt được mục tiêu sức khỏe của bạn.</p>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-                    <a href="<?php echo BASE_URL; ?>/auth/register.php" class="btn btn-light btn-lg px-4 me-md-2 text-success fw-bold">Bắt đầu miễn phí</a>
+                    <?php if (!isset($_SESSION['user_id'])): ?>
+                        <a href="<?php echo BASE_URL; ?>/auth/register.php" class="btn btn-light btn-lg px-4 me-md-2 text-success fw-bold">Bắt đầu miễn phí</a>
+                    <?php else: ?>
+                        <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="btn btn-light btn-lg px-4 me-md-2 text-success fw-bold">Về trang quản lý</a>
+                    <?php endif; ?>
                     <a href="<?php echo BASE_URL; ?>/features.php" class="btn btn-outline-light btn-lg px-4">Tìm hiểu thêm</a>
                 </div>
             </div>
@@ -63,6 +67,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </section>
 
+<?php if (!isset($_SESSION['user_id'])): ?>
 <!-- Call to Action -->
 <section class="py-5 bg-light">
     <div class="container text-center py-4">
@@ -71,5 +76,6 @@ require_once __DIR__ . '/includes/header.php';
         <a href="<?php echo BASE_URL; ?>/auth/register.php" class="btn btn-success btn-lg px-5">Đăng ký ngay</a>
     </div>
 </section>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

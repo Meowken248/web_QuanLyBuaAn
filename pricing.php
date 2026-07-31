@@ -94,18 +94,7 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                Hình thức thanh toán giả lập là gì?
-                            </button>
-                        </h2>
-                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
-                            <div class="accordion-body">
-                                Đây là dự án mẫu (demo). Tính năng thanh toán chỉ mang tính mô phỏng (sử dụng thẻ ảo 4242...) và không thu bất kỳ khoản phí thật nào từ người dùng.
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>

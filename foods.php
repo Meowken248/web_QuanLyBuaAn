@@ -1,6 +1,7 @@
 <?php
 // foods.php
 require_once __DIR__ . '/config/app.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/models/FoodModel.php';
 
 $foodModel = new FoodModel();
@@ -69,7 +70,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="card h-100 shadow-sm card-hover border-0">
                         <!-- Hình ảnh mặc định nếu không có ảnh -->
                         <?php 
-                        $img_src = !empty($food['image']) ? BASE_URL . '/assets/uploads/foods/' . htmlspecialchars($food['image']) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+                        $img_src = food_image_url($food['image'] ?? null);
                         ?>
                         <img src="<?php echo $img_src; ?>" class="card-img-top" alt="<?php echo htmlspecialchars($food['name']); ?>" style="height: 180px; object-fit: cover;">
                         

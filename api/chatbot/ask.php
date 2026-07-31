@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../config/gemini.php';
 require_once __DIR__ . '/../../models/ProfileModel.php';
 require_once __DIR__ . '/../../models/MealModel.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
@@ -47,16 +47,14 @@ if ($profile) {
     $system_prompt .= "- Hôm nay đã ăn: {$nutrition['calories']} kcal. Còn lại: {$cal_left} kcal.\n";
 }
 
+$full_prompt = "--- CHỈ DẪN HỆ THỐNG ---\n" . $system_prompt . "\n--- KẾT THÚC CHỈ DẪN ---\n\nCâu hỏi của người dùng: " . $question;
+
 $payload = [
-    "system_instruction" => [
-        "parts" => [
-            ["text" => $system_prompt]
-        ]
-    ],
     "contents" => [
         [
+            "role" => "user",
             "parts" => [
-                ["text" => $question]
+                ["text" => $full_prompt]
             ]
         ]
     ],
@@ -67,10 +65,13 @@ $payload = [
 ];
 
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, GEMINI_API_URL . '?key=' . GEMINI_API_KEY);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_URL, GEMINI_API_URL . '?key=' . urlencode(GEMINI_API_KEY));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($ch, CURLOPT_POST, 1);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($ch, CURLOPT_TIMEOUT, 45);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json'
 ]);
@@ -101,5 +102,14 @@ if ($http_code == 200) {
         echo json_encode(['status' => 'error', 'message' => 'AI trả về dữ liệu không hợp lệ.']);
     }
 } else {
-    echo json_encode(['status' => 'error', 'message' => 'Lỗi từ Gemini API: ' . $http_code]);
+    $result = json_decode($response, true);
+    $error_msg = isset($result['error']['message']) ? $result['error']['message'] : (is_array($result) ? json_encode($result) : $response);
+    if ($http_code === 404) {
+        $error_msg = 'Model AI hiện không khả dụng. Vui lòng kiểm tra cấu hình GEMINI_MODEL.';
+    } elseif ($http_code === 400 || $http_code === 403) {
+        $error_msg = 'API key Gemini không hợp lệ, đã hết hạn hoặc chưa được cấp quyền.';
+    } elseif ($http_code === 429) {
+        $error_msg = 'Chatbot đã vượt giới hạn sử dụng. Vui lòng thử lại sau.';
+    }
+    echo json_encode(['status' => 'error', 'message' => $error_msg]);
 }
