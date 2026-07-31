@@ -1,0 +1,53 @@
+/* assets/css/style.css */
+
+:root {
+    --primary-color: #198754; /* Success / Green */
+    --primary-light: #d1e7dd;
+    --secondary-color: #ff9800; /* Orange */
+    --secondary-light: #fff3cd;
+    --text-color: #333333;
+    --bg-color: #f8f9fa;
+    --card-radius: 12px;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
+
+.card {
+    border-radius: var(--card-radius);
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.bg-health {
+    background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+    color: white;
+}
+
+/* Skeleton Loading Animation */
+.skeleton {
+    animation: skeleton-loading 1s linear infinite alternate;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-color: hsl(200, 20%, 80%);
+    }
+    100% {
+        background-color: hsl(200, 20%, 95%);
+    }
+}
