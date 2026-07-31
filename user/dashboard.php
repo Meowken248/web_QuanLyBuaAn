@@ -54,7 +54,7 @@ $cal_left = $cal_target - $cal_used;
             <div class="card bg-health text-white shadow-sm border-0 mb-4">
                 <div class="card-body text-center">
                     <h6 class="mb-3">Có câu hỏi về dinh dưỡng?</h6>
-                    <p class="small">Trợ lý AI Gemini của chúng tôi luôn sẵn sàng hỗ trợ bạn.</p>
+                    <p class="small">Trợ lý AI của chúng tôi luôn sẵn sàng hỗ trợ bạn.</p>
                     <a href="<?php echo BASE_URL; ?>/user/chatbot.php" class="btn btn-light btn-sm fw-bold text-success w-100">Hỏi AI ngay</a>
                 </div>
             </div>

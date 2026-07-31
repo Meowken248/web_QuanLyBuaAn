@@ -58,7 +58,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="card h-100 card-hover text-center p-4">
                     <div class="card-body">
                         <div class="display-5 text-success mb-3"><i class="bi bi-robot"></i></div>
-                        <h4 class="card-title fw-bold">Trợ lý AI Gemini</h4>
+                        <h4 class="card-title fw-bold">Trợ lý AI</h4>
                         <p class="card-text text-muted">Nhận lời khuyên dinh dưỡng cá nhân hóa từ trợ lý AI thông minh.</p>
                     </div>
                 </div>

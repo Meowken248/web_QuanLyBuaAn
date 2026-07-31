@@ -51,6 +51,53 @@ require_once __DIR__ . '/../config/app.php';
             </ul>
             <div class="d-flex align-items-center">
                 <?php if (isset($_SESSION['user_id'])): ?>
+                    <?php
+                        // Đếm số thông báo chưa đọc
+                        if (!isset($conn)) {
+                            require_once __DIR__ . '/../config/database.php';
+                            $db = new Database();
+                            $conn = $db->getConnection();
+                        }
+                        $stmtNotif = $conn->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :user_id AND is_read = 0");
+                        $stmtNotif->execute([':user_id' => $_SESSION['user_id']]);
+                        $unread_count = $stmtNotif->fetchColumn();
+                    ?>
+                    
+                    <div class="dropdown me-3">
+                        <a href="#" class="text-dark position-relative text-decoration-none" id="dropdownNotification" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell fs-4"></i>
+                            <?php if ($unread_count > 0): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                    <?php echo $unread_count > 99 ? '99+' : $unread_count; ?>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 300px;">
+                            <li><h6 class="dropdown-header fw-bold">Thông báo mới</h6></li>
+                            <?php
+                                $stmtList = $conn->prepare("SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT 5");
+                                $stmtList->execute([':user_id' => $_SESSION['user_id']]);
+                                $notifs = $stmtList->fetchAll(PDO::FETCH_ASSOC);
+                                
+                                if (count($notifs) > 0) {
+                                    foreach ($notifs as $n) {
+                                        $bg = $n['is_read'] ? '' : 'bg-light';
+                                        echo '<li><a class="dropdown-item py-2 border-bottom ' . $bg . '" href="' . BASE_URL . '/user/notifications.php">';
+                                        echo '<div class="d-flex w-100 justify-content-between">';
+                                        echo '<h6 class="mb-1 text-truncate" style="max-width: 200px;">' . htmlspecialchars($n['title']) . '</h6>';
+                                        echo '<small class="text-muted" style="font-size: 0.7rem;">' . date('d/m', strtotime($n['created_at'])) . '</small>';
+                                        echo '</div>';
+                                        echo '<p class="mb-0 text-muted text-truncate" style="font-size: 0.8rem; max-width: 250px;">' . htmlspecialchars($n['message']) . '</p>';
+                                        echo '</a></li>';
+                                    }
+                                } else {
+                                    echo '<li><span class="dropdown-item text-muted text-center py-3">Không có thông báo mới</span></li>';
+                                }
+                            ?>
+                            <li><a class="dropdown-item text-center text-primary fw-bold py-2 mt-1" href="<?php echo BASE_URL; ?>/user/notifications.php">Xem tất cả thông báo</a></li>
+                        </ul>
+                    </div>
+
                     <div class="dropdown">
                         <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 38px; height: 38px; font-weight: bold;">
@@ -61,6 +108,8 @@ require_once __DIR__ . '/../config/app.php';
                         <ul class="dropdown-menu dropdown-menu-end text-small shadow border-0 mt-2" aria-labelledby="dropdownUser">
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/profile.php"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
+                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/reminders.php"><i class="bi bi-alarm me-2"></i>Nhắc nhở của tôi</a></li>
+
                             <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item py-2 text-danger fw-bold" href="<?php echo BASE_URL; ?>/admin/index.php"><i class="bi bi-shield-lock me-2"></i>Trang Quản trị</a></li>
