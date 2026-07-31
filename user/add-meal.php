@@ -83,13 +83,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             
             $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-')) . '-' . time();
+            $ingredients = trim($_POST['ingredients'] ?? '');
+            $instructions = trim($_POST['instructions'] ?? '');
             
             $conn = (new Database())->getConnection();
-            $stmt = $conn->prepare("INSERT INTO foods (category_id, name, slug, image, serving_size, serving_unit, calories, protein, carbs, fat, fiber, status, created_by) VALUES (NULL, :name, :slug, :image, :serving_size, :serving_unit, :calories, :protein, :carbs, :fat, 0, 'active', :created_by)");
+            $stmt = $conn->prepare("INSERT INTO foods (category_id, name, slug, image, ingredients, instructions, serving_size, serving_unit, calories, protein, carbs, fat, fiber, status, created_by) VALUES (NULL, :name, :slug, :image, :ingredients, :instructions, :serving_size, :serving_unit, :calories, :protein, :carbs, :fat, 0, 'active', :created_by)");
             $stmt->execute([
                 ':name' => $name,
                 ':slug' => $slug,
                 ':image' => $image_path,
+                ':ingredients' => $ingredients,
+                ':instructions' => $instructions,
                 ':serving_size' => $serving_size,
                 ':serving_unit' => $serving_unit,
                 ':calories' => $calories,
@@ -290,6 +294,15 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Đơn vị <span class="text-danger">*</span></label>
                             <input type="text" class="form-control bg-light border-0" name="serving_unit" value="gram" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-muted fw-bold">Nguyên liệu</label>
+                            <textarea class="form-control bg-light border-0" name="ingredients" rows="3" placeholder="VD: 100g sườn, 1 muỗng mật ong..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted fw-bold">Cách làm</label>
+                            <textarea class="form-control bg-light border-0" name="instructions" rows="3" placeholder="VD: Ướp sườn trong 30 phút, nướng ở 180 độ..."></textarea>
                         </div>
                         
                         <div class="col-12">

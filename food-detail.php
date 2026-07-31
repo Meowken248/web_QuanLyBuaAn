@@ -37,7 +37,33 @@ $img_src = food_image_url($food['image'] ?? null);
     <div class="row">
         <!-- Ảnh và thông tin cơ bản -->
         <div class="col-lg-6 mb-4">
-            <img src="<?php echo $img_src; ?>" class="img-fluid rounded-4 shadow w-100" alt="<?php echo htmlspecialchars($food['name']); ?>" style="max-height: 450px; object-fit: cover;">
+            <img src="<?php echo $img_src; ?>" class="img-fluid rounded-4 shadow w-100 mb-4" alt="<?php echo htmlspecialchars($food['name']); ?>" style="max-height: 450px; object-fit: cover;">
+            
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-success mb-3"><i class="bi bi-basket me-2"></i>Nguyên liệu</h5>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-4">
+                        <?php if (!empty(trim($food['ingredients'] ?? ''))): ?>
+                            <p class="mb-0 text-dark" style="white-space: pre-line;"><?php echo htmlspecialchars($food['ingredients']); ?></p>
+                        <?php else: ?>
+                            <p class="mb-0 text-muted fst-italic">Chưa có thông tin nguyên liệu.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-book me-2"></i>Cách làm</h5>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-4">
+                        <?php if (!empty(trim($food['instructions'] ?? ''))): ?>
+                            <p class="mb-0 text-dark" style="white-space: pre-line;"><?php echo htmlspecialchars($food['instructions']); ?></p>
+                        <?php else: ?>
+                            <p class="mb-0 text-muted fst-italic">Chưa có thông tin cách làm.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Chi tiết dinh dưỡng -->

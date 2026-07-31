@@ -47,16 +47,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $params = [
             ':category_id' => $category_id, ':name' => $name, ':slug' => $slug . ($id ? '-' . $id : '-' . time()),
             ':image' => $image_path,
-            ':description' => trim($_POST['description'] ?? ''), ':serving_size' => $serving_size,
+            ':description' => trim($_POST['description'] ?? ''), 
+            ':ingredients' => trim($_POST['ingredients'] ?? ''),
+            ':instructions' => trim($_POST['instructions'] ?? ''),
+            ':serving_size' => $serving_size,
             ':serving_unit' => trim($_POST['serving_unit'] ?? 'gram'), ':calories' => $nutrients['calories'],
             ':protein' => $nutrients['protein'], ':carbs' => $nutrients['carbs'], ':fat' => $nutrients['fat'],
             ':fiber' => $nutrients['fiber'], ':status' => $_POST['status'] === 'inactive' ? 'inactive' : 'active'
         ];
         if ($id) {
             $params[':id'] = $id;
-            $sql = 'UPDATE foods SET category_id=:category_id,name=:name,slug=:slug,image=:image,description=:description,serving_size=:serving_size,serving_unit=:serving_unit,calories=:calories,protein=:protein,carbs=:carbs,fat=:fat,fiber=:fiber,status=:status WHERE id=:id';
+            $sql = 'UPDATE foods SET category_id=:category_id,name=:name,slug=:slug,image=:image,description=:description,ingredients=:ingredients,instructions=:instructions,serving_size=:serving_size,serving_unit=:serving_unit,calories=:calories,protein=:protein,carbs=:carbs,fat=:fat,fiber=:fiber,status=:status WHERE id=:id';
         } else {
-            $sql = 'INSERT INTO foods (category_id,name,slug,image,description,serving_size,serving_unit,calories,protein,carbs,fat,fiber,status,created_by) VALUES (:category_id,:name,:slug,:image,:description,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,:status,' . (int)$_SESSION['user_id'] . ')';
+            $sql = 'INSERT INTO foods (category_id,name,slug,image,description,ingredients,instructions,serving_size,serving_unit,calories,protein,carbs,fat,fiber,status,created_by) VALUES (:category_id,:name,:slug,:image,:description,:ingredients,:instructions,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,:status,' . (int)$_SESSION['user_id'] . ')';
         }
         $conn->prepare($sql)->execute($params);
         set_flash_message('success', $id ? 'Đã cập nhật món ăn.' : 'Đã thêm món ăn mới.');
@@ -73,7 +76,9 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="row g-3">
 <div class="col-md-8"><label class="form-label">Tên món</label><input class="form-control" name="name" maxlength="200" value="<?php echo old('name', $food['name'] ?? ''); ?>" required></div>
 <div class="col-md-4"><label class="form-label">Danh mục</label><select class="form-select" name="category_id" required><?php foreach ($categories as $c): ?><option value="<?php echo $c['id']; ?>" <?php echo (string)($_POST['category_id'] ?? $food['category_id'] ?? '') === (string)$c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['name']); ?></option><?php endforeach; ?></select></div>
-<div class="col-12"><label class="form-label">Mô tả</label><textarea class="form-control" name="description" rows="3"><?php echo old('description', $food['description'] ?? ''); ?></textarea></div>
+<div class="col-12"><label class="form-label">Mô tả ngắn</label><textarea class="form-control" name="description" rows="2"><?php echo old('description', $food['description'] ?? ''); ?></textarea></div>
+<div class="col-md-6"><label class="form-label">Nguyên liệu</label><textarea class="form-control" name="ingredients" rows="4"><?php echo old('ingredients', $food['ingredients'] ?? ''); ?></textarea></div>
+<div class="col-md-6"><label class="form-label">Cách làm</label><textarea class="form-control" name="instructions" rows="4"><?php echo old('instructions', $food['instructions'] ?? ''); ?></textarea></div>
 <div class="col-12">
     <label class="form-label">Hình ảnh minh họa</label>
     <input type="file" class="form-control" name="image" accept="image/*">
