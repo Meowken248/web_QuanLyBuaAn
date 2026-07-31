@@ -70,38 +70,50 @@ if ($cal_percent > 100) $cal_percent = 100;
         
         <div class="col-md-9">
             <!-- Tóm tắt dinh dưỡng -->
-            <div class="card shadow-sm mb-4 border-0">
-                <div class="card-body">
+            <div class="card glass-panel mb-4 border-0" data-aos="fade-up">
+                <div class="card-body p-4">
                     <?php display_flash_message(); ?>
-                    <h5 class="fw-bold mb-3">Tổng quan dinh dưỡng (<?php echo date('d/m/Y', strtotime($date)); ?>)</h5>
-                    <div class="progress mb-3" style="height: 25px;">
-                        <div class="progress-bar <?php echo $cal_used > $cal_target ? 'bg-danger' : 'bg-success'; ?>" role="progressbar" style="width: <?php echo $cal_percent; ?>%" aria-valuenow="<?php echo $cal_percent; ?>" aria-valuemin="0" aria-valuemax="100">
-                            <?php echo round($cal_used); ?> / <?php echo round($cal_target); ?> kcal
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Tổng quan dinh dưỡng</h5>
+                        <span class="badge bg-light text-dark border"><i class="bi bi-calendar-event me-1"></i><?php echo date('d/m/Y', strtotime($date)); ?></span>
                     </div>
-                    <div class="row text-center mt-3 g-2">
-                        <div class="col">
-                            <div class="p-2 border rounded bg-light">
-                                <span class="d-block text-muted small">Calories còn lại</span>
-                                <strong class="<?php echo $cal_left < 0 ? 'text-danger' : 'text-success'; ?>"><?php echo round($cal_left); ?></strong>
+                    
+                    <div class="progress mb-4" style="height: 12px; border-radius: 10px; background-color: rgba(0,0,0,0.05);">
+                        <div class="progress-bar <?php echo $cal_used > $cal_target ? 'bg-danger' : 'bg-gradient'; ?>" role="progressbar" style="width: <?php echo $cal_percent; ?>%; background: var(--gradient-primary);" aria-valuenow="<?php echo $cal_percent; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-4 small fw-bold">
+                        <span class="text-muted">Đã nạp: <span class="text-dark"><?php echo round($cal_used); ?> kcal</span></span>
+                        <span class="text-muted">Mục tiêu: <span class="text-dark"><?php echo round($cal_target); ?> kcal</span></span>
+                    </div>
+                    
+                    <div class="row text-center g-3">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border-0 rounded-4 shadow-sm bg-white card-hover h-100">
+                                <div class="mb-2"><i class="bi bi-fire text-danger fs-4"></i></div>
+                                <span class="d-block text-muted small fw-medium mb-1">Calories còn lại</span>
+                                <h4 class="mb-0 fw-bold <?php echo $cal_left < 0 ? 'text-danger' : 'text-success'; ?>"><?php echo round($cal_left); ?></h4>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="p-2 border rounded bg-light">
-                                <span class="d-block text-muted small">Protein</span>
-                                <strong><?php echo round($dailyNutrition['protein']); ?>g</strong>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border-0 rounded-4 shadow-sm bg-white card-hover h-100">
+                                <div class="mb-2"><i class="bi bi-egg-fried text-warning fs-4"></i></div>
+                                <span class="d-block text-muted small fw-medium mb-1">Protein</span>
+                                <h4 class="mb-0 fw-bold text-dark"><?php echo round($dailyNutrition['protein']); ?>g</h4>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="p-2 border rounded bg-light">
-                                <span class="d-block text-muted small">Carbs</span>
-                                <strong><?php echo round($dailyNutrition['carbs']); ?>g</strong>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border-0 rounded-4 shadow-sm bg-white card-hover h-100">
+                                <div class="mb-2"><i class="bi bi-heptagon-half text-info fs-4"></i></div>
+                                <span class="d-block text-muted small fw-medium mb-1">Carbs</span>
+                                <h4 class="mb-0 fw-bold text-dark"><?php echo round($dailyNutrition['carbs']); ?>g</h4>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="p-2 border rounded bg-light">
-                                <span class="d-block text-muted small">Fat</span>
-                                <strong><?php echo round($dailyNutrition['fat']); ?>g</strong>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border-0 rounded-4 shadow-sm bg-white card-hover h-100">
+                                <div class="mb-2"><i class="bi bi-droplet-fill text-primary fs-4"></i></div>
+                                <span class="d-block text-muted small fw-medium mb-1">Fat</span>
+                                <h4 class="mb-0 fw-bold text-dark"><?php echo round($dailyNutrition['fat']); ?>g</h4>
                             </div>
                         </div>
                     </div>
@@ -109,27 +121,37 @@ if ($cal_percent > 100) $cal_percent = 100;
             </div>
 
             <!-- Danh sách bữa ăn -->
-            <?php foreach ($meal_types as $type_key => $type_name): ?>
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                    <h5 class="mb-0 fw-bold text-success"><i class="bi bi-cup-hot me-2"></i><?php echo $type_name; ?></h5>
-                    <a href="<?php echo BASE_URL; ?>/user/add-meal.php?date=<?php echo $date; ?>&type=<?php echo $type_key; ?>" class="btn btn-sm btn-outline-success"><i class="bi bi-plus-lg"></i> Thêm món</a>
+            <?php 
+            $delay = 100;
+            foreach ($meal_types as $type_key => $type_name): 
+            ?>
+            <div class="card card-premium mb-4 border-0 shadow-sm" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 px-4">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-cup-hot-fill"></i>
+                        </div>
+                        <?php echo $type_name; ?>
+                    </h5>
+                    <a href="<?php echo BASE_URL; ?>/user/add-meal.php?date=<?php echo $date; ?>&type=<?php echo $type_key; ?>" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm btn-glow"><i class="bi bi-plus-lg me-1"></i>Thêm</a>
                 </div>
                 <div class="card-body p-0">
                     <?php if (empty($dailyMeals[$type_key])): ?>
-                        <div class="text-center p-4 text-muted">
-                            Chưa có món ăn nào trong bữa này.
+                        <div class="text-center p-5 text-muted bg-light">
+                            <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+                            <p class="mb-0">Chưa có món ăn nào.</p>
+                            <a href="<?php echo BASE_URL; ?>/user/add-meal.php?date=<?php echo $date; ?>&type=<?php echo $type_key; ?>" class="text-success text-decoration-none small fw-medium mt-2 d-inline-block">Bấm vào đây để thêm món</a>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle">
-                                <thead class="table-light">
+                            <table class="table table-hover mb-0 align-middle border-top">
+                                <thead class="table-light text-muted small text-uppercase">
                                     <tr>
-                                        <th>Món ăn</th>
+                                        <th class="ps-4">Món ăn</th>
                                         <th>Khẩu phần</th>
                                         <th>Calories</th>
                                         <th>Macros</th>
-                                        <th class="text-end">Hành động</th>
+                                        <th class="text-end pe-4">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -139,29 +161,29 @@ if ($cal_percent > 100) $cal_percent = 100;
                                         $meal_cals += $item['calories'];
                                     ?>
                                     <tr>
-                                        <td class="fw-medium"><?php echo htmlspecialchars($item['food_name']); ?></td>
-                                        <td><?php echo floatval($item['quantity']); ?> <?php echo htmlspecialchars($item['unit']); ?> (<?php echo floatval($item['calculated_grams']); ?>g)</td>
-                                        <td class="text-danger fw-bold"><?php echo floatval($item['calories']); ?> kcal</td>
-                                        <td class="small text-muted">
-                                            P: <?php echo floatval($item['protein']); ?> | 
-                                            C: <?php echo floatval($item['carbs']); ?> | 
-                                            F: <?php echo floatval($item['fat']); ?>
+                                        <td class="ps-4 fw-bold text-dark"><?php echo htmlspecialchars($item['food_name']); ?></td>
+                                        <td class="text-muted"><?php echo floatval($item['quantity']); ?> <?php echo htmlspecialchars($item['unit']); ?> <span class="small opacity-50">(<?php echo floatval($item['calculated_grams']); ?>g)</span></td>
+                                        <td><span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1"><?php echo floatval($item['calories']); ?> kcal</span></td>
+                                        <td class="small fw-medium">
+                                            <span class="text-warning">P: <?php echo floatval($item['protein']); ?></span> | 
+                                            <span class="text-info">C: <?php echo floatval($item['carbs']); ?></span> | 
+                                            <span class="text-primary">F: <?php echo floatval($item['fat']); ?></span>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end pe-4">
                                             <form method="POST" action="" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa?');">
                                                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                                 <input type="hidden" name="action" value="delete_item">
                                                 <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                                <button type="submit" class="btn btn-sm btn-light text-danger rounded-circle border shadow-sm" style="width: 32px; height: 32px; padding: 0;"><i class="bi bi-trash"></i></button>
                                             </form>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
-                                <tfoot class="table-light fw-bold">
+                                <tfoot class="bg-light fw-bold text-dark">
                                     <tr>
-                                        <td colspan="2" class="text-end">Tổng cộng:</td>
-                                        <td colspan="3" class="text-danger"><?php echo floatval($meal_cals); ?> kcal</td>
+                                        <td colspan="2" class="text-end py-3">Tổng cộng:</td>
+                                        <td colspan="3" class="text-danger py-3 pe-4"><?php echo floatval($meal_cals); ?> kcal</td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -169,7 +191,10 @@ if ($cal_percent > 100) $cal_percent = 100;
                     <?php endif; ?>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <?php 
+            $delay += 100;
+            endforeach; 
+            ?>
             
         </div>
     </div>

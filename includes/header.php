@@ -20,13 +20,16 @@ require_once __DIR__ . '/../config/app.php';
     <!-- Custom CSS -->
     <link href="<?php echo BASE_URL; ?>/assets/css/style.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/style.css'); ?>" rel="stylesheet">
     
+    <!-- AOS CSS -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
 <body class="bg-light">
 
 <!-- Navbar Public -->
 <?php if (!isset($hide_navbar) || !$hide_navbar): ?>
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+<nav class="navbar navbar-expand-lg navbar-light glass-navbar shadow-soft sticky-top">
     <div class="container">
         <a class="navbar-brand company-brand" href="<?php echo BASE_URL; ?>" aria-label="<?php echo htmlspecialchars(APP_NAME); ?>">
             <img src="<?php echo BASE_URL; ?>/img/logo_cty.png" alt="<?php echo htmlspecialchars(APP_NAME); ?>" class="company-logo company-logo-navbar">
@@ -151,7 +154,7 @@ require_once __DIR__ . '/../config/app.php';
 
                     <div class="dropdown">
                         <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 38px; height: 38px; font-weight: bold;">
+                            <div class="bg-health text-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 38px; height: 38px; font-weight: bold;">
                                 <?php echo strtoupper(substr($_SESSION['full_name'] ?? 'U', 0, 1)); ?>
                             </div>
                             <strong class="d-none d-md-block"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Tài khoản'); ?></strong>
@@ -173,8 +176,8 @@ require_once __DIR__ . '/../config/app.php';
                         </ul>
                     </div>
                 <?php else: ?>
-                    <a href="<?php echo BASE_URL; ?>/auth/login.php" class="btn btn-outline-success me-2">Đăng nhập</a>
-                    <a href="<?php echo BASE_URL; ?>/auth/register.php" class="btn btn-success">Đăng ký miễn phí</a>
+                    <a href="<?php echo BASE_URL; ?>/auth/login.php" class="btn btn-outline-success me-2 fw-bold">Đăng nhập</a>
+                    <a href="<?php echo BASE_URL; ?>/auth/register.php" class="btn btn-success btn-glow">Đăng ký miễn phí</a>
                 <?php endif; ?>
             </div>
         </div>

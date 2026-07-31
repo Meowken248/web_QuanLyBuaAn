@@ -104,114 +104,161 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
         <div class="col-md-9">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white p-3 border-bottom">
-                    <h4 class="mb-0 fw-bold text-success">Thiết lập Hồ sơ Sức khỏe</h4>
+            <div class="card glass-panel border-0" data-aos="fade-up">
+                <div class="card-header bg-white bg-opacity-75 p-4 border-0 d-flex align-items-center rounded-top-4">
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-gear fs-4"></i>
+                    </div>
+                    <h4 class="mb-0 fw-bold text-dark">Thiết lập Hồ sơ Sức khỏe</h4>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4 p-lg-5">
                     <?php display_flash_message(); ?>
                     
                     <form method="POST" action="">
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         
-                        <h5 class="mb-3 text-secondary">Thông tin cơ bản</h5>
-                        <div class="row mb-4">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Ngày sinh</label>
-                                <input type="date" class="form-control" name="date_of_birth" value="<?php echo htmlspecialchars($profile['date_of_birth'] ?? ''); ?>" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Giới tính</label>
-                                <select class="form-select" name="gender" required>
-                                    <option value="male" <?php echo (isset($profile['gender']) && $profile['gender'] == 'male') ? 'selected' : ''; ?>>Nam</option>
-                                    <option value="female" <?php echo (isset($profile['gender']) && $profile['gender'] == 'female') ? 'selected' : ''; ?>>Nữ</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Chiều cao (cm)</label>
-                                <input type="number" class="form-control" name="height" value="<?php echo htmlspecialchars($profile['height'] ?? ''); ?>" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Cân nặng (kg)</label>
-                                <input type="number" step="0.1" class="form-control" name="current_weight" value="<?php echo htmlspecialchars($profile['current_weight'] ?? ''); ?>" required>
+                        <div class="mb-5" data-aos="fade-up" data-aos-delay="100">
+                            <h5 class="mb-4 text-success fw-bold d-flex align-items-center"><i class="bi bi-info-circle me-2"></i>Thông tin cơ bản</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control bg-light border-0" id="dob" name="date_of_birth" value="<?php echo htmlspecialchars($profile['date_of_birth'] ?? ''); ?>" required>
+                                        <label for="dob" class="text-muted">Ngày sinh</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select bg-light border-0" id="gender" name="gender" required>
+                                            <option value="male" <?php echo (isset($profile['gender']) && $profile['gender'] == 'male') ? 'selected' : ''; ?>>Nam</option>
+                                            <option value="female" <?php echo (isset($profile['gender']) && $profile['gender'] == 'female') ? 'selected' : ''; ?>>Nữ</option>
+                                        </select>
+                                        <label for="gender" class="text-muted">Giới tính</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control bg-light border-0" id="height" name="height" value="<?php echo htmlspecialchars($profile['height'] ?? ''); ?>" required placeholder="cm">
+                                        <label for="height" class="text-muted">Chiều cao (cm)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" step="0.1" class="form-control bg-light border-0" id="weight" name="current_weight" value="<?php echo htmlspecialchars($profile['current_weight'] ?? ''); ?>" required placeholder="kg">
+                                        <label for="weight" class="text-muted">Cân nặng (kg)</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <h5 class="mb-3 text-secondary">Mục tiêu & Thói quen</h5>
-                        <div class="row mb-4">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Mức độ vận động</label>
-                                <select class="form-select" name="activity_level" required>
-                                    <option value="sedentary" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'sedentary') ? 'selected' : ''; ?>>Ít vận động</option>
-                                    <option value="light" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'light') ? 'selected' : ''; ?>>Vận động nhẹ</option>
-                                    <option value="moderate" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'moderate') ? 'selected' : ''; ?>>Vận động vừa</option>
-                                    <option value="active" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'active') ? 'selected' : ''; ?>>Vận động nhiều</option>
-                                    <option value="very_active" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'very_active') ? 'selected' : ''; ?>>Vận động rất nhiều</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Mục tiêu sức khỏe</label>
-                                <select class="form-select" name="health_goal" required>
-                                    <option value="lose_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'lose_weight') ? 'selected' : ''; ?>>Giảm cân</option>
-                                    <option value="gain_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_weight') ? 'selected' : ''; ?>>Tăng cân</option>
-                                    <option value="keep_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'keep_weight') ? 'selected' : ''; ?>>Giữ cân</option>
-                                    <option value="gain_muscle" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_muscle') ? 'selected' : ''; ?>>Tăng cơ</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Chế độ ăn yêu thích</label>
-                                <select class="form-select" name="diet_type">
-                                    <option value="standard" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'standard') ? 'selected' : ''; ?>>Bình thường</option>
-                                    <option value="vegetarian" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'vegetarian') ? 'selected' : ''; ?>>Ăn chay</option>
-                                    <option value="keto" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'keto') ? 'selected' : ''; ?>>Keto (Ít carb)</option>
-                                    <option value="eat_clean" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'eat_clean') ? 'selected' : ''; ?>>Eat Clean</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Số bữa ăn/ngày mong muốn</label>
-                                <input type="number" class="form-control" name="meals_per_day" value="<?php echo htmlspecialchars($profile['meals_per_day'] ?? '3'); ?>" min="1" max="6">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Dị ứng thực phẩm</label>
-                                <input type="text" class="form-control" name="allergies" value="<?php echo htmlspecialchars($profile['allergies'] ?? ''); ?>" placeholder="VD: Hải sản, đậu phộng...">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Thực phẩm không thích</label>
-                                <input type="text" class="form-control" name="disliked_foods" value="<?php echo htmlspecialchars($profile['disliked_foods'] ?? ''); ?>" placeholder="VD: Hành, ngò...">
+                        <div class="mb-5" data-aos="fade-up" data-aos-delay="200">
+                            <h5 class="mb-4 text-success fw-bold d-flex align-items-center"><i class="bi bi-bullseye me-2"></i>Mục tiêu & Thói quen</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select bg-light border-0" id="activity" name="activity_level" required>
+                                            <option value="sedentary" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'sedentary') ? 'selected' : ''; ?>>Ít vận động</option>
+                                            <option value="light" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'light') ? 'selected' : ''; ?>>Vận động nhẹ</option>
+                                            <option value="moderate" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'moderate') ? 'selected' : ''; ?>>Vận động vừa</option>
+                                            <option value="active" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'active') ? 'selected' : ''; ?>>Vận động nhiều</option>
+                                            <option value="very_active" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'very_active') ? 'selected' : ''; ?>>Vận động rất nhiều</option>
+                                        </select>
+                                        <label for="activity" class="text-muted">Mức độ vận động</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select bg-light border-0" id="goal" name="health_goal" required>
+                                            <option value="lose_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'lose_weight') ? 'selected' : ''; ?>>Giảm cân</option>
+                                            <option value="gain_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_weight') ? 'selected' : ''; ?>>Tăng cân</option>
+                                            <option value="keep_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'keep_weight') ? 'selected' : ''; ?>>Giữ cân</option>
+                                            <option value="gain_muscle" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_muscle') ? 'selected' : ''; ?>>Tăng cơ</option>
+                                        </select>
+                                        <label for="goal" class="text-muted">Mục tiêu sức khỏe</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select bg-light border-0" id="diet" name="diet_type">
+                                            <option value="standard" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'standard') ? 'selected' : ''; ?>>Bình thường</option>
+                                            <option value="vegetarian" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'vegetarian') ? 'selected' : ''; ?>>Ăn chay</option>
+                                            <option value="keto" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'keto') ? 'selected' : ''; ?>>Keto (Ít carb)</option>
+                                            <option value="eat_clean" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'eat_clean') ? 'selected' : ''; ?>>Eat Clean</option>
+                                        </select>
+                                        <label for="diet" class="text-muted">Chế độ ăn yêu thích</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control bg-light border-0" id="meals_per_day" name="meals_per_day" value="<?php echo htmlspecialchars($profile['meals_per_day'] ?? '3'); ?>" min="1" max="6" placeholder="3">
+                                        <label for="meals_per_day" class="text-muted">Số bữa ăn/ngày mong muốn</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control bg-light border-0" id="allergies" name="allergies" value="<?php echo htmlspecialchars($profile['allergies'] ?? ''); ?>" placeholder="VD: Hải sản, đậu phộng...">
+                                        <label for="allergies" class="text-muted">Dị ứng thực phẩm</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control bg-light border-0" id="disliked" name="disliked_foods" value="<?php echo htmlspecialchars($profile['disliked_foods'] ?? ''); ?>" placeholder="VD: Hành, ngò...">
+                                        <label for="disliked" class="text-muted">Thực phẩm không thích</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-success px-4">Lưu hồ sơ & Tính toán</button>
+                        <div class="d-flex justify-content-end" data-aos="fade-up" data-aos-delay="300">
+                            <button type="submit" class="btn btn-success btn-glow px-5 py-3 rounded-pill fw-bold text-uppercase shadow-sm">
+                                <i class="bi bi-save me-2"></i>Lưu hồ sơ & Tính toán
+                            </button>
                         </div>
                     </form>
                     
                     <?php if ($profile): ?>
-                        <hr class="my-5">
-                        <h5 class="mb-4 text-success fw-bold"><i class="bi bi-calculator me-2"></i>Kết quả tính toán</h5>
-                        <div class="row text-center">
-                            <div class="col-md-4 mb-3">
-                                <div class="p-3 bg-light rounded shadow-sm border">
-                                    <h6 class="text-muted">BMR</h6>
-                                    <h3 class="text-primary fw-bold"><?php echo $profile['bmr']; ?> <small class="fs-6 text-muted">kcal</small></h3>
+                        <div class="mt-5 pt-4 border-top" data-aos="fade-up" data-aos-delay="400">
+                            <h5 class="mb-4 text-dark fw-bold d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-calculator-fill"></i>
+                                </div>
+                                Kết quả tính toán
+                            </h5>
+                            <div class="row g-4 text-center">
+                                <div class="col-md-4">
+                                    <div class="p-4 bg-white rounded-4 shadow-sm border-0 card-hover h-100 position-relative overflow-hidden">
+                                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-secondary bg-opacity-10" style="z-index: 0;"></div>
+                                        <div class="position-relative z-index-1">
+                                            <h6 class="text-muted text-uppercase small fw-bold mb-3">BMR <i class="bi bi-info-circle ms-1" title="Tỷ lệ trao đổi chất cơ bản"></i></h6>
+                                            <h2 class="text-secondary fw-bold mb-0"><?php echo $profile['bmr']; ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-4 bg-white rounded-4 shadow-sm border-0 card-hover h-100 position-relative overflow-hidden">
+                                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-warning bg-opacity-10" style="z-index: 0;"></div>
+                                        <div class="position-relative z-index-1">
+                                            <h6 class="text-muted text-uppercase small fw-bold mb-3">TDEE <i class="bi bi-info-circle ms-1" title="Tổng năng lượng tiêu hao mỗi ngày"></i></h6>
+                                            <h2 class="text-warning fw-bold mb-0"><?php echo $profile['tdee']; ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-4 bg-white rounded-4 shadow-sm border-0 card-hover h-100 position-relative overflow-hidden">
+                                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-success bg-opacity-10" style="z-index: 0;"></div>
+                                        <div class="position-relative z-index-1">
+                                            <h6 class="text-success text-uppercase small fw-bold mb-3">Mục tiêu/ngày</h6>
+                                            <h2 class="text-success fw-bold mb-0"><?php echo $profile['calorie_target']; ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="p-3 bg-light rounded shadow-sm border">
-                                    <h6 class="text-muted">TDEE</h6>
-                                    <h3 class="text-warning fw-bold"><?php echo $profile['tdee']; ?> <small class="fs-6 text-muted">kcal</small></h3>
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="alert bg-light border-0 text-muted small d-flex align-items-center rounded-3">
+                                        <i class="bi bi-lightbulb text-warning fs-5 me-3"></i>
+                                        <div><strong>Lưu ý:</strong> Các kết quả trên sử dụng công thức Mifflin-St Jeor. Kết quả chỉ mang tính chất tham khảo, không thay thế chẩn đoán y tế.</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="p-3 bg-light rounded shadow-sm border border-success">
-                                    <h6 class="text-success">Mục tiêu/ngày</h6>
-                                    <h3 class="text-success fw-bold"><?php echo $profile['calorie_target']; ?> <small class="fs-6 text-muted">kcal</small></h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <p class="text-muted small"><strong>Lưu ý:</strong> Các kết quả trên sử dụng công thức Mifflin-St Jeor. Kết quả chỉ mang tính chất tham khảo, không thay thế chẩn đoán y tế.</p>
                             </div>
                         </div>
                     <?php endif; ?>

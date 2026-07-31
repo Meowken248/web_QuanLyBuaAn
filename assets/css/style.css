@@ -1,89 +1,273 @@
-/* assets/css/style.css */
+/* assets/css/style.css - Premium Modern Design System */
 
 :root {
-    --primary-color: #198754; /* Success / Green */
-    --primary-light: #d1e7dd;
-    --secondary-color: #ff9800; /* Orange */
-    --secondary-light: #fff3cd;
-    --text-color: #333333;
-    --bg-color: #f8f9fa;
-    --card-radius: 12px;
+    /* Brand Colors - Emerald Theme */
+    --primary-color: #059669; /* Emerald 600 */
+    --primary-light: #34d399; /* Emerald 400 */
+    --primary-dark: #047857; /* Emerald 700 */
+    --primary-bg: #ecfdf5; /* Emerald 50 */
+    
+    --secondary-color: #f59e0b; /* Amber 500 */
+    --secondary-light: #fbbf24;
+    --secondary-bg: #fffbeb;
+    
+    /* Neutral Colors */
+    --text-color: #1f2937; /* Gray 800 */
+    --text-muted: #6b7280; /* Gray 500 */
+    --bg-color: #f3f4f6; /* Gray 100 */
+    --card-bg: #ffffff;
+    --border-color: #e5e7eb;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    --gradient-health: linear-gradient(135deg, #047857 0%, #34d399 100%);
+    --gradient-glow: linear-gradient(135deg, rgba(5, 150, 105, 0.4) 0%, rgba(16, 185, 129, 0) 100%);
+    --gradient-dark: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    
+    /* Shadows - iOS Style Soft Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-glow: 0 0 20px rgba(5, 150, 105, 0.3);
+    
+    /* Border Radius */
+    --radius-sm: 0.5rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.5rem;
+    --radius-xl: 2rem;
+    
+    /* Transitions */
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Base Styles */
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--text-color);
     background-color: var(--bg-color);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(52, 211, 153, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
+    background-attachment: fixed;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
 
+h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
+    font-weight: 700;
+}
+
+/* Glassmorphism Classes */
+.glass-navbar {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
+}
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-lg);
+}
+
+/* Premium Cards */
 .card {
-    border-radius: var(--card-radius);
-    border: none;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0,0,0,0.03);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-bounce);
+    background-color: var(--card-bg);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+.card-footer {
+    background-color: transparent;
+    border-top: 1px solid rgba(0,0,0,0.03);
 }
 
 .card-hover:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(5, 150, 105, 0.1);
 }
 
+.card-premium {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+    border: none;
+    box-shadow: var(--shadow-lg);
+}
+
+.card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: var(--gradient-primary);
+    z-index: 1;
+}
+
+/* Modern Buttons */
 .btn {
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    transition: all var(--transition-base);
+    letter-spacing: 0.01em;
+}
+
+.btn-primary, .btn-success {
+    background: var(--gradient-primary) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover, .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+    background: var(--gradient-health) !important;
+}
+
+.btn-primary:active, .btn-success:active {
+    transform: translateY(0);
+}
+
+.btn-glow {
+    position: relative;
+    z-index: 1;
+}
+.btn-glow::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    background: var(--gradient-primary);
+    filter: blur(15px);
+    z-index: -1;
+    opacity: 0.5;
+    transition: opacity var(--transition-base);
+}
+.btn-glow:hover::after {
+    opacity: 0.8;
+}
+
+/* Gradient Texts & Backgrounds */
+.text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .bg-health {
-    background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+    background: var(--gradient-health);
     color: white;
 }
 
-/* Skeleton Loading Animation */
-.skeleton {
-    animation: skeleton-loading 1s linear infinite alternate;
+.bg-dark-gradient {
+    background: var(--gradient-dark);
+    color: white;
 }
 
-@keyframes skeleton-loading {
-    0% {
-        background-color: hsl(200, 20%, 80%);
-    }
-    100% {
-        background-color: hsl(200, 20%, 95%);
-    }
+/* Inputs & Forms */
+.form-control, .form-select {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 1rem;
+    transition: all var(--transition-base);
+    background-color: rgba(255, 255, 255, 0.9);
 }
-/* Company logo */
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
+    background-color: #ffffff;
+}
+
+/* Utilities */
+.shadow-soft { box-shadow: var(--shadow-md); }
+.shadow-heavy { box-shadow: var(--shadow-lg); }
+
+.avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-lg {
+    width: 80px; height: 80px;
+}
+
+.badge {
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* Company logo overrides */
 .company-brand {
     display: inline-flex;
     align-items: center;
     margin-right: 1.5rem;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
 }
-
 .company-logo {
     display: block;
     width: auto;
     max-width: 100%;
     object-fit: contain;
+    transition: transform var(--transition-base);
 }
-
+.company-logo:hover {
+    transform: scale(1.05);
+}
 .company-logo-navbar {
     height: 48px;
     max-width: 190px;
 }
-
 .company-logo-footer {
     height: 72px;
     max-width: 240px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
 }
 
 @media (max-width: 575.98px) {
     .company-logo-navbar {
         height: 40px;
         max-width: 145px;
-    }
-
-    .company-brand {
-        margin-right: 0.5rem;
     }
 }

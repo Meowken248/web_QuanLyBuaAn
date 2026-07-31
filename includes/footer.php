@@ -59,35 +59,35 @@
 <?php if (isset($_SESSION['user_id']) && (!isset($hide_footer) || !$hide_footer)): ?>
 <div id="chatbot-bubble-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1050; display: flex; flex-direction: column; align-items: flex-end;">
     <!-- Cửa sổ Chat -->
-    <div id="chatbot-window" class="card shadow-lg d-none mb-3" style="width: 350px; max-width: calc(100vw - 40px); border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center p-3">
+    <div id="chatbot-window" class="glass-panel d-none mb-3" style="width: 350px; max-width: calc(100vw - 40px); overflow: hidden; display: flex; flex-direction: column;">
+        <div class="card-header bg-health text-white d-flex justify-content-between align-items-center p-3 border-0">
             <div class="d-flex align-items-center">
                 <i class="bi bi-robot fs-4 me-2"></i>
-                <h6 class="mb-0 fw-bold">Gemini Dinh Dưỡng</h6>
+                <h6 class="mb-0 fw-bold">Trợ lý AI Dinh Dưỡng</h6>
             </div>
             <div>
                 <button class="btn btn-sm btn-link text-white p-0 me-2" id="chatbot-clear-btn" title="Xóa trò chuyện"><i class="bi bi-trash fs-5"></i></button>
                 <button class="btn btn-sm btn-link text-white p-0" id="chatbot-close-btn"><i class="bi bi-x-lg fs-5"></i></button>
             </div>
         </div>
-        <div class="card-body p-3 bg-light flex-grow-1" id="chatbot-messages" style="height: 350px; overflow-y: auto;">
+        <div class="card-body p-3 flex-grow-1" id="chatbot-messages" style="height: 350px; overflow-y: auto; background-color: rgba(255,255,255,0.7);">
             <div class="text-center text-muted small mb-3">
                 Cuộc trò chuyện bắt đầu<br><?php echo date('d/m/Y H:i'); ?>
             </div>
             
             <div class="d-flex mb-3">
-                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 35px; height: 35px;">
+                <div class="bg-health text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0 shadow-sm" style="width: 35px; height: 35px;">
                     <i class="bi bi-robot"></i>
                 </div>
                 <div class="bg-white border rounded p-2 small shadow-sm">
-                    Xin chào! Tôi là trợ lý ảo Gemini. Tôi có thể giúp gì cho mục tiêu sức khỏe của bạn hôm nay?
+                    Xin chào! Tôi là trợ lý ảo AI. Tôi có thể giúp gì cho mục tiêu sức khỏe của bạn hôm nay?
                 </div>
             </div>
         </div>
-        <div class="card-footer p-2 bg-white border-top mt-auto">
+        <div class="card-footer p-2 bg-white border-top mt-auto" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
             <form id="chatbot-form" class="d-flex align-items-center m-0">
-                <input type="text" id="chatbot-input" class="form-control border-0 bg-light me-2 rounded-pill px-3 py-2" placeholder="Nhập câu hỏi..." autocomplete="off" required style="box-shadow: none;">
-                <button type="submit" class="btn btn-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 p-0" style="width: 40px; height: 40px; border: none;">
+                <input type="text" id="chatbot-input" class="form-control bg-light me-2 rounded-pill px-3 py-2" placeholder="Nhập câu hỏi..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 p-0 shadow-sm" style="width: 40px; height: 40px;">
                     <i class="bi bi-send-fill"></i>
                 </button>
             </form>
@@ -95,7 +95,7 @@
     </div>
     
     <!-- Nút mở chat -->
-    <button id="chatbot-toggle-btn" class="btn btn-success rounded-circle shadow-lg d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border: 3px solid white; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;">
+    <button id="chatbot-toggle-btn" class="btn btn-primary btn-glow rounded-circle shadow-heavy d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border: 3px solid white; outline: none;">
         <i class="bi bi-chat-dots-fill fs-3 text-white"></i>
     </button>
 </div>
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center ms-2 flex-shrink-0" style="width: 35px; height: 35px;">
                     <i class="bi bi-person"></i>
                 </div>
-                <div class="bg-success text-white rounded p-2 small shadow-sm">
+                <div class="bg-health text-white rounded p-2 small shadow-sm">
                     ${question.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
                 </div>
             </div>`;
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const loadingId = 'loading-' + Date.now();
             const loadingHtml = `
             <div id="${loadingId}" class="d-flex mb-3">
-                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 35px; height: 35px;">
+                <div class="bg-health text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 35px; height: 35px;">
                     <i class="bi bi-robot"></i>
                 </div>
                 <div class="bg-white border rounded p-2 small shadow-sm text-muted">
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.status === 'success') {
                     responseHtml = `
                     <div class="d-flex mb-3">
-                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 35px; height: 35px;">
+                        <div class="bg-health text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 35px; height: 35px;">
                             <i class="bi bi-robot"></i>
                         </div>
                         <div class="bg-white border rounded p-2 small shadow-sm">
@@ -221,5 +221,19 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <?php endif; ?>
 
+<!-- AOS JS -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof AOS !== 'undefined') {
+            AOS.init({
+                duration: 800,
+                once: true,
+                offset: 50,
+                easing: 'ease-out-cubic'
+            });
+        }
+    });
+</script>
 </body>
 </html>
