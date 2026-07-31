@@ -46,6 +46,48 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php echo date('d/m/Y H:i'); ?>
                     </div>
                     
+                    <?php
+                        $conversation_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+                        $has_history = false;
+                        if ($conversation_id > 0) {
+                            require_once __DIR__ . '/../config/database.php';
+                            $db = new Database();
+                            $conn = $db->getConnection();
+                            
+                            $stmtCheck = $conn->prepare("SELECT id FROM chat_conversations WHERE id = :id AND user_id = :uid");
+                            $stmtCheck->execute([':id' => $conversation_id, ':uid' => $_SESSION['user_id']]);
+                            
+                            if ($stmtCheck->rowCount() > 0) {
+                                $has_history = true;
+                                $stmtMsgs = $conn->prepare("SELECT * FROM chat_messages WHERE conversation_id = :id ORDER BY id ASC");
+                                $stmtMsgs->execute([':id' => $conversation_id]);
+                                $msgs = $stmtMsgs->fetchAll(PDO::FETCH_ASSOC);
+                                
+                                foreach ($msgs as $m) {
+                                    if ($m['sender'] === 'user') {
+                                        echo '<div class="d-flex mb-4 justify-content-end">';
+                                        echo '<div class="flex-grow-1 text-end"><div class="bg-success text-white p-3 rounded shadow-sm d-inline-block text-start">' . htmlspecialchars($m['message']) . '</div></div>';
+                                        echo '<div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 40px; height: 40px;"><i class="bi bi-person"></i></div>';
+                                        echo '</div>';
+                                    } elseif ($m['sender'] === 'assistant') {
+                                        echo '<div class="d-flex mb-4">';
+                                        echo '<div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;"><i class="bi bi-robot"></i></div>';
+                                        
+                                        $htmlMsg = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $m['message']);
+                                        $htmlMsg = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $htmlMsg);
+                                        $htmlMsg = nl2br($htmlMsg);
+                                        
+                                        echo '<div class="flex-grow-1"><div class="bg-white p-3 rounded shadow-sm d-inline-block border">' . $htmlMsg . '</div></div>';
+                                        echo '</div>';
+                                    }
+                                }
+                            } else {
+                                $conversation_id = 0;
+                            }
+                        }
+                    ?>
+                    
+                    <?php if (!$has_history): ?>
                     <!-- Lời chào mặc định -->
                     <div class="d-flex mb-4">
                         <div class="flex-shrink-0">
@@ -55,10 +97,11 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                         <div class="flex-grow-1 ms-3">
                             <div class="bg-white p-3 rounded shadow-sm d-inline-block border">
-                                Xin chào <b><?php echo htmlspecialchars($_SESSION['user_name']); ?></b>! Tôi là trợ lý ảo Gemini. Tôi có thể giúp gì cho mục tiêu sức khỏe của bạn hôm nay?
+                                Xin chào <b><?php echo htmlspecialchars($_SESSION['user_name'] ?? ''); ?></b>! Tôi là trợ lý ảo Gemini. Tôi có thể giúp gì cho mục tiêu sức khỏe của bạn hôm nay?
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="card-footer bg-white p-3 border-0 border-top">
@@ -146,6 +189,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loading) loading.remove();
     }
     
+    let currentConversationId = <?php echo isset($conversation_id) ? (int)$conversation_id : 0; ?>;
+
     // Send request to API
     async function sendMessage(question) {
         if (!question.trim()) return;
@@ -161,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('<?php echo BASE_URL; ?>/api/chatbot/ask.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question })
+                body: JSON.stringify({ question: question, conversation_id: currentConversationId })
             });
             
             const data = await response.json();
@@ -169,6 +214,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.status === 'success') {
                 appendMessage('bot', data.answer);
+                if (data.conversation_id) {
+                    currentConversationId = data.conversation_id;
+                    // Tự động cập nhật URL nếu là chat mới
+                    if (!window.location.search.includes('id=')) {
+                        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + currentConversationId;
+                        window.history.pushState({path:newUrl}, '', newUrl);
+                    }
+                }
             } else {
                 appendMessage('bot', `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Lỗi: ${data.message}</span>`);
             }
@@ -195,13 +248,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     clearChatBtn.addEventListener('click', function() {
-        if(confirm('Xóa lịch sử trò chuyện?')) {
-            // Keep the first message
-            const firstMsg = chatBox.children[0];
-            const secondMsg = chatBox.children[1];
-            chatBox.innerHTML = '';
-            chatBox.appendChild(firstMsg);
-            chatBox.appendChild(secondMsg);
+        if(confirm('Bạn có muốn tạo đoạn chat mới? (Lịch sử vẫn được lưu)')) {
+            window.location.href = '<?php echo BASE_URL; ?>/user/chatbot.php';
         }
     });
 });

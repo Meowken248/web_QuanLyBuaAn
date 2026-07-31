@@ -2,9 +2,22 @@
 require 'config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
-try {
-    $conn->query("ALTER TABLE reminders ADD COLUMN last_triggered_date DATE NULL AFTER status");
-    echo "Thanh cong";
-} catch (Exception $e) {
-    echo "Loi: " . $e->getMessage();
+
+$tables = [
+    'weight_logs', 
+    'personal_notes', 
+    'chat_conversations', 
+    'chat_messages',
+    'meal_plans',
+    'meal_plan_meals',
+    'meal_plan_items',
+    'favorite_meal_plans'
+];
+
+foreach ($tables as $t) {
+    echo "--- $t ---\n";
+    $stmt = $conn->query("DESCRIBE $t");
+    foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $col) {
+        echo $col['Field'] . " : " . $col['Type'] . "\n";
+    }
 }

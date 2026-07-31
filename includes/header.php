@@ -160,6 +160,9 @@ require_once __DIR__ . '/../config/app.php';
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/profile.php"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/reminders.php"><i class="bi bi-alarm me-2"></i>Nhắc nhở của tôi</a></li>
+                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/weight-logs.php"><i class="bi bi-graph-up me-2"></i>Theo dõi Cân nặng</a></li>
+                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/personal-notes.php"><i class="bi bi-journal-text me-2"></i>Nhật ký cá nhân</a></li>
+                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/meal-plans.php"><i class="bi bi-book-half me-2"></i>Thực đơn Gợi ý</a></li>
 
                             <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                                 <li><hr class="dropdown-divider"></li>
