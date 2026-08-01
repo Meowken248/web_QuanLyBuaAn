@@ -65,7 +65,16 @@ class MealModel {
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':item_id', $item_id);
         $stmt->bindParam(':user_id', $user_id);
-        return $stmt->execute();
+        $stmt->execute();
+        return $stmt->rowCount() > 0;
+    }
+
+    // Xóa toàn bộ một bữa, chỉ khi bữa đó thuộc người dùng hiện tại
+    public function deleteMeal($user_id, $date, $meal_type) {
+        $query = "DELETE FROM meal_logs WHERE user_id = :user_id AND log_date = :log_date AND meal_type = :meal_type";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':user_id' => $user_id, ':log_date' => $date, ':meal_type' => $meal_type]);
+        return $stmt->rowCount() > 0;
     }
 
     // Lấy chi tiết các món trong một ngày

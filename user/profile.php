@@ -10,81 +10,52 @@ $profile = $profileModel->getProfileByUserId($user_id);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
-        set_flash_message('danger', 'Yêu cầu không hợp lệ.');
+        set_flash_message('danger', 'Phiên làm việc không hợp lệ.');
     } else {
-        $dob = $_POST['date_of_birth'];
-        $gender = $_POST['gender'];
-        $height = (float)$_POST['height']; // cm
-        $weight = (float)$_POST['current_weight']; // kg
-        $activity = $_POST['activity_level'];
-        $goal = $_POST['health_goal'];
-        
-        // Tính tuổi
-        $age = date_diff(date_create($dob), date_create('today'))->y;
-        if ($age <= 0) $age = 1;
-        
-        // 1. Tính BMR (Mifflin-St Jeor)
-        $bmr = 0;
-        if ($gender === 'male') {
-            $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) + 5;
-        } else {
-            $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) - 161;
-        }
-        
-        // 2. Tính TDEE
-        $activity_multiplier = [
-            'sedentary' => 1.2,
-            'light' => 1.375,
-            'moderate' => 1.55,
-            'active' => 1.725,
-            'very_active' => 1.9
-        ];
-        $tdee = $bmr * ($activity_multiplier[$activity] ?? 1.2);
-        
-        // 3. Tính Calories Mục tiêu
-        $calorie_target = $tdee;
-        if ($goal === 'lose_weight') {
-            $calorie_target = $tdee - 400; // Giảm 400 calo
-        } elseif ($goal === 'gain_weight') {
-            $calorie_target = $tdee + 400; // Tăng 400 calo
-        } elseif ($goal === 'gain_muscle') {
-            $calorie_target = $tdee + 250; // Tăng cơ cần thặng dư nhẹ
-        }
-        // keep_weight thì bằng TDEE
-        
-        // 4. Tính Macros cơ bản (Tỉ lệ tham khảo)
-        // Protein: 4 calo/g, Carb: 4 calo/g, Fat: 9 calo/g
-        // Lấy tỉ lệ chung: 30% Protein, 40% Carb, 30% Fat
-        $protein_target = ($calorie_target * 0.3) / 4;
-        $carb_target = ($calorie_target * 0.4) / 4;
-        $fat_target = ($calorie_target * 0.3) / 9;
+        $dob = $_POST['date_of_birth'] ?? '';
+        $gender = $_POST['gender'] ?? '';
+        $height = filter_var($_POST['height'] ?? null, FILTER_VALIDATE_FLOAT);
+        $weight = filter_var($_POST['current_weight'] ?? null, FILTER_VALIDATE_FLOAT);
+        $activity = $_POST['activity_level'] ?? '';
+        $goal = $_POST['health_goal'] ?? '';
+        $meals_per_day = filter_var($_POST['meals_per_day'] ?? null, FILTER_VALIDATE_INT);
+        $activity_multiplier = ['sedentary'=>1.2, 'light'=>1.375, 'moderate'=>1.55, 'active'=>1.725, 'very_active'=>1.9];
+        $valid_goals = ['lose_weight', 'gain_weight', 'keep_weight', 'gain_muscle'];
+        $birth_date = is_valid_date($dob) ? DateTime::createFromFormat('!Y-m-d', $dob) : false;
+        $age = $birth_date ? $birth_date->diff(new DateTime('today'))->y : 0;
 
-        $data = [
-            'user_id' => $user_id,
-            'date_of_birth' => $dob,
-            'gender' => $gender,
-            'height' => $height,
-            'current_weight' => $weight,
-            'activity_level' => $activity,
-            'health_goal' => $goal,
-            'diet_type' => $_POST['diet_type'] ?? 'standard',
-            'allergies' => $_POST['allergies'] ?? '',
-            'disliked_foods' => $_POST['disliked_foods'] ?? '',
-            'meals_per_day' => (int)$_POST['meals_per_day'],
-            'bmr' => round($bmr),
-            'tdee' => round($tdee),
-            'calorie_target' => round($calorie_target),
-            'protein_target' => round($protein_target),
-            'carb_target' => round($carb_target),
-            'fat_target' => round($fat_target)
-        ];
-        
-        if ($profileModel->saveProfile($data)) {
-            set_flash_message('success', 'Hồ sơ đã được cập nhật thành công!');
-            // Refresh data
-            $profile = $profileModel->getProfileByUserId($user_id);
+        if (!$birth_date || $birth_date > new DateTime('today') || $age < 13 || $age > 120) {
+            set_flash_message('danger', 'Ngày sinh không hợp lệ; độ tuổi phải từ 13 đến 120.');
+        } elseif (!in_array($gender, ['male', 'female'], true) || $height === false || $height < 80 || $height > 250 || $weight === false || $weight < 20 || $weight > 400) {
+            set_flash_message('danger', 'Giới tính, chiều cao hoặc cân nặng không hợp lệ.');
+        } elseif (!isset($activity_multiplier[$activity]) || !in_array($goal, $valid_goals, true) || $meals_per_day === false || $meals_per_day < 1 || $meals_per_day > 6) {
+            set_flash_message('danger', 'Mức vận động, mục tiêu hoặc số bữa ăn không hợp lệ.');
         } else {
-            set_flash_message('danger', 'Không thể lưu hồ sơ, vui lòng thử lại.');
+            $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) + ($gender === 'male' ? 5 : -161);
+            $tdee = $bmr * $activity_multiplier[$activity];
+            $calorie_target = match ($goal) {
+                'lose_weight' => $tdee - 500,
+                'gain_weight', 'gain_muscle' => $tdee + 300,
+                default => $tdee
+            };
+            $calorie_target = max(1200, $calorie_target);
+            $protein_target = ($calorie_target * 0.30) / 4;
+            $carb_target = ($calorie_target * 0.40) / 4;
+            $fat_target = ($calorie_target * 0.30) / 9;
+            $data = [
+                'user_id'=>$user_id, 'date_of_birth'=>$dob, 'gender'=>$gender, 'height'=>$height,
+                'current_weight'=>$weight, 'activity_level'=>$activity, 'health_goal'=>$goal,
+                'diet_type'=>$_POST['diet_type'] ?? 'standard', 'allergies'=>trim($_POST['allergies'] ?? ''),
+                'disliked_foods'=>trim($_POST['disliked_foods'] ?? ''), 'meals_per_day'=>$meals_per_day,
+                'bmr'=>round($bmr, 2), 'tdee'=>round($tdee, 2), 'calorie_target'=>round($calorie_target, 2),
+                'protein_target'=>round($protein_target, 2), 'carb_target'=>round($carb_target, 2), 'fat_target'=>round($fat_target, 2)
+            ];
+            if ($profileModel->saveProfile($data)) {
+                set_flash_message('success', 'Hồ sơ và mục tiêu năng lượng đã được cập nhật.');
+                $profile = $profileModel->getProfileByUserId($user_id);
+            } else {
+                set_flash_message('danger', 'Không thể lưu hồ sơ, vui lòng thử lại.');
+            }
         }
     }
 }
@@ -122,7 +93,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="date" class="form-control bg-light border-0" id="dob" name="date_of_birth" value="<?php echo htmlspecialchars($profile['date_of_birth'] ?? ''); ?>" required>
+                                        <input type="date" class="form-control bg-light border-0" id="dob" name="date_of_birth" max="<?php echo date('Y-m-d', strtotime('-13 years')); ?>" min="<?php echo date('Y-m-d', strtotime('-120 years')); ?>" value="<?php echo htmlspecialchars($profile['date_of_birth'] ?? ''); ?>" required>
                                         <label for="dob" class="text-muted">Ngày sinh</label>
                                     </div>
                                 </div>
@@ -229,7 +200,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <div class="position-absolute top-0 start-0 w-100 h-100 bg-secondary bg-opacity-10" style="z-index: 0;"></div>
                                         <div class="position-relative z-index-1">
                                             <h6 class="text-muted text-uppercase small fw-bold mb-3">BMR <i class="bi bi-info-circle ms-1" title="Tỷ lệ trao đổi chất cơ bản"></i></h6>
-                                            <h2 class="text-secondary fw-bold mb-0"><?php echo $profile['bmr']; ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
+                                            <h2 class="text-secondary fw-bold mb-0"><?php echo number_format((float)$profile['bmr'], 2, '.', ''); ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
                                         </div>
                                     </div>
                                 </div>
@@ -238,7 +209,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <div class="position-absolute top-0 start-0 w-100 h-100 bg-warning bg-opacity-10" style="z-index: 0;"></div>
                                         <div class="position-relative z-index-1">
                                             <h6 class="text-muted text-uppercase small fw-bold mb-3">TDEE <i class="bi bi-info-circle ms-1" title="Tổng năng lượng tiêu hao mỗi ngày"></i></h6>
-                                            <h2 class="text-warning fw-bold mb-0"><?php echo $profile['tdee']; ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
+                                            <h2 class="text-warning fw-bold mb-0"><?php echo number_format((float)$profile['tdee'], 2, '.', ''); ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
                                         </div>
                                     </div>
                                 </div>
@@ -247,7 +218,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <div class="position-absolute top-0 start-0 w-100 h-100 bg-success bg-opacity-10" style="z-index: 0;"></div>
                                         <div class="position-relative z-index-1">
                                             <h6 class="text-success text-uppercase small fw-bold mb-3">Mục tiêu/ngày</h6>
-                                            <h2 class="text-success fw-bold mb-0"><?php echo $profile['calorie_target']; ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
+                                            <h2 class="text-success fw-bold mb-0"><?php echo number_format((float)$profile['calorie_target'], 2, '.', ''); ?> <span class="fs-6 text-muted fw-normal">kcal</span></h2>
                                         </div>
                                     </div>
                                 </div>

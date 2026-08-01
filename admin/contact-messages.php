@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $_SESSION['success'] = 'Đã xóa tin nhắn liên hệ.';
     } elseif ($_POST['action'] === 'update_status') {
         $status = $_POST['status'];
-        if (in_array($status, ['new', 'read', 'resolved'])) {
+        if (in_array($status, ['new', 'read', 'replied'])) {
             $stmt = $conn->prepare("UPDATE contact_messages SET status = :status WHERE id = :id");
             $stmt->execute([':status' => $status, ':id' => $id]);
             $_SESSION['success'] = 'Đã cập nhật trạng thái tin nhắn.';

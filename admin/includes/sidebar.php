@@ -5,6 +5,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="<?php echo BASE_URL; ?>/admin/index.php" class="list-group-item list-group-item-action <?php echo $current_page == 'index.php' ? 'active bg-dark border-dark' : 'text-dark'; ?>">
         <i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển
     </a>
+    <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="list-group-item list-group-item-action text-success fw-bold">
+        <i class="bi bi-person-workspace me-2"></i>Chuyển sang trang người dùng
+    </a>
     <a href="<?php echo BASE_URL; ?>/admin/users.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['users.php', 'user-edit.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
         <i class="bi bi-people me-2"></i>Quản lý người dùng
     </a>

@@ -60,6 +60,7 @@ class UserModel {
                 
                 $_SESSION['user_id'] = $row['id'];
                 $_SESSION['user_name'] = $row['full_name'];
+                $_SESSION['full_name'] = $row['full_name'];
                 $_SESSION['user_role'] = $row['role'];
                 
                 return ['status' => true, 'message' => 'Đăng nhập thành công.'];

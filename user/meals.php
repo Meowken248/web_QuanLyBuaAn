@@ -15,14 +15,22 @@ $dailyNutrition = $mealModel->getDailyNutrition($user_id, $date);
 $profileModel = new ProfileModel();
 $profile = $profileModel->getProfileByUserId($user_id);
 
-// Xử lý xoá món
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_item') {
-    if (verify_csrf_token($_POST['csrf_token'])) {
-        $item_id = $_POST['item_id'];
-        $mealModel->deleteMealItem($item_id, $user_id);
-        set_flash_message('success', 'Đã xóa món ăn khỏi bữa!');
-        redirect("/user/meals.php?date=" . urlencode($date));
+// Xử lý xóa món hoặc toàn bộ bữa
+if (!is_valid_date($date)) $date = date('Y-m-d');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Phiên làm việc không hợp lệ.');
+    } elseif (($_POST['action'] ?? '') === 'delete_item') {
+        $item_id = filter_var($_POST['item_id'] ?? null, FILTER_VALIDATE_INT);
+        $deleted = $item_id ? $mealModel->deleteMealItem($item_id, $user_id) : false;
+        set_flash_message($deleted ? 'success' : 'danger', $deleted ? 'Đã xóa món ăn khỏi bữa.' : 'Không thể xóa món ăn.');
+    } elseif (($_POST['action'] ?? '') === 'delete_meal') {
+        $type = $_POST['meal_type'] ?? '';
+        $valid_types = ['breakfast','morning_snack','lunch','afternoon_snack','dinner','evening_snack'];
+        $deleted = in_array($type, $valid_types, true) && $mealModel->deleteMeal($user_id, $date, $type);
+        set_flash_message($deleted ? 'success' : 'warning', $deleted ? 'Đã xóa toàn bộ bữa ăn.' : 'Bữa ăn không tồn tại hoặc đã trống.');
     }
+    redirect('/user/meals.php?date=' . urlencode($date));
 }
 
 $page_title = 'Nhật ký bữa ăn';
@@ -41,7 +49,7 @@ $meal_types = [
 $cal_target = $profile['calorie_target'] ?? 2000;
 $cal_used = $dailyNutrition['calories'];
 $cal_left = $cal_target - $cal_used;
-$cal_percent = ($cal_used / $cal_target) * 100;
+$cal_percent = $cal_target > 0 ? ($cal_used / $cal_target) * 100 : 0;
 if ($cal_percent > 100) $cal_percent = 100;
 ?>
 
@@ -133,7 +141,17 @@ if ($cal_percent > 100) $cal_percent = 100;
                         </div>
                         <?php echo $type_name; ?>
                     </h5>
-                    <a href="<?php echo BASE_URL; ?>/user/add-meal.php?date=<?php echo $date; ?>&type=<?php echo $type_key; ?>" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm btn-glow"><i class="bi bi-plus-lg me-1"></i>Thêm</a>
+                    <div class="d-flex gap-2">
+                        <?php if (!empty($dailyMeals[$type_key])): ?>
+                        <form method="POST" onsubmit="return confirm('Xóa toàn bộ món trong bữa này?');">
+                            <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                            <input type="hidden" name="action" value="delete_meal">
+                            <input type="hidden" name="meal_type" value="<?php echo $type_key; ?>">
+                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-trash me-1"></i>Xóa bữa</button>
+                        </form>
+                        <?php endif; ?>
+                        <a href="<?php echo BASE_URL; ?>/user/add-meal.php?date=<?php echo urlencode($date); ?>&type=<?php echo urlencode($type_key); ?>" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm btn-glow"><i class="bi bi-plus-lg me-1"></i>Thêm</a>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <?php if (empty($dailyMeals[$type_key])): ?>
@@ -162,7 +180,7 @@ if ($cal_percent > 100) $cal_percent = 100;
                                     ?>
                                     <tr>
                                         <td class="ps-4 fw-bold text-dark"><?php echo htmlspecialchars($item['food_name']); ?></td>
-                                        <td class="text-muted"><?php echo floatval($item['quantity']); ?> <?php echo htmlspecialchars($item['unit']); ?> <span class="small opacity-50">(<?php echo floatval($item['calculated_grams']); ?>g)</span></td>
+                                        <td class="text-muted"><?php echo floatval($item['quantity']); ?> <?php echo htmlspecialchars($item['unit']); ?><?php if ((float)$item['calculated_grams'] > 0): ?> <span class="small opacity-50">(<?php echo floatval($item['calculated_grams']); ?>g)</span><?php endif; ?></td>
                                         <td><span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1"><?php echo floatval($item['calories']); ?> kcal</span></td>
                                         <td class="small fw-medium">
                                             <span class="text-warning">P: <?php echo floatval($item['protein']); ?></span> | 

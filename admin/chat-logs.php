@@ -2,6 +2,7 @@
 // admin/chat-logs.php
 require_once __DIR__ . '/../includes/admin-check.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 $database = new Database();
 $conn = $database->getConnection();
@@ -10,14 +11,23 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-if (isset($_GET['delete']) && $_GET['delete'] > 0) {
-    if (!verify_csrf_token($_GET['csrf_token'] ?? '')) {
-        die('Lỗi CSRF token');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = 'Phiên làm việc không hợp lệ. Vui lòng thử lại.';
+        redirect('/admin/chat-logs.php');
     }
-    $id = (int)$_GET['delete'];
+
+    $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+    if (!$id || $id < 1) {
+        $_SESSION['error'] = 'Hội thoại không hợp lệ.';
+        redirect('/admin/chat-logs.php');
+    }
+
     $stmt = $conn->prepare("DELETE FROM chat_conversations WHERE id = :id");
     $stmt->execute([':id' => $id]);
-    $_SESSION['success'] = 'Đã xóa hội thoại thành công.';
+    $_SESSION['success'] = $stmt->rowCount() > 0
+        ? 'Đã xóa hội thoại thành công.'
+        : 'Hội thoại không tồn tại hoặc đã được xóa.';
     redirect('/admin/chat-logs.php');
 }
 
@@ -60,6 +70,13 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
 
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -89,7 +106,12 @@ require_once __DIR__ . '/../includes/header.php';
                                     <td><?php echo date('d/m/Y H:i', strtotime($chat['updated_at'])); ?></td>
                                     <td>
                                         <button class="btn btn-sm btn-info text-white" onclick="viewChat(<?php echo $chat['id']; ?>)">Xem</button>
-                                        <a href="?delete=<?php echo $chat['id']; ?>&csrf_token=<?php echo generate_csrf_token(); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa hội thoại này không?');">Xóa</a>
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hội thoại này không?');">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo (int)$chat['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                                        </form>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

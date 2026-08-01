@@ -1,6 +1,7 @@
 <?php
 // user/chatbot.php
 require_once __DIR__ . '/../includes/auth-check.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 $page_title = 'Chatbot Tư Vấn Dinh Dưỡng';
 require_once __DIR__ . '/../includes/header.php';
@@ -206,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('<?php echo BASE_URL; ?>/api/chatbot/ask.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question, conversation_id: currentConversationId })
+                body: JSON.stringify({ question: question, conversation_id: currentConversationId, csrf_token: '<?php echo generate_csrf_token(); ?>' })
             });
             
             const data = await response.json();

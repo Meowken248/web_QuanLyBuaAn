@@ -87,9 +87,9 @@ require_once __DIR__ . '/../includes/header.php';
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         <input type="hidden" name="id" value="<?php echo $msg['id']; ?>">
                         
-                        <?php if ($msg['status'] !== 'resolved'): ?>
+                        <?php if ($msg['status'] !== 'replied'): ?>
                             <input type="hidden" name="action" value="update_status">
-                            <input type="hidden" name="status" value="resolved">
+                            <input type="hidden" name="status" value="replied">
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-circle me-1"></i>Đánh dấu Đã xử lý
                             </button>
@@ -101,8 +101,8 @@ require_once __DIR__ . '/../includes/header.php';
                             </button>
                         <?php endif; ?>
                         
-                        <a href="mailto:<?php echo htmlspecialchars($msg['email']); ?>?subject=Re: <?php echo urlencode($msg['subject']); ?>" class="btn btn-primary">
-                            <i class="bi bi-reply me-1"></i>Phản hồi qua Email
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?php echo rawurlencode($msg['email']); ?>&su=<?php echo rawurlencode('Re: ' . $msg['subject']); ?>" target="_blank" rel="noopener" class="btn btn-primary">
+                            <i class="bi bi-reply me-1"></i>Phản hồi qua Gmail
                         </a>
                     </form>
                 </div>

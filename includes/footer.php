@@ -1,4 +1,4 @@
-</main>
+<?php require_once __DIR__ . '/functions.php'; ?></main>
 <!-- End Main Content -->
 
 <!-- Footer Public -->
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('<?php echo BASE_URL; ?>/api/chatbot/ask.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question })
+                body: JSON.stringify({ question: question, csrf_token: '<?php echo generate_csrf_token(); ?>' })
             })
             .then(res => res.json())
             .then(data => {

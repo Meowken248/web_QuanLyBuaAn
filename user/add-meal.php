@@ -4,129 +4,128 @@ require_once __DIR__ . '/../includes/auth-check.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../models/FoodModel.php';
 require_once __DIR__ . '/../models/MealModel.php';
+require_once __DIR__ . '/../config/database.php';
 
+$valid_meal_types = ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack'];
 $date = $_GET['date'] ?? date('Y-m-d');
 $meal_type = $_GET['type'] ?? 'breakfast';
-$food_id = $_GET['food_id'] ?? null;
-$search = $_GET['search'] ?? '';
+$food_id = filter_input(INPUT_GET, 'food_id', FILTER_VALIDATE_INT) ?: null;
+$search = trim($_GET['search'] ?? '');
+if (!is_valid_date($date)) $date = date('Y-m-d');
+if (!in_array($meal_type, $valid_meal_types, true)) $meal_type = 'breakfast';
 
 $foodModel = new FoodModel();
 $mealModel = new MealModel();
 
-// Nếu user nhấn thêm món ăn (POST submit)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_to_meal') {
-    if (verify_csrf_token($_POST['csrf_token'])) {
-        $fid = (int)$_POST['food_id'];
-        $qty = (float)$_POST['quantity'];
-        $fdate = $_POST['log_date'];
-        $fmtype = $_POST['meal_type'];
-        
-        $foodInfo = $foodModel->getFoodById($fid);
-        if ($foodInfo) {
-            // Tính toán tỷ lệ
-            $ratio = $qty / $foodInfo['serving_size'];
-            
-            // Tìm hoặc tạo Meal Log ID
-            $meal_log_id = $mealModel->getOrCreateMealLog($_SESSION['user_id'], $fdate, $fmtype);
-            
-            if ($meal_log_id) {
-                // Giả định serving_unit = 'gram' cho calculated_grams, nếu khác cần có logic chuyển đổi
-                // Tuy nhiên theo prompt: Hệ thống tự tính lại calories và chất dinh dưỡng
-                $calc_grams = ($foodInfo['serving_unit'] == 'gram') ? $qty : ($qty * 100); // Tạm tính
-                
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_to_meal') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Phiên làm việc không hợp lệ. Vui lòng thử lại.');
+    } else {
+        $fid = filter_var($_POST['food_id'] ?? null, FILTER_VALIDATE_INT);
+        $qty = filter_var($_POST['quantity'] ?? null, FILTER_VALIDATE_FLOAT);
+        $fdate = $_POST['log_date'] ?? '';
+        $fmtype = $_POST['meal_type'] ?? '';
+
+        if (!$fid || $qty === false || $qty <= 0 || !is_valid_date($fdate) || !in_array($fmtype, $valid_meal_types, true)) {
+            set_flash_message('danger', 'Món ăn, số lượng, ngày hoặc loại bữa không hợp lệ.');
+        } else {
+            $foodInfo = $foodModel->getFoodById($fid);
+            if (!$foodInfo || (float)$foodInfo['serving_size'] <= 0) {
+                set_flash_message('danger', 'Không tìm thấy món ăn hoặc khẩu phần gốc không hợp lệ.');
+            } else {
+                $ratio = $qty / (float)$foodInfo['serving_size'];
+                $meal_log_id = $mealModel->getOrCreateMealLog($_SESSION['user_id'], $fdate, $fmtype);
+                $unit = trim((string)$foodInfo['serving_unit']);
+                $is_gram = in_array(mb_strtolower($unit), ['g', 'gram', 'grams'], true);
                 $data = [
                     ':meal_log_id' => $meal_log_id,
                     ':food_id' => $fid,
                     ':quantity' => $qty,
-                    ':unit' => $foodInfo['serving_unit'],
-                    ':calculated_grams' => $calc_grams,
-                    ':calories' => round($foodInfo['calories'] * $ratio, 1),
-                    ':protein' => round($foodInfo['protein'] * $ratio, 1),
-                    ':carbs' => round($foodInfo['carbs'] * $ratio, 1),
-                    ':fat' => round($foodInfo['fat'] * $ratio, 1),
-                    ':fiber' => round($foodInfo['fiber'] * $ratio, 1)
+                    ':unit' => $unit,
+                    ':calculated_grams' => $is_gram ? $qty : 0,
+                    ':calories' => round((float)$foodInfo['calories'] * $ratio, 2),
+                    ':protein' => round((float)$foodInfo['protein'] * $ratio, 2),
+                    ':carbs' => round((float)$foodInfo['carbs'] * $ratio, 2),
+                    ':fat' => round((float)$foodInfo['fat'] * $ratio, 2),
+                    ':fiber' => round((float)$foodInfo['fiber'] * $ratio, 2)
                 ];
-                
-                if ($mealModel->addMealItem($data)) {
-                    set_flash_message('success', 'Đã thêm món ăn vào nhật ký!');
+                if ($meal_log_id && $mealModel->addMealItem($data)) {
+                    set_flash_message('success', 'Đã thêm món ăn vào nhật ký.');
                     redirect('/user/meals.php?date=' . urlencode($fdate));
-                } else {
-                    set_flash_message('danger', 'Có lỗi xảy ra khi lưu.');
+                }
+                set_flash_message('danger', 'Không thể lưu món ăn vào nhật ký.');
+            }
         }
     }
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_custom_food') {
-    if (verify_csrf_token($_POST['csrf_token'])) {
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_custom_food') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Phiên làm việc không hợp lệ. Vui lòng thử lại.');
+    } else {
         $name = trim($_POST['name'] ?? '');
-        $calories = (float)($_POST['calories'] ?? 0);
-        $protein = (float)($_POST['protein'] ?? 0);
-        $carbs = (float)($_POST['carbs'] ?? 0);
-        $fat = (float)($_POST['fat'] ?? 0);
-        $serving_size = (float)($_POST['serving_size'] ?? 100);
-        $serving_unit = trim($_POST['serving_unit'] ?? 'gram');
-        $fdate = $_POST['log_date'] ?? date('Y-m-d');
-        $fmtype = $_POST['meal_type'] ?? 'breakfast';
-        
-        if ($name === '' || $serving_size <= 0) {
-            set_flash_message('danger', 'Vui lòng nhập tên món và khẩu phần hợp lệ.');
+        $serving_size = filter_var($_POST['serving_size'] ?? null, FILTER_VALIDATE_FLOAT);
+        $serving_unit = trim($_POST['serving_unit'] ?? '');
+        $fdate = $_POST['log_date'] ?? '';
+        $fmtype = $_POST['meal_type'] ?? '';
+        $values = [];
+        foreach (['calories', 'protein', 'carbs', 'fat', 'fiber'] as $field) {
+            $raw = trim((string)($_POST[$field] ?? '0'));
+            $values[$field] = filter_var($raw, FILTER_VALIDATE_FLOAT);
+        }
+
+        $invalid = $name === '' || $serving_size === false || $serving_size <= 0 || $serving_unit === ''
+            || !is_valid_date($fdate) || !in_array($fmtype, $valid_meal_types, true);
+        foreach ($values as $value) {
+            if ($value === false || $value < 0) $invalid = true;
+        }
+        $macro_total = $values['protein'] + $values['carbs'] + $values['fat'] + $values['fiber'];
+        if (in_array(mb_strtolower($serving_unit), ['g', 'gram', 'grams'], true) && $macro_total > $serving_size + 0.01) $invalid = true;
+        $estimated_calories = $values['protein'] * 4 + $values['carbs'] * 4 + $values['fat'] * 9;
+        if ($estimated_calories > 0 && abs($values['calories'] - $estimated_calories) > max(20, $estimated_calories * 0.2)) {
+            set_flash_message('danger', 'Calories lệch nhiều so với macros (ước tính ' . round($estimated_calories, 1) . ' kcal).');
+            $invalid = true;
+        }
+
+        if ($invalid) {
+            if (empty($_SESSION['flash_message'])) set_flash_message('danger', 'Dữ liệu món ăn không hợp lệ. Kiểm tra khẩu phần, đơn vị và các chỉ số dinh dưỡng.');
         } else {
             $image_path = null;
-            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $upload_dir = __DIR__ . '/../uploads/foods/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
-                $file_ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-                if (in_array($file_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
-                    $filename = time() . '_' . uniqid() . '.' . $file_ext;
-                    if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_dir . $filename)) {
-                        $image_path = '/uploads/foods/' . $filename;
-                    }
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK && $_FILES['image']['size'] <= 5 * 1024 * 1024) {
+                $mime = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['image']['tmp_name']);
+                $extensions = ['image/jpeg'=>'jpg', 'image/png'=>'png', 'image/webp'=>'webp', 'image/gif'=>'gif'];
+                if (isset($extensions[$mime])) {
+                    $upload_dir = __DIR__ . '/../uploads/foods/';
+                    if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+                    $filename = time() . '_' . bin2hex(random_bytes(8)) . '.' . $extensions[$mime];
+                    if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_dir . $filename)) $image_path = '/uploads/foods/' . $filename;
                 }
             }
-            
-            $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-')) . '-' . time();
-            $ingredients = trim($_POST['ingredients'] ?? '');
-            $instructions = trim($_POST['instructions'] ?? '');
-            
+
             $conn = (new Database())->getConnection();
-            $stmt = $conn->prepare("INSERT INTO foods (category_id, name, slug, image, ingredients, instructions, serving_size, serving_unit, calories, protein, carbs, fat, fiber, status, created_by) VALUES (NULL, :name, :slug, :image, :ingredients, :instructions, :serving_size, :serving_unit, :calories, :protein, :carbs, :fat, 0, 'active', :created_by)");
-            $stmt->execute([
-                ':name' => $name,
-                ':slug' => $slug,
-                ':image' => $image_path,
-                ':ingredients' => $ingredients,
-                ':instructions' => $instructions,
-                ':serving_size' => $serving_size,
-                ':serving_unit' => $serving_unit,
-                ':calories' => $calories,
-                ':protein' => $protein,
-                ':carbs' => $carbs,
-                ':fat' => $fat,
-                ':created_by' => (int)$_SESSION['user_id']
-            ]);
-            $new_food_id = $conn->lastInsertId();
-            
-            if ($new_food_id) {
-                // Tự động thêm vào nhật ký luôn
+            $conn->beginTransaction();
+            try {
+                $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-')) . '-' . time();
+                $stmt = $conn->prepare("INSERT INTO foods (category_id,name,slug,image,ingredients,instructions,serving_size,serving_unit,calories,protein,carbs,fat,fiber,status,created_by) VALUES (NULL,:name,:slug,:image,:ingredients,:instructions,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,'active',:created_by)");
+                $stmt->execute([
+                    ':name'=>$name, ':slug'=>$slug, ':image'=>$image_path,
+                    ':ingredients'=>trim($_POST['ingredients'] ?? ''), ':instructions'=>trim($_POST['instructions'] ?? ''),
+                    ':serving_size'=>$serving_size, ':serving_unit'=>$serving_unit,
+                    ':calories'=>$values['calories'], ':protein'=>$values['protein'], ':carbs'=>$values['carbs'],
+                    ':fat'=>$values['fat'], ':fiber'=>$values['fiber'], ':created_by'=>(int)$_SESSION['user_id']
+                ]);
+                $new_food_id = (int)$conn->lastInsertId();
                 $meal_log_id = $mealModel->getOrCreateMealLog($_SESSION['user_id'], $fdate, $fmtype);
-                if ($meal_log_id) {
-                    $calc_grams = ($serving_unit == 'gram') ? $serving_size : ($serving_size * 100);
-                    $data = [
-                        ':meal_log_id' => $meal_log_id,
-                        ':food_id' => $new_food_id,
-                        ':quantity' => $serving_size,
-                        ':unit' => $serving_unit,
-                        ':calculated_grams' => $calc_grams,
-                        ':calories' => $calories,
-                        ':protein' => $protein,
-                        ':carbs' => $carbs,
-                        ':fat' => $fat,
-                        ':fiber' => 0
-                    ];
-                    $mealModel->addMealItem($data);
-                }
-                set_flash_message('success', 'Đã tạo món ăn mới và thêm vào nhật ký!');
+                if (!$new_food_id || !$meal_log_id || !$mealModel->addMealItem([
+                    ':meal_log_id'=>$meal_log_id, ':food_id'=>$new_food_id, ':quantity'=>$serving_size,
+                    ':unit'=>$serving_unit, ':calculated_grams'=>in_array(mb_strtolower($serving_unit), ['g','gram','grams'], true) ? $serving_size : 0,
+                    ':calories'=>$values['calories'], ':protein'=>$values['protein'], ':carbs'=>$values['carbs'],
+                    ':fat'=>$values['fat'], ':fiber'=>$values['fiber']
+                ])) throw new RuntimeException('Không thể thêm món vào nhật ký.');
+                $conn->commit();
+                set_flash_message('success', 'Đã tạo món ăn mới và thêm vào nhật ký.');
                 redirect('/user/meals.php?date=' . urlencode($fdate));
-            } else {
-                set_flash_message('danger', 'Lỗi khi tạo món ăn.');
+            } catch (Throwable $e) {
+                if ($conn->inTransaction()) $conn->rollBack();
+                set_flash_message('danger', 'Không thể tạo món ăn. Vui lòng thử lại.');
             }
         }
     }
@@ -221,7 +220,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <div class="col-md-4">
                                                         <label class="form-label small text-muted fw-bold">Số lượng</label>
                                                         <div class="input-group">
-                                                            <input type="number" step="0.1" name="quantity" class="form-control bg-white border-0 meal-qty-input" 
+                                                            <input type="number" step="0.01" min="0.01" name="quantity" class="form-control bg-white border-0 meal-qty-input" 
                                                                 data-base-cal="<?php echo $food['calories']; ?>" 
                                                                 data-base-qty="<?php echo $food['serving_size']; ?>"
                                                                 value="<?php echo $food['serving_size']; ?>" required>
@@ -289,7 +288,7 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Khẩu phần <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" class="form-control bg-light border-0" name="serving_size" value="100" required>
+                            <input type="number" step="0.01" min="0.01" class="form-control bg-light border-0" name="serving_size" value="100" required>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Đơn vị <span class="text-danger">*</span></label>
@@ -310,22 +309,13 @@ require_once __DIR__ . '/../includes/header.php';
                             <h6 class="text-success fw-bold mb-3"><i class="bi bi-fire me-2"></i>Thành phần dinh dưỡng (trên khẩu phần)</h6>
                         </div>
                         
-                        <div class="col-md-3">
-                            <label class="form-label text-danger fw-bold">Calories <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" class="form-control bg-danger bg-opacity-10 border-0 text-danger" name="calories" value="0" required>
+                        <?php foreach (['calories'=>'Calories','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $field => $label): ?>
+                        <div class="col">
+                            <label class="form-label text-muted fw-bold"><?php echo $label; ?> <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light border-0" name="<?php echo $field; ?>" placeholder="0.00" required>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label text-warning fw-bold">Protein (g)</label>
-                            <input type="number" step="0.1" class="form-control bg-warning bg-opacity-10 border-0 text-warning" name="protein" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label text-info fw-bold">Carbs (g)</label>
-                            <input type="number" step="0.1" class="form-control bg-info bg-opacity-10 border-0 text-info" name="carbs" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label text-primary fw-bold">Fat (g)</label>
-                            <input type="number" step="0.1" class="form-control bg-primary bg-opacity-10 border-0 text-primary" name="fat" value="0">
-                        </div>
+                        <?php endforeach; ?>
+                        <div class="col-12"><div class="form-text">Calories = Protein × 4 + Carbs × 4 + Fat × 9. Tổng macros và chất xơ không được vượt khẩu phần nếu tính theo gram.</div></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
@@ -339,6 +329,11 @@ require_once __DIR__ . '/../includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-clear-zero]').forEach(input => {
+        input.addEventListener('focus', () => { if (parseFloat(input.value) === 0) input.value = ''; });
+        input.addEventListener('blur', () => { if (input.value === '') input.value = '0.00'; });
+    });
+
     // Tự động tính toán calories khi thay đổi số lượng
     const qtyInputs = document.querySelectorAll('.meal-qty-input');
     qtyInputs.forEach(input => {
