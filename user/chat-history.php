@@ -29,17 +29,7 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="container py-5">
     <div class="row">
-        <div class="col-md-3">
-            <div class="list-group shadow-sm mb-4">
-                <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="list-group-item list-group-item-action"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
-                <a href="<?php echo BASE_URL; ?>/user/profile.php" class="list-group-item list-group-item-action"><i class="bi bi-person-circle me-2"></i>Hồ sơ sức khỏe</a>
-                <a href="<?php echo BASE_URL; ?>/user/meals.php" class="list-group-item list-group-item-action"><i class="bi bi-journal-text me-2"></i>Nhật ký bữa ăn</a>
-                <a href="<?php echo BASE_URL; ?>/user/chatbot.php" class="list-group-item list-group-item-action"><i class="bi bi-robot me-2"></i>Chatbot AI</a>
-                <a href="<?php echo BASE_URL; ?>/user/chat-history.php" class="list-group-item list-group-item-action active bg-success border-success"><i class="bi bi-clock-history me-2"></i>Lịch sử Chat</a>
-            </div>
-        </div>
-        
-        <div class="col-md-9">
+        <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0 text-success"><i class="bi bi-clock-history me-2"></i>Lịch sử trò chuyện với AI</h4>
                 <a href="<?php echo BASE_URL; ?>/user/chatbot.php" class="btn btn-success"><i class="bi bi-plus-circle me-2"></i>Tạo chat mới</a>

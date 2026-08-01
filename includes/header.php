@@ -1,6 +1,8 @@
 <?php
 // includes/header.php
 require_once __DIR__ . '/../config/app.php';
+$request_path = str_replace('\\', '/', parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
+$is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/user/');
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -25,7 +27,7 @@ require_once __DIR__ . '/../config/app.php';
     
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
-<body class="bg-light">
+<body class="bg-light<?php echo $is_user_area ? ' user-area' : ''; ?>">
 
 <!-- Navbar Public -->
 <?php if (!isset($hide_navbar) || !$hide_navbar): ?>
@@ -185,3 +187,6 @@ require_once __DIR__ . '/../config/app.php';
 
 <!-- Main Content wrapper -->
 <main class="min-vh-100">
+<?php if ($is_user_area): ?>
+    <?php require __DIR__ . '/../user/includes/sidebar.php'; ?>
+<?php endif; ?>

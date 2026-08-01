@@ -9,26 +9,18 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="container py-5">
     <div class="row">
-        <div class="col-md-3">
-            <div class="list-group shadow-sm mb-4">
-                <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="list-group-item list-group-item-action"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
-                <a href="<?php echo BASE_URL; ?>/user/profile.php" class="list-group-item list-group-item-action"><i class="bi bi-person-circle me-2"></i>Hồ sơ sức khỏe</a>
-                <a href="<?php echo BASE_URL; ?>/user/meals.php" class="list-group-item list-group-item-action"><i class="bi bi-journal-text me-2"></i>Nhật ký bữa ăn</a>
-                <a href="<?php echo BASE_URL; ?>/user/chatbot.php" class="list-group-item list-group-item-action active bg-success border-success"><i class="bi bi-robot me-2"></i>Chatbot AI</a>
-            </div>
-            
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white fw-bold">Gợi ý câu hỏi</div>
-                <div class="list-group list-group-flush small">
-                    <button class="list-group-item list-group-item-action prompt-btn">Tôi nên ăn gì để giảm cân?</button>
-                    <button class="list-group-item list-group-item-action prompt-btn">Hôm nay tôi còn bao nhiêu calories?</button>
-                    <button class="list-group-item list-group-item-action prompt-btn">Gợi ý món ăn dưới 500 calories</button>
-                    <button class="list-group-item list-group-item-action prompt-btn">Tôi nên ăn gì sau khi tập gym?</button>
+        <div class="col-12">
+            <section class="card shadow-sm border-0 mb-3" aria-labelledby="chat-suggestions-title">
+                <div class="card-body py-3">
+                    <h2 class="h6 fw-bold mb-3" id="chat-suggestions-title">Gợi ý câu hỏi</h2>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-success prompt-btn">Tôi nên ăn gì để giảm cân?</button>
+                        <button type="button" class="btn btn-sm btn-outline-success prompt-btn">Hôm nay tôi còn bao nhiêu calories?</button>
+                        <button type="button" class="btn btn-sm btn-outline-success prompt-btn">Gợi ý món ăn dưới 500 calories</button>
+                        <button type="button" class="btn btn-sm btn-outline-success prompt-btn">Tôi nên ăn gì sau khi tập gym?</button>
+                    </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="col-md-9">
+            </section>
             <div class="card shadow border-0" style="height: 600px; display: flex; flex-direction: column;">
                 <div class="card-header bg-success text-white py-3 d-flex align-items-center">
                     <i class="bi bi-robot fs-4 me-2"></i>

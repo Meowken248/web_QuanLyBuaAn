@@ -10,23 +10,48 @@ $conn = $database->getConnection();
 // Xử lý xóa danh mục
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_category') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
-        die('Lỗi CSRF token');
-    }
-    
-    $id = (int)$_POST['id'];
-    
-    // Kiểm tra xem danh mục có chứa món ăn nào không
-    $stmt = $conn->prepare("SELECT COUNT(*) FROM foods WHERE category_id = :id");
-    $stmt->execute([':id' => $id]);
-    $count = $stmt->fetchColumn();
-    
-    if ($count > 0) {
-        // Không cho phép xóa nếu đang chứa món ăn
-        $_SESSION['error'] = 'Không thể xóa danh mục này vì đang chứa ' . $count . ' món ăn. Vui lòng chuyển các món ăn sang danh mục khác trước.';
+        $_SESSION['error'] = 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.';
     } else {
-        $stmt = $conn->prepare("DELETE FROM food_categories WHERE id = :id");
-        $stmt->execute([':id' => $id]);
-        $_SESSION['success'] = 'Đã xóa danh mục thành công.';
+        $id = filter_var(
+            $_POST['id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if (!$id) {
+            $_SESSION['error'] = 'Danh mục cần xóa không hợp lệ.';
+        } else {
+            try {
+                $conn->beginTransaction();
+
+                $categoryStmt = $conn->prepare("SELECT id, name FROM food_categories WHERE id = :id FOR UPDATE");
+                $categoryStmt->execute([':id' => $id]);
+                $category = $categoryStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$category) {
+                    $conn->rollBack();
+                    $_SESSION['error'] = 'Danh mục không tồn tại hoặc đã được xóa.';
+                } else {
+                    // Bảo toàn món ăn: chuyển về chưa phân loại trước khi xóa danh mục.
+                    $moveStmt = $conn->prepare("UPDATE foods SET category_id = NULL WHERE category_id = :id");
+                    $moveStmt->execute([':id' => $id]);
+                    $movedFoods = $moveStmt->rowCount();
+
+                    $deleteStmt = $conn->prepare("DELETE FROM food_categories WHERE id = :id");
+                    $deleteStmt->execute([':id' => $id]);
+                    $conn->commit();
+
+                    $_SESSION['success'] = 'Đã xóa danh mục “' . $category['name'] . '”.'
+                        . ($movedFoods > 0 ? ' ' . $movedFoods . ' món ăn đã được chuyển sang chưa phân loại.' : '');
+                }
+            } catch (Throwable $e) {
+                if ($conn->inTransaction()) {
+                    $conn->rollBack();
+                }
+                error_log('Không thể xóa danh mục #' . $id . ': ' . $e->getMessage());
+                $_SESSION['error'] = 'Không thể xóa danh mục. Vui lòng thử lại.';
+            }
+        }
     }
     redirect('/admin/food-categories.php');
 }
@@ -57,13 +82,13 @@ require_once __DIR__ . '/../includes/header.php';
 
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                    <?php echo htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['success']); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?php echo htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
@@ -102,11 +127,11 @@ require_once __DIR__ . '/../includes/header.php';
                                         <a href="<?php echo BASE_URL; ?>/admin/food-category-edit.php?id=<?php echo $cat['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Sửa">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa danh mục này?');">
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('Xóa danh mục này? Các món bên trong sẽ được giữ lại và chuyển sang chưa phân loại.');">
                                             <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete_category">
                                             <input type="hidden" name="id" value="<?php echo $cat['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa" <?php echo ($cat['total_foods'] > 0) ? 'disabled' : ''; ?>>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa danh mục">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>

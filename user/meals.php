@@ -55,28 +55,25 @@ if ($cal_percent > 100) $cal_percent = 100;
 
 <div class="container py-5">
     <div class="row">
-        <div class="col-md-3">
-            <div class="list-group shadow-sm mb-4">
-                <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="list-group-item list-group-item-action"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
-                <a href="<?php echo BASE_URL; ?>/user/profile.php" class="list-group-item list-group-item-action"><i class="bi bi-person-circle me-2"></i>Hồ sơ sức khỏe</a>
-                <a href="<?php echo BASE_URL; ?>/user/meals.php" class="list-group-item list-group-item-action active bg-success border-success"><i class="bi bi-journal-text me-2"></i>Nhật ký bữa ăn</a>
-            </div>
-            
+        <div class="col-12">
             <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <h5 class="fw-bold text-success mb-3">Ngày đang chọn</h5>
-                    <form method="GET" action="">
-                        <input type="date" class="form-control mb-2" name="date" value="<?php echo htmlspecialchars($date); ?>" onchange="this.form.submit()">
-                    </form>
-                    <div class="d-flex justify-content-between mt-2">
-                        <a href="?date=<?php echo date('Y-m-d', strtotime($date . ' -1 day')); ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i> Hôm qua</a>
-                        <a href="?date=<?php echo date('Y-m-d', strtotime($date . ' +1 day')); ?>" class="btn btn-sm btn-outline-secondary">Ngày mai <i class="bi bi-chevron-right"></i></a>
+                <div class="card-body py-3">
+                    <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
+                        <div>
+                            <div class="small text-muted">Ngày đang chọn</div>
+                            <div class="fw-bold text-success"><?php echo date('d/m/Y', strtotime($date)); ?></div>
+                        </div>
+                        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+                            <a href="?date=<?php echo date('Y-m-d', strtotime($date . ' -1 day')); ?>" class="btn btn-sm btn-outline-secondary text-nowrap"><i class="bi bi-chevron-left me-1"></i>Hôm qua</a>
+                            <form method="GET" action="" class="m-0">
+                                <label class="visually-hidden" for="meal-log-date">Chọn ngày nhật ký</label>
+                                <input type="date" class="form-control form-control-sm" id="meal-log-date" name="date" value="<?php echo htmlspecialchars($date); ?>" onchange="this.form.submit()">
+                            </form>
+                            <a href="?date=<?php echo date('Y-m-d', strtotime($date . ' +1 day')); ?>" class="btn btn-sm btn-outline-secondary text-nowrap">Ngày mai<i class="bi bi-chevron-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-9">
             <!-- Tóm tắt dinh dưỡng -->
             <div class="card glass-panel mb-4 border-0" data-aos="fade-up">
                 <div class="card-body p-4">

@@ -262,8 +262,8 @@ Nhắc hằng tuần dùng thứ trong tuần của `created_at`. Cơ chế hi�
 | FR-ADM-01 | Dashboard admin | Đếm người dùng, món ăn, thực đơn hoạt động, nhật ký bữa ăn và liệt kê 5 người dùng mới. |
 | FR-ADM-02 | Người dùng | Liệt kê, thêm, sửa, phân vai trò, đổi trạng thái, khóa/mở khóa và xóa. |
 | FR-ADM-03 | Bảo vệ admin | Không cho thao tác khóa/xóa bằng nút nhanh đối với tài khoản admin; không cho tự xóa chính mình. |
-| FR-ADM-04 | Danh mục món | Thêm/sửa/ẩn/xóa; không cho xóa danh mục còn món ăn. |
-| FR-ADM-05 | Món ăn | Tìm kiếm, phân trang, thêm/sửa/xóa, gán danh mục, trạng thái và ảnh. |
+| FR-ADM-04 | Danh mục món | Thêm/sửa/ẩn/xóa; khi xóa danh mục, các món bên trong được giữ lại và chuyển sang chưa phân loại. |
+| FR-ADM-05 | Món ăn | Tìm kiếm, phân trang, thêm/sửa/xóa, gán danh mục, trạng thái và ảnh. Món đã có dữ liệu lịch sử được chuyển sang ẩn thay vì xóa vật lý. |
 | FR-ADM-06 | Kiểm tra dinh dưỡng | Giá trị không âm; kiểm tra tổng macro theo khối lượng và calories ước tính. |
 | FR-ADM-07 | Thực đơn | Thêm/sửa/xóa thực đơn; gán mục tiêu, chế độ ăn, ảnh và trạng thái. |
 | FR-ADM-08 | Xây thực đơn | Tạo các bữa, thêm/xóa món và tự tính lại tổng dinh dưỡng toàn thực đơn. |
@@ -560,7 +560,7 @@ Quan hệ xóa chính:
 - Xóa user sẽ cascade hồ sơ, bữa ăn, sức khỏe, cân nặng, chatbot, nhắc nhở, thông báo, ghi chú và yêu thích.
 - Xóa cuộc hội thoại sẽ cascade tin nhắn.
 - Xóa bữa sẽ cascade item.
-- Không thể xóa food đang được tham chiếu bởi item bữa ăn/thực đơn do `RESTRICT`; giao diện admin cần xử lý ngoại lệ hoặc ưu tiên đổi trạng thái `inactive`.
+- Food đang được tham chiếu bởi item bữa ăn/thực đơn được giao diện admin chuyển sang `inactive` để bảo toàn lịch sử; food chưa được tham chiếu được xóa vật lý.
 
 ## 9. Giao diện và API
 
@@ -715,7 +715,7 @@ Nếu CSDL cũ chưa có dashboard theo giờ:
 | AC-10 | User A mở/xóa hội thoại User B | Bị từ chối hoặc không tìm thấy dữ liệu |
 | AC-11 | Gemini không kết nối | API vẫn trả `status=success`, `source=local` và notice phù hợp |
 | AC-12 | Nhắc một lần đã đến giờ, tải trang | Tạo một thông báo, cập nhật ngày kích hoạt và tắt nhắc |
-| AC-13 | Xóa danh mục còn món | Không cho xóa |
+| AC-13 | Xóa danh mục còn món | Xóa danh mục thành công; món được giữ lại với `category_id = NULL` |
 | AC-14 | User thường truy cập `/admin/` | Bị chặn/chuyển hướng |
 | AC-15 | Ảnh món rỗng hoặc sai | Hiển thị ảnh dự phòng, không hiện biểu tượng ảnh vỡ |
 

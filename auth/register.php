@@ -94,8 +94,8 @@ require_once __DIR__ . '/../includes/header.php';
                                     <label for="floatingEmail" class="text-muted"><i class="bi bi-envelope me-2"></i>Email</label>
                                 </div>
                                 
-                                <div class="row g-2 mb-3">
-                                    <div class="col-sm-6">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-12">
                                         <div class="form-floating position-relative">
                                             <input type="password" class="form-control pe-5" id="floatingPassword" name="password" placeholder="Mật khẩu" required minlength="8">
                                             <label for="floatingPassword" class="text-muted"><i class="bi bi-lock me-2"></i>Mật khẩu</label>
@@ -104,7 +104,7 @@ require_once __DIR__ . '/../includes/header.php';
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="col-sm-6">
+                                    <div class="col-12">
                                         <div class="form-floating position-relative">
                                             <input type="password" class="form-control pe-5" id="floatingPasswordConfirm" name="password_confirm" placeholder="Nhập lại" required minlength="8">
                                             <label for="floatingPasswordConfirm" class="text-muted"><i class="bi bi-check-circle me-2"></i>Nhập lại mật khẩu</label>

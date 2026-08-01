@@ -70,15 +70,7 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="container py-5">
     <div class="row">
-        <div class="col-md-3">
-            <!-- Sidebar giả lập -->
-            <div class="list-group shadow-sm">
-                <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="list-group-item list-group-item-action"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
-                <a href="<?php echo BASE_URL; ?>/user/profile.php" class="list-group-item list-group-item-action active bg-success border-success"><i class="bi bi-person-circle me-2"></i>Hồ sơ sức khỏe</a>
-                <a href="<?php echo BASE_URL; ?>/user/meals.php" class="list-group-item list-group-item-action"><i class="bi bi-journal-text me-2"></i>Nhật ký bữa ăn</a>
-            </div>
-        </div>
-        <div class="col-md-9">
+        <div class="col-12">
             <div class="card glass-panel border-0" data-aos="fade-up">
                 <div class="card-header bg-white bg-opacity-75 p-4 border-0 d-flex align-items-center rounded-top-4">
                     <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
