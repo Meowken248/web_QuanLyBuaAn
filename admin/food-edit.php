@@ -122,7 +122,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="col-md-4"><label class="form-label">Đơn vị <span class="text-danger">*</span></label><input class="form-control <?php echo isset($field_errors['serving_unit']) ? 'is-invalid' : ''; ?>" name="serving_unit" value="<?php echo food_form_value('serving_unit', $food, 'gram'); ?>" required><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['serving_unit'] ?? 'Vui lòng nhập đơn vị.'); ?></div></div>
 <div class="col-md-4"><label class="form-label">Trạng thái</label><select class="form-select" name="status"><option value="active">Hoạt động</option><option value="inactive" <?php echo ($_POST['status'] ?? $food['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Ẩn</option></select></div>
 <?php foreach (['calories'=>'Calories','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $key=>$label): ?>
-<div class="col-md"><label class="form-label"><?php echo $label; ?> <span class="text-danger">*</span></label><input type="number" min="0" step="0.01" data-clear-zero class="form-control <?php echo isset($field_errors[$key]) ? 'is-invalid' : ''; ?>" name="<?php echo $key; ?>" placeholder="0.00" value="<?php echo food_form_value($key, $food, ''); ?>" required><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors[$key] ?? 'Giá trị phải lớn hơn hoặc bằng 0.'); ?></div></div>
+<div class="col-md"><label class="form-label"><?php echo $label; ?> <?php if($key !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label><input type="number" min="0" step="0.01" data-clear-zero class="form-control <?php echo isset($field_errors[$key]) ? 'is-invalid' : ''; ?> <?php echo $key === 'calories' ? 'bg-light text-muted fw-bold' : ''; ?>" name="<?php echo $key; ?>" placeholder="0.00" value="<?php echo food_form_value($key, $food, ''); ?>" <?php echo $key === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors[$key] ?? 'Giá trị phải lớn hơn hoặc bằng 0.'); ?></div></div>
 <?php endforeach; ?>
 <div class="col-12"><div class="form-text">Calories tham khảo = Protein × 4 + Carbs × 4 + Fat × 9. Nếu đơn vị là gram, tổng macros và chất xơ không được vượt khẩu phần.</div></div>
 </div>
@@ -130,8 +130,20 @@ require_once __DIR__ . '/../includes/header.php';
 </form></div></div></div></div></div>
 <script>
 document.querySelectorAll('[data-clear-zero]').forEach(input => {
-    input.addEventListener('focus', () => { if (parseFloat(input.value) === 0) input.value = ''; });
+    input.addEventListener('focus', () => { if (parseFloat(input.value) === 0 && !input.readOnly) input.value = ''; });
     input.addEventListener('blur', () => { if (input.value === '') input.value = '0.00'; });
 });
+
+const macros = document.querySelectorAll('input[name="protein"], input[name="carbs"], input[name="fat"]');
+const calInput = document.querySelector('input[name="calories"]');
+if (calInput && macros.length > 0) {
+    const calcCals = () => {
+        let p = parseFloat(document.querySelector('input[name="protein"]').value) || 0;
+        let c = parseFloat(document.querySelector('input[name="carbs"]').value) || 0;
+        let f = parseFloat(document.querySelector('input[name="fat"]').value) || 0;
+        calInput.value = (p * 4 + c * 4 + f * 9).toFixed(2);
+    };
+    macros.forEach(el => el.addEventListener('input', calcCals));
+}
 </script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

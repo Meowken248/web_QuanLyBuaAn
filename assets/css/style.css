@@ -368,4 +368,34 @@ h1, h2, h3, h4, h5, h6 {
         width: auto;
         margin: 1rem 1rem 0;
     }
+    .user-sidebar-nav {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        white-space: nowrap;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+        border-radius: 12px;
+    }
+    .user-sidebar-nav::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
+    }
+    .user-sidebar-nav .list-group-item {
+        border-right: 1px solid #dce5e0;
+        border-bottom: none;
+        border-radius: 0;
+        flex: 0 0 auto;
+    }
+    .user-sidebar-nav .list-group-item:first-child {
+        border-top-left-radius: 12px;
+        border-bottom-left-radius: 12px;
+    }
+    .user-sidebar-nav .list-group-item:last-child {
+        border-right: none;
+        border-top-right-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+    .user-sidebar-support {
+        display: none;
+    }
 }

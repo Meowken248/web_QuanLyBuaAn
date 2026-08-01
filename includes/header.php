@@ -126,7 +126,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                 </span>
                             <?php endif; ?>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 300px;">
+                        <ul class="dropdown-menu dropdown-menu-lg-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 300px;">
                             <li><h6 class="dropdown-header fw-bold">Thông báo mới</h6></li>
                             <?php
                                 $stmtList = $conn->prepare("SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT 5");
@@ -159,7 +159,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                             </div>
                             <strong class="d-none d-md-block"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Tài khoản'); ?></strong>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end text-small shadow border-0 mt-2" aria-labelledby="dropdownUser">
+                        <ul class="dropdown-menu dropdown-menu-lg-end text-small shadow border-0 mt-2" aria-labelledby="dropdownUser">
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/profile.php"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/reminders.php"><i class="bi bi-alarm me-2"></i>Nhắc nhở của tôi</a></li>
