@@ -26,7 +26,8 @@ foreach ($msgs as $m) {
         echo '<div class="ms-2"><i class="bi bi-person-circle fs-3 text-secondary"></i></div>';
         echo '</div>';
     } elseif ($m['sender'] === 'assistant') {
-        $htmlMsg = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $m['message']);
+        $safeMessage = htmlspecialchars($m['message'], ENT_QUOTES, 'UTF-8');
+        $htmlMsg = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $safeMessage);
         $htmlMsg = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $htmlMsg);
         $htmlMsg = nl2br($htmlMsg);
         

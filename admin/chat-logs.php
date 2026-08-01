@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 $database = new Database();
 $conn = $database->getConnection();
+$csrf_token = generate_csrf_token();
 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = 20;
@@ -65,7 +66,7 @@ require_once __DIR__ . '/../includes/header.php';
 
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                    <?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
@@ -107,7 +108,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <td>
                                         <button class="btn btn-sm btn-info text-white" onclick="viewChat(<?php echo $chat['id']; ?>)">Xem</button>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hội thoại này không?');">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo (int)$chat['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
