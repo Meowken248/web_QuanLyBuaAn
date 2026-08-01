@@ -74,6 +74,7 @@ $profile = (new ProfileModel())->getProfileByUserId($user_id);
 $nutrition = (new MealModel())->getDailyNutrition($user_id, date('Y-m-d'));
 $answer = null;
 $used_fallback = false;
+$gemini_error = null;
 
 if (GEMINI_API_KEY !== '') {
     $system = "Bạn là trợ lý dinh dưỡng tiếng Việt. Trả lời ngắn gọn, dễ hiểu; không chẩn đoán bệnh hoặc kê đơn.";
@@ -88,25 +89,51 @@ if (GEMINI_API_KEY !== '') {
     ];
 
     $ch = curl_init(GEMINI_API_URL);
-    curl_setopt_array($ch, [
+    $curl_options = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT => 45,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . GEMINI_API_KEY]
-    ]);
+    ];
+
+    // WAMP/cURL trên Windows không tự dùng kho chứng chỉ hệ thống.
+    if (defined('CURLSSLOPT_NATIVE_CA')) {
+        $curl_options[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
+    }
+    curl_setopt_array($ch, $curl_options);
+
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_error = curl_errno($ch);
+    $curl_error = curl_error($ch);
     curl_close($ch);
 
-    if (!$curl_error && $http_code === 200) {
+    if ($curl_error === '' && $http_code === 200) {
         $result = json_decode($response, true);
-        $answer = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        $parts = $result['candidates'][0]['content']['parts'] ?? [];
+        $text_parts = [];
+        foreach ($parts as $part) {
+            if (isset($part['text']) && is_string($part['text'])) {
+                $text_parts[] = $part['text'];
+            }
+        }
+        $answer = trim(implode("\n", $text_parts)) ?: null;
+        if (!$answer) {
+            $gemini_error = 'Gemini không trả về nội dung.';
+        }
+    } elseif ($curl_error !== '') {
+        $gemini_error = 'Lỗi kết nối Gemini: ' . $curl_error;
+    } else {
+        $error_result = json_decode($response, true);
+        $api_message = $error_result['error']['message'] ?? 'HTTP ' . $http_code;
+        $gemini_error = 'Gemini API: ' . $api_message;
     }
 }
 if (!$answer) {
+    if ($gemini_error) {
+        error_log($gemini_error);
+    }
     $answer = local_nutrition_answer($question, $profile, $nutrition);
     $used_fallback = true;
 }
@@ -122,5 +149,6 @@ chatbot_response([
     'status' => 'success',
     'answer' => $safe,
     'conversation_id' => $conversation_id,
-    'source' => $used_fallback ? 'local' : 'gemini'
+    'source' => $used_fallback ? 'local' : 'gemini',
+    'notice' => $used_fallback ? 'Gemini tạm thời chưa kết nối; câu trả lời này đến từ trợ lý nội bộ.' : null
 ]);

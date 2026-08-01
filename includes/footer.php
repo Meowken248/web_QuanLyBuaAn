@@ -109,6 +109,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatInput = document.getElementById('chatbot-input');
     const chatMessages = document.getElementById('chatbot-messages');
     const clearBtn = document.getElementById('chatbot-clear-btn');
+    const escapeHtml = (value) => {
+        const element = document.createElement('div');
+        element.textContent = String(value ?? '');
+        return element.innerHTML;
+    };
     
     if (toggleBtn) {
         toggleBtn.addEventListener('click', function() {
@@ -141,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="bi bi-person"></i>
                 </div>
                 <div class="bg-health text-white rounded p-2 small shadow-sm">
-                    ${question.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                    ${escapeHtml(question)}
                 </div>
             </div>`;
             chatMessages.insertAdjacentHTML('beforeend', userHtml);
@@ -176,6 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 let responseHtml = '';
                 if (data.status === 'success') {
+                    const noticeHtml = data.source === 'local' && data.notice
+                        ? `<div class="small text-warning mt-1"><i class="bi bi-info-circle me-1"></i>${escapeHtml(data.notice)}</div>`
+                        : '';
                     responseHtml = `
                     <div class="d-flex mb-3">
                         <div class="bg-health text-white rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 35px; height: 35px;">
@@ -183,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="bg-white border rounded p-2 small shadow-sm">
                             ${data.answer}
+                            ${noticeHtml}
                         </div>
                     </div>`;
                 } else {
@@ -192,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-exclamation-triangle"></i>
                         </div>
                         <div class="bg-white border rounded p-2 small shadow-sm text-danger">
-                            <i class="bi bi-exclamation-triangle me-1"></i>${data.message}
+                            <i class="bi bi-exclamation-triangle me-1"></i>${escapeHtml(data.message || 'Không xác định được lỗi.')}
                         </div>
                     </div>`;
                 }

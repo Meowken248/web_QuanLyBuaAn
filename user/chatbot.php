@@ -74,7 +74,8 @@ require_once __DIR__ . '/../includes/header.php';
                                         echo '<div class="d-flex mb-4">';
                                         echo '<div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;"><i class="bi bi-robot"></i></div>';
                                         
-                                        $htmlMsg = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $m['message']);
+                                        $safeMessage = htmlspecialchars($m['message'], ENT_QUOTES, 'UTF-8');
+                                        $htmlMsg = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $safeMessage);
                                         $htmlMsg = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $htmlMsg);
                                         $htmlMsg = nl2br($htmlMsg);
                                         
@@ -133,6 +134,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendBtn = document.getElementById('sendBtn');
     const promptBtns = document.querySelectorAll('.prompt-btn');
     const clearChatBtn = document.getElementById('clearChatBtn');
+    const escapeHtml = (value) => {
+        const element = document.createElement('div');
+        element.textContent = String(value ?? '');
+        return element.innerHTML;
+    };
     
     // Add message to UI
     function appendMessage(sender, text) {
@@ -145,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
             msgDiv.innerHTML = `
                 <div class="flex-grow-1 text-end">
                     <div class="bg-success text-white p-3 rounded shadow-sm d-inline-block text-start">
-                        ${text}
+                        ${escapeHtml(text)}
                     </div>
                 </div>
                 ${avatarHTML}
@@ -214,7 +220,11 @@ document.addEventListener('DOMContentLoaded', function() {
             hideLoading();
             
             if (data.status === 'success') {
-                appendMessage('bot', data.answer);
+                let answerHtml = data.answer;
+                if (data.source === 'local' && data.notice) {
+                    answerHtml += `<div class="small text-warning mt-2"><i class="bi bi-info-circle me-1"></i>${escapeHtml(data.notice)}</div>`;
+                }
+                appendMessage('bot', answerHtml);
                 if (data.conversation_id) {
                     currentConversationId = data.conversation_id;
                     // Tự động cập nhật URL nếu là chat mới
@@ -224,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } else {
-                appendMessage('bot', `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Lỗi: ${data.message}</span>`);
+                appendMessage('bot', `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Lỗi: ${escapeHtml(data.message || 'Không xác định được lỗi.')}</span>`);
             }
         } catch (error) {
             hideLoading();
