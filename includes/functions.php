@@ -20,12 +20,12 @@ function display_flash_message() {
     if (isset($_SESSION['flash_message'])) {
         $type = $_SESSION['flash_message']['type'];
         $message = $_SESSION['flash_message']['message'];
-        
+
         echo '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">';
         echo htmlspecialchars($message);
         echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
         echo '</div>';
-        
+
         // Clear message after displaying
         unset($_SESSION['flash_message']);
     }
@@ -78,4 +78,21 @@ function food_image_url($image) {
     }
 
     return $fallback;
+}
+function meal_plan_image_url($image) {
+    $fallback = BASE_URL . '/img/bg1.jpg';
+    if (!is_string($image) || trim($image) === '') {
+        return $fallback;
+    }
+
+    $image = str_replace('\\', '/', trim($image));
+    if (preg_match('#^https?://#i', $image)) {
+        return filter_var($image, FILTER_VALIDATE_URL) ? $image : $fallback;
+    }
+
+    $filename = basename($image);
+    $relative = '/uploads/meal_plans/' . $filename;
+    $full_path = dirname(__DIR__) . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+
+    return is_file($full_path) ? BASE_URL . $relative : $fallback;
 }

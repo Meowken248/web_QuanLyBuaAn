@@ -11,7 +11,7 @@ class WeightModel {
     }
 
     public function getWeightHistory($user_id, $limit = 30) {
-        $query = "SELECT log_date, weight_kg as weight, bmi FROM weight_logs WHERE user_id = :user_id ORDER BY log_date ASC LIMIT :limit";
+        $query = "SELECT log_date, weight, bmi FROM (SELECT log_date, weight_kg AS weight, bmi FROM weight_logs WHERE user_id = :user_id ORDER BY log_date DESC LIMIT :limit) recent_weights ORDER BY log_date ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $user_id);
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 
 class MealModel {
     private $conn;
+    private $hasConsumedAt = null;
 
     public function __construct() {
         $database = new Database();
@@ -34,13 +35,37 @@ class MealModel {
             return $row['id'];
         }
 
-        // Tạo mới
-        $insertQuery = "INSERT INTO meal_logs (user_id, log_date, meal_type) VALUES (:user_id, :log_date, :meal_type)";
+        // Tạo mới. Sau khi import bản nâng cấp, lưu luôn giờ ăn thực tế.
+        if ($this->hasConsumedAtColumn()) {
+            $defaultHours = [
+                'breakfast' => '07:00:00',
+                'morning_snack' => '10:00:00',
+                'lunch' => '12:00:00',
+                'afternoon_snack' => '15:00:00',
+                'dinner' => '19:00:00',
+                'evening_snack' => '21:00:00'
+            ];
+            $consumedAt = $date === date('Y-m-d') ? date('H:i:s') : ($defaultHours[$meal_type] ?? '12:00:00');
+            $insertQuery = "INSERT INTO meal_logs (user_id, log_date, meal_type, consumed_at)
+                            VALUES (:user_id, :log_date, :meal_type, :consumed_at)";
+            $insertData = [
+                ':user_id' => $user_id,
+                ':log_date' => $date,
+                ':meal_type' => $meal_type,
+                ':consumed_at' => $consumedAt
+            ];
+        } else {
+            $insertQuery = "INSERT INTO meal_logs (user_id, log_date, meal_type)
+                            VALUES (:user_id, :log_date, :meal_type)";
+            $insertData = [
+                ':user_id' => $user_id,
+                ':log_date' => $date,
+                ':meal_type' => $meal_type
+            ];
+        }
+
         $insertStmt = $this->conn->prepare($insertQuery);
-        $insertStmt->bindParam(':user_id', $user_id);
-        $insertStmt->bindParam(':log_date', $date);
-        $insertStmt->bindParam(':meal_type', $meal_type);
-        if ($insertStmt->execute()) {
+        if ($insertStmt->execute($insertData)) {
             return $this->conn->lastInsertId();
         }
         return false;
@@ -150,4 +175,74 @@ class MealModel {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-}
+
+    public function getHourlyNutrition($user_id, $date) {
+        $hourExpression = $this->hasConsumedAtColumn()
+            ? "HOUR(COALESCE(l.consumed_at, CASE l.meal_type
+                    WHEN 'breakfast' THEN '07:00:00'
+                    WHEN 'morning_snack' THEN '10:00:00'
+                    WHEN 'lunch' THEN '12:00:00'
+                    WHEN 'afternoon_snack' THEN '15:00:00'
+                    WHEN 'dinner' THEN '19:00:00'
+                    WHEN 'evening_snack' THEN '21:00:00'
+                    ELSE '12:00:00' END))"
+            : "CASE l.meal_type
+                    WHEN 'breakfast' THEN 7
+                    WHEN 'morning_snack' THEN 10
+                    WHEN 'lunch' THEN 12
+                    WHEN 'afternoon_snack' THEN 15
+                    WHEN 'dinner' THEN 19
+                    WHEN 'evening_snack' THEN 21
+                    ELSE 12 END";
+
+        $query = "SELECT {$hourExpression} AS log_hour,
+                         COALESCE(SUM(i.calories), 0) AS calories,
+                         COALESCE(SUM(i.protein), 0) AS protein,
+                         COALESCE(SUM(i.carbs), 0) AS carbs,
+                         COALESCE(SUM(i.fat), 0) AS fat
+                  FROM meal_logs l
+                  JOIN meal_log_items i ON i.meal_log_id = l.id
+                  WHERE l.user_id = :user_id AND l.log_date = :log_date
+                  GROUP BY log_hour
+                  ORDER BY log_hour ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':user_id' => $user_id, ':log_date' => $date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getNutritionHistory($user_id, $days = 7) {
+        $days = max(1, min(90, (int)$days));
+        $query = "SELECT l.log_date,
+                         COALESCE(SUM(i.calories), 0) AS calories,
+                         COALESCE(SUM(i.protein), 0) AS protein,
+                         COALESCE(SUM(i.carbs), 0) AS carbs,
+                         COALESCE(SUM(i.fat), 0) AS fat,
+                         COALESCE(SUM(i.fiber), 0) AS fiber
+                  FROM meal_logs l
+                  LEFT JOIN meal_log_items i ON i.meal_log_id = l.id
+                  WHERE l.user_id = :user_id
+                    AND l.log_date >= DATE_SUB(CURDATE(), INTERVAL {$days} DAY)
+                  GROUP BY l.log_date
+                  ORDER BY l.log_date ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':user_id' => $user_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function hasConsumedAtColumn() {
+        if ($this->hasConsumedAt !== null) {
+            return $this->hasConsumedAt;
+        }
+
+        try {
+            $stmt = $this->conn->query("SELECT COUNT(*) FROM information_schema.columns
+                                         WHERE table_schema = DATABASE()
+                                           AND table_name = 'meal_logs'
+                                           AND column_name = 'consumed_at'");
+            $this->hasConsumedAt = (bool)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            $this->hasConsumedAt = false;
+        }
+
+        return $this->hasConsumedAt;
+    }}

@@ -2,6 +2,7 @@
 // user/meal-plans.php
 require_once __DIR__ . '/../includes/auth-check.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 $database = new Database();
 $conn = $database->getConnection();
@@ -12,7 +13,11 @@ require_once __DIR__ . '/../models/ProfileModel.php';
 $profileModel = new ProfileModel();
 $profile = $profileModel->getProfileByUserId($user_id);
 
-$goalFilter = isset($_GET['goal']) ? $_GET['goal'] : '';
+$goalFilter = $_GET['goal'] ?? '';
+$validGoalFilters = ['lose_weight', 'gain_weight', 'gain_muscle', 'maintain_weight'];
+if ($goalFilter !== '' && !in_array($goalFilter, $validGoalFilters, true)) {
+    $goalFilter = '';
+}
 
 $whereClauses = ["status = 'active'"];
 $params = [];
@@ -35,17 +40,31 @@ $stmtFav->execute([':uid' => $user_id]);
 $favorites = $stmtFav->fetchAll(PDO::FETCH_COLUMN);
 
 // Handle Favorite Action
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle_favorite') {
-    $pid = (int)$_POST['plan_id'];
-    if (in_array($pid, $favorites)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_favorite') {
+    $redirectPath = '/user/meal-plans.php' . ($goalFilter ? '?goal=' . urlencode($goalFilter) : '');
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = 'Phiên làm việc không hợp lệ.';
+        redirect($redirectPath);
+    }
+
+    $pid = filter_var($_POST['plan_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $stmtPlan = $conn->prepare("SELECT 1 FROM meal_plans WHERE id = :pid AND status = 'active'");
+    $stmtPlan->execute([':pid' => $pid ?: 0]);
+    if (!$pid || !$stmtPlan->fetchColumn()) {
+        $_SESSION['error'] = 'Thực đơn không tồn tại hoặc đã bị ẩn.';
+        redirect($redirectPath);
+    }
+
+    $stmtFavorite = $conn->prepare("SELECT 1 FROM favorite_meal_plans WHERE user_id = :uid AND meal_plan_id = :pid");
+    $stmtFavorite->execute([':uid' => $user_id, ':pid' => $pid]);
+    if ($stmtFavorite->fetchColumn()) {
         $conn->prepare("DELETE FROM favorite_meal_plans WHERE user_id = :uid AND meal_plan_id = :pid")->execute([':uid' => $user_id, ':pid' => $pid]);
         $_SESSION['success'] = 'Đã bỏ yêu thích.';
     } else {
         $conn->prepare("INSERT INTO favorite_meal_plans (user_id, meal_plan_id) VALUES (:uid, :pid)")->execute([':uid' => $user_id, ':pid' => $pid]);
         $_SESSION['success'] = 'Đã thêm vào danh sách yêu thích.';
     }
-    header("Location: /user/meal-plans.php" . ($goalFilter ? "?goal=$goalFilter" : ""));
-    exit;
+    redirect($redirectPath);
 }
 
 $page_title = 'Khám phá Thực đơn';
@@ -60,10 +79,10 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="col-md-6 text-md-end">
             <div class="d-inline-flex gap-2">
-                <a href="?goal=" class="btn btn-sm <?php echo empty($goalFilter) ? 'btn-success' : 'btn-outline-success'; ?>">Tất cả</a>
-                <a href="?goal=lose_weight" class="btn btn-sm <?php echo $goalFilter == 'lose_weight' ? 'btn-success' : 'btn-outline-success'; ?>">Giảm cân</a>
-                <a href="?goal=gain_muscle" class="btn btn-sm <?php echo $goalFilter == 'gain_muscle' ? 'btn-success' : 'btn-outline-success'; ?>">Tăng cơ</a>
-                <a href="?goal=maintain_weight" class="btn btn-sm <?php echo $goalFilter == 'maintain_weight' ? 'btn-success' : 'btn-outline-success'; ?>">Khỏe mạnh</a>
+                <a href="<?php echo BASE_URL; ?>/user/meal-plans.php" class="btn btn-sm <?php echo empty($goalFilter) ? 'btn-success' : 'btn-outline-success'; ?>">Tất cả</a>
+                <a href="<?php echo BASE_URL; ?>/user/meal-plans.php?goal=lose_weight" class="btn btn-sm <?php echo $goalFilter == 'lose_weight' ? 'btn-success' : 'btn-outline-success'; ?>">Giảm cân</a>
+                <a href="<?php echo BASE_URL; ?>/user/meal-plans.php?goal=gain_muscle" class="btn btn-sm <?php echo $goalFilter == 'gain_muscle' ? 'btn-success' : 'btn-outline-success'; ?>">Tăng cơ</a>
+                <a href="<?php echo BASE_URL; ?>/user/meal-plans.php?goal=maintain_weight" class="btn btn-sm <?php echo $goalFilter == 'maintain_weight' ? 'btn-success' : 'btn-outline-success'; ?>">Khỏe mạnh</a>
             </div>
         </div>
     </div>
@@ -75,15 +94,22 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
 
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
     <!-- Hiển thị lượng calo đề xuất nếu có Profile -->
     <?php if ($profile): ?>
     <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-4">
         <i class="bi bi-info-circle-fill fs-3 text-info me-3"></i>
         <div>
-            Theo hồ sơ của bạn, lượng Calories mục tiêu là <strong><?php echo $profile['calorie_target']; ?> kcal/ngày</strong> 
-            với mục tiêu <strong><?php 
-                echo $profile['health_goal'] == 'lose_weight' ? 'Giảm cân' : 
-                    ($profile['health_goal'] == 'gain_weight' ? 'Tăng cân' : 'Giữ dáng'); 
+            Theo hồ sơ của bạn, lượng Calories mục tiêu là <strong><?php echo $profile['calorie_target']; ?> kcal/ngày</strong>
+            với mục tiêu <strong><?php
+                echo $profile['health_goal'] == 'lose_weight' ? 'Giảm cân' :
+                    ($profile['health_goal'] == 'gain_weight' ? 'Tăng cân' : 'Giữ dáng');
             ?></strong>. Hãy chọn các thực đơn có tổng năng lượng tương đương nhé!
         </div>
     </div>
@@ -95,22 +121,17 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="col">
                 <div class="card h-100 shadow-sm border-0 card-hover overflow-hidden">
                     <div class="position-relative">
-                        <?php if ($plan['image']): ?>
-                            <img src="<?php echo BASE_URL . '/uploads/meal_plans/' . $plan['image']; ?>" class="card-img-top" alt="<?php echo htmlspecialchars($plan['name']); ?>" style="height: 200px; object-fit: cover;">
-                        <?php else: ?>
-                            <div class="bg-success bg-opacity-25 d-flex align-items-center justify-content-center" style="height: 200px;">
-                                <i class="bi bi-journal-check text-success" style="font-size: 5rem;"></i>
-                            </div>
-                        <?php endif; ?>
-                        
+                        <img src="<?php echo htmlspecialchars(meal_plan_image_url($plan['image']), ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($plan['name']); ?>" style="height: 200px; object-fit: cover;">
+
                         <!-- Badges -->
                         <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
 
                             <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill"><?php echo round($plan['total_calories']); ?> kcal</span>
                         </div>
-                        
+
                         <!-- Favorite Button -->
-                        <form method="POST" class="position-absolute top-0 end-0 m-3">
+                        <form method="POST" action="<?php echo BASE_URL; ?>/user/meal-plans.php<?php echo $goalFilter ? '?goal=' . urlencode($goalFilter) : ''; ?>" class="position-absolute top-0 end-0 m-3">
+                            <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                             <input type="hidden" name="action" value="toggle_favorite">
                             <input type="hidden" name="plan_id" value="<?php echo $plan['id']; ?>">
                             <button type="submit" class="btn btn-light rounded-circle shadow-sm text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
@@ -118,11 +139,11 @@ require_once __DIR__ . '/../includes/header.php';
                             </button>
                         </form>
                     </div>
-                    
+
                     <div class="card-body">
                         <div class="mb-2 d-flex justify-content-between align-items-center">
                             <span class="text-uppercase small fw-bold text-muted"><?php echo htmlspecialchars($plan['diet_type']); ?></span>
-                            <?php 
+                            <?php
                                 $bg = 'bg-secondary';
                                 if($plan['goal_type'] == 'lose_weight') $bg = 'bg-info text-dark';
                                 if($plan['goal_type'] == 'gain_muscle') $bg = 'bg-danger text-white';
@@ -146,7 +167,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </div>
         <?php endforeach; ?>
-        
+
         <?php if (empty($plans)): ?>
             <div class="col-12 text-center py-5">
                 <i class="bi bi-search text-muted mb-3" style="font-size: 3rem;"></i>

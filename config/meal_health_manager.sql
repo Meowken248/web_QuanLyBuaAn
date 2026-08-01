@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1:3306
--- Thời gian đã tạo: Th7 31, 2026 lúc 02:09 PM
+-- Thời gian đã tạo: Th7 31, 2026 lúc 05:08 PM
 -- Phiên bản máy phục vụ: 8.4.7
 -- Phiên bản PHP: 8.3.28
 
@@ -96,7 +96,14 @@ CREATE TABLE IF NOT EXISTS `contact_messages` (
   PRIMARY KEY (`id`),
   KEY `idx_contact_messages_status` (`status`),
   KEY `idx_contact_messages_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `contact_messages`
+--
+
+INSERT INTO `contact_messages` (`id`, `full_name`, `email`, `subject`, `message`, `status`, `created_at`) VALUES
+(2, 'Anh Tú Huỳnh', 'anh2482006@gmail.com', 'eee', 'eee', '', '2026-07-31 16:13:44');
 
 -- --------------------------------------------------------
 
@@ -113,7 +120,7 @@ CREATE TABLE IF NOT EXISTS `favorite_meal_plans` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_favorite_user_plan` (`user_id`,`meal_plan_id`),
   KEY `fk_favorite_meal_plans_plan` (`meal_plan_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -129,6 +136,8 @@ CREATE TABLE IF NOT EXISTS `foods` (
   `slug` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `description` text COLLATE utf8mb4_unicode_ci,
+  `ingredients` text COLLATE utf8mb4_unicode_ci,
+  `instructions` text COLLATE utf8mb4_unicode_ci,
   `serving_size` decimal(8,2) NOT NULL DEFAULT '100.00',
   `serving_unit` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'g',
   `calories` decimal(8,2) NOT NULL DEFAULT '0.00',
@@ -157,32 +166,32 @@ CREATE TABLE IF NOT EXISTS `foods` (
 -- Đang đổ dữ liệu cho bảng `foods`
 --
 
-INSERT INTO `foods` (`id`, `category_id`, `name`, `slug`, `image`, `description`, `serving_size`, `serving_unit`, `calories`, `protein`, `carbs`, `fat`, `fiber`, `sugar`, `sodium`, `diet_type`, `is_premium`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Cơm trắng', 'com-trang', NULL, NULL, 100.00, 'g', 130.00, 2.70, 28.20, 0.30, 0.40, 0.10, 1.00, 'normal,vegetarian,vegan', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(2, 1, 'Cơm gạo lứt', 'com-gao-lut', NULL, NULL, 100.00, 'g', 123.00, 2.70, 25.60, 1.00, 1.60, 0.40, 4.00, 'normal,vegetarian,vegan,high_fiber', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(3, 2, 'Phở bò', 'pho-bo', NULL, NULL, 500.00, 'tô', 430.00, 25.00, 55.00, 12.00, 3.00, 4.00, 850.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(4, 2, 'Phở gà', 'pho-ga', NULL, NULL, 500.00, 'tô', 380.00, 28.00, 50.00, 8.00, 2.50, 3.00, 780.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(5, 2, 'Bún bò Huế', 'bun-bo-hue', NULL, NULL, 550.00, 'tô', 530.00, 30.00, 60.00, 18.00, 3.00, 5.00, 1100.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(6, 2, 'Bún thịt nướng', 'bun-thit-nuong', NULL, NULL, 450.00, 'phần', 480.00, 24.00, 62.00, 15.00, 4.00, 8.00, 720.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(7, 2, 'Hủ tiếu', 'hu-tieu', NULL, NULL, 500.00, 'tô', 400.00, 22.00, 58.00, 9.00, 2.50, 4.00, 800.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(8, 3, 'Ức gà luộc', 'uc-ga-luoc', NULL, NULL, 100.00, 'g', 165.00, 31.00, 0.00, 3.60, 0.00, 0.00, 74.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(9, 3, 'Thịt bò nạc', 'thit-bo-nac', NULL, NULL, 100.00, 'g', 250.00, 26.00, 0.00, 15.00, 0.00, 0.00, 72.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(10, 3, 'Thịt heo nạc', 'thit-heo-nac', NULL, NULL, 100.00, 'g', 242.00, 27.00, 0.00, 14.00, 0.00, 0.00, 62.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(11, 4, 'Cá hồi áp chảo', 'ca-hoi-ap-chao', NULL, NULL, 100.00, 'g', 208.00, 20.00, 0.00, 13.00, 0.00, 0.00, 59.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(12, 4, 'Cá thu', 'ca-thu', NULL, NULL, 100.00, 'g', 205.00, 19.00, 0.00, 14.00, 0.00, 0.00, 90.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(13, 4, 'Tôm luộc', 'tom-luoc', NULL, NULL, 100.00, 'g', 99.00, 24.00, 0.20, 0.30, 0.00, 0.00, 111.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(14, 5, 'Trứng gà luộc', 'trung-ga-luoc', NULL, NULL, 50.00, 'quả', 78.00, 6.30, 0.60, 5.30, 0.00, 0.60, 62.00, 'normal,vegetarian,high_protein', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(15, 5, 'Sữa chua không đường', 'sua-chua-khong-duong', NULL, NULL, 100.00, 'hộp', 61.00, 3.50, 4.70, 3.30, 0.00, 4.70, 46.00, 'normal,vegetarian', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(16, 5, 'Sữa tươi không đường', 'sua-tuoi-khong-duong', NULL, NULL, 200.00, 'ml', 122.00, 6.40, 9.60, 6.60, 0.00, 9.60, 86.00, 'normal,vegetarian', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(17, 6, 'Rau luộc thập cẩm', 'rau-luoc-thap-cam', NULL, NULL, 100.00, 'g', 35.00, 2.00, 7.00, 0.30, 3.00, 2.00, 40.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(18, 6, 'Khoai lang luộc', 'khoai-lang-luoc', NULL, NULL, 100.00, 'g', 86.00, 1.60, 20.10, 0.10, 3.00, 4.20, 55.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(19, 6, 'Salad rau củ', 'salad-rau-cu', NULL, NULL, 200.00, 'phần', 120.00, 4.00, 18.00, 4.00, 6.00, 7.00, 180.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(20, 7, 'Chuối', 'chuoi', NULL, NULL, 100.00, 'g', 89.00, 1.10, 22.80, 0.30, 2.60, 12.20, 1.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(21, 7, 'Táo', 'tao', NULL, NULL, 100.00, 'g', 52.00, 0.30, 13.80, 0.20, 2.40, 10.40, 1.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(22, 7, 'Cam', 'cam', NULL, NULL, 100.00, 'g', 47.00, 0.90, 11.80, 0.10, 2.40, 9.40, 0.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(23, 8, 'Đậu hũ', 'dau-hu', NULL, NULL, 100.00, 'g', 76.00, 8.00, 1.90, 4.80, 0.30, 0.60, 7.00, 'vegetarian,vegan,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(24, 9, 'Nước cam không đường', 'nuoc-cam-khong-duong', NULL, NULL, 250.00, 'ml', 110.00, 1.70, 25.80, 0.50, 0.50, 20.80, 2.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(25, 10, 'Whey Protein', 'whey-protein', NULL, NULL, 30.00, 'muỗng', 120.00, 24.00, 3.00, 2.00, 0.00, 1.00, 130.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
+INSERT INTO `foods` (`id`, `category_id`, `name`, `slug`, `image`, `description`, `ingredients`, `instructions`, `serving_size`, `serving_unit`, `calories`, `protein`, `carbs`, `fat`, `fiber`, `sugar`, `sodium`, `diet_type`, `is_premium`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Cơm trắng', 'com-trang', NULL, NULL, NULL, NULL, 100.00, 'g', 130.00, 2.70, 28.20, 0.30, 0.40, 0.10, 1.00, 'normal,vegetarian,vegan', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(2, 1, 'Cơm gạo lứt', 'com-gao-lut', NULL, NULL, NULL, NULL, 100.00, 'g', 123.00, 2.70, 25.60, 1.00, 1.60, 0.40, 4.00, 'normal,vegetarian,vegan,high_fiber', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(3, 2, 'Phở bò', 'pho-bo', NULL, NULL, NULL, NULL, 500.00, 'tô', 430.00, 25.00, 55.00, 12.00, 3.00, 4.00, 850.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(4, 2, 'Phở gà', 'pho-ga', NULL, NULL, NULL, NULL, 500.00, 'tô', 380.00, 28.00, 50.00, 8.00, 2.50, 3.00, 780.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(5, 2, 'Bún bò Huế', 'bun-bo-hue', NULL, NULL, NULL, NULL, 550.00, 'tô', 530.00, 30.00, 60.00, 18.00, 3.00, 5.00, 1100.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(6, 2, 'Bún thịt nướng', 'bun-thit-nuong', NULL, NULL, NULL, NULL, 450.00, 'phần', 480.00, 24.00, 62.00, 15.00, 4.00, 8.00, 720.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(7, 2, 'Hủ tiếu', 'hu-tieu', NULL, NULL, NULL, NULL, 500.00, 'tô', 400.00, 22.00, 58.00, 9.00, 2.50, 4.00, 800.00, 'normal', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(8, 3, 'Ức gà luộc', 'uc-ga-luoc', NULL, NULL, NULL, NULL, 100.00, 'g', 165.00, 31.00, 0.00, 3.60, 0.00, 0.00, 74.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(9, 3, 'Thịt bò nạc', 'thit-bo-nac', NULL, NULL, NULL, NULL, 100.00, 'g', 250.00, 26.00, 0.00, 15.00, 0.00, 0.00, 72.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(10, 3, 'Thịt heo nạc', 'thit-heo-nac', NULL, NULL, NULL, NULL, 100.00, 'g', 242.00, 27.00, 0.00, 14.00, 0.00, 0.00, 62.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(11, 4, 'Cá hồi áp chảo', 'ca-hoi-ap-chao', NULL, NULL, NULL, NULL, 100.00, 'g', 208.00, 20.00, 0.00, 13.00, 0.00, 0.00, 59.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(12, 4, 'Cá thu', 'ca-thu', NULL, NULL, NULL, NULL, 100.00, 'g', 205.00, 19.00, 0.00, 14.00, 0.00, 0.00, 90.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(13, 4, 'Tôm luộc', 'tom-luoc', NULL, NULL, NULL, NULL, 100.00, 'g', 99.00, 24.00, 0.20, 0.30, 0.00, 0.00, 111.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(14, 5, 'Trứng gà luộc', 'trung-ga-luoc', NULL, NULL, NULL, NULL, 50.00, 'quả', 78.00, 6.30, 0.60, 5.30, 0.00, 0.60, 62.00, 'normal,vegetarian,high_protein', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(15, 5, 'Sữa chua không đường', 'sua-chua-khong-duong', NULL, NULL, NULL, NULL, 100.00, 'hộp', 61.00, 3.50, 4.70, 3.30, 0.00, 4.70, 46.00, 'normal,vegetarian', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(16, 5, 'Sữa tươi không đường', 'sua-tuoi-khong-duong', NULL, NULL, NULL, NULL, 200.00, 'ml', 122.00, 6.40, 9.60, 6.60, 0.00, 9.60, 86.00, 'normal,vegetarian', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(17, 6, 'Rau luộc thập cẩm', 'rau-luoc-thap-cam', NULL, NULL, NULL, NULL, 100.00, 'g', 35.00, 2.00, 7.00, 0.30, 3.00, 2.00, 40.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(18, 6, 'Khoai lang luộc', 'khoai-lang-luoc', NULL, NULL, NULL, NULL, 100.00, 'g', 86.00, 1.60, 20.10, 0.10, 3.00, 4.20, 55.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(19, 6, 'Salad rau củ', 'salad-rau-cu', NULL, NULL, NULL, NULL, 200.00, 'phần', 120.00, 4.00, 18.00, 4.00, 6.00, 7.00, 180.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(20, 7, 'Chuối', 'chuoi', NULL, NULL, NULL, NULL, 100.00, 'g', 89.00, 1.10, 22.80, 0.30, 2.60, 12.20, 1.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(21, 7, 'Táo', 'tao', NULL, NULL, NULL, NULL, 100.00, 'g', 52.00, 0.30, 13.80, 0.20, 2.40, 10.40, 1.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(22, 7, 'Cam', 'cam', NULL, NULL, NULL, NULL, 100.00, 'g', 47.00, 0.90, 11.80, 0.10, 2.40, 9.40, 0.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(23, 8, 'Đậu hũ', 'dau-hu', NULL, NULL, NULL, NULL, 100.00, 'g', 76.00, 8.00, 1.90, 4.80, 0.30, 0.60, 7.00, 'vegetarian,vegan,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(24, 9, 'Nước cam không đường', 'nuoc-cam-khong-duong', NULL, NULL, NULL, NULL, 250.00, 'ml', 110.00, 1.70, 25.80, 0.50, 0.50, 20.80, 2.00, 'normal,vegetarian,vegan,gluten_free', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(25, 10, 'Whey Protein', 'whey-protein-25', '/uploads/foods/1785517029_6a6cd3e5b99bf.jpeg', 'ssssss', '', '', 30.00, 'muỗng', 120.00, 24.00, 3.00, 2.00, 0.00, 1.00, 130.00, 'normal,high_protein,low_carb', 0, 'active', NULL, '2026-07-31 14:05:22', '2026-07-31 16:57:09');
 
 -- --------------------------------------------------------
 
@@ -226,12 +235,40 @@ INSERT INTO `food_categories` (`id`, `name`, `slug`, `description`, `status`, `c
 -- Cấu trúc bảng cho bảng `meal_logs`
 --
 
+-- Cấu trúc bảng health_hourly_logs
+DROP TABLE IF EXISTS health_hourly_logs;
+CREATE TABLE IF NOT EXISTS health_hourly_logs (
+  id bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id bigint UNSIGNED NOT NULL,
+  log_date date NOT NULL,
+  log_hour tinyint UNSIGNED NOT NULL,
+  water_ml int UNSIGNED NOT NULL DEFAULT 0,
+  steps int UNSIGNED NOT NULL DEFAULT 0,
+  active_minutes tinyint UNSIGNED NOT NULL DEFAULT 0,
+  calories_burned decimal(8,2) UNSIGNED NOT NULL DEFAULT 0.00,
+  heart_rate smallint UNSIGNED DEFAULT NULL,
+  sleep_minutes tinyint UNSIGNED NOT NULL DEFAULT 0,
+  mood_level tinyint UNSIGNED DEFAULT NULL,
+  note varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_health_hourly_user_date_hour (user_id, log_date, log_hour),
+  KEY idx_health_hourly_user_date (user_id, log_date),
+  CONSTRAINT chk_health_hourly_hour CHECK (log_hour BETWEEN 0 AND 23),
+  CONSTRAINT chk_health_hourly_active CHECK (active_minutes BETWEEN 0 AND 60),
+  CONSTRAINT chk_health_hourly_sleep CHECK (sleep_minutes BETWEEN 0 AND 60),
+  CONSTRAINT chk_health_hourly_mood CHECK (mood_level IS NULL OR mood_level BETWEEN 1 AND 5)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 DROP TABLE IF EXISTS `meal_logs`;
 CREATE TABLE IF NOT EXISTS `meal_logs` (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` bigint UNSIGNED NOT NULL,
   `log_date` date NOT NULL,
   `meal_type` enum('breakfast','morning_snack','lunch','afternoon_snack','dinner','evening_snack') COLLATE utf8mb4_unicode_ci NOT NULL,
+  consumed_at time DEFAULT NULL,
   `note` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -239,7 +276,14 @@ CREATE TABLE IF NOT EXISTS `meal_logs` (
   UNIQUE KEY `uk_meal_logs_user_date_type` (`user_id`,`log_date`,`meal_type`),
   KEY `idx_meal_logs_user_date` (`user_id`,`log_date`),
   KEY `idx_meal_logs_date` (`log_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `meal_logs`
+--
+
+INSERT INTO meal_logs (id, user_id, log_date, meal_type, consumed_at, note, created_at, updated_at) VALUES
+(1, 1, '2026-07-31', 'breakfast', '07:00:00', NULL, '2026-07-31 14:29:48', '2026-07-31 14:29:48');
 
 -- --------------------------------------------------------
 
@@ -265,7 +309,14 @@ CREATE TABLE IF NOT EXISTS `meal_log_items` (
   PRIMARY KEY (`id`),
   KEY `idx_meal_log_items_log` (`meal_log_id`),
   KEY `idx_meal_log_items_food` (`food_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `meal_log_items`
+--
+
+INSERT INTO `meal_log_items` (`id`, `meal_log_id`, `food_id`, `quantity`, `unit`, `calculated_grams`, `calories`, `protein`, `carbs`, `fat`, `fiber`, `created_at`, `updated_at`) VALUES
+(1, 1, 23, 100.00, 'g', 10000.00, 76.00, 8.00, 1.90, 4.80, 0.30, '2026-07-31 14:29:48', '2026-07-31 14:29:48');
 
 -- --------------------------------------------------------
 
@@ -306,7 +357,7 @@ CREATE TABLE IF NOT EXISTS `meal_plans` (
 
 INSERT INTO `meal_plans` (`id`, `name`, `slug`, `description`, `goal_type`, `diet_type`, `total_calories`, `total_protein`, `total_carbs`, `total_fat`, `total_fiber`, `image`, `is_premium`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'Thực đơn giảm cân cơ bản', 'thuc-don-giam-can-co-ban', 'Thực đơn mẫu khoảng 1.500 calories, ưu tiên rau xanh và protein nạc.', 'lose_weight', 'normal', 1500.00, 110.00, 160.00, 45.00, 28.00, NULL, 0, 'active', 1, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(2, 'Thực đơn tăng cơ giàu Protein', 'thuc-don-tang-co-giau-protein', 'Thực đơn giàu protein dành cho người tập gym.', 'gain_muscle', 'high_protein', 2400.00, 180.00, 280.00, 65.00, 32.00, NULL, 0, 'active', 1, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
+(2, 'Thực đơn tăng cơ giàu Protein', 'thuc-don-tang-co-giau-protein', 'Thực đơn giàu protein dành cho người tập gym.', 'gain_muscle', 'high_protein', 2400.00, 180.00, 280.00, 65.00, 32.00, NULL, 1, 'active', 1, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
 
 -- --------------------------------------------------------
 
@@ -411,7 +462,14 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   PRIMARY KEY (`id`),
   KEY `idx_notifications_user_read` (`user_id`,`is_read`),
   KEY `idx_notifications_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `is_read`, `created_at`) VALUES
+(1, 1, '⏰ Nhắc nhở: ssss', 'Đã đến giờ cho: ssss', 'info', 1, '2026-07-31 16:11:41');
 
 -- --------------------------------------------------------
 
@@ -452,7 +510,7 @@ CREATE TABLE IF NOT EXISTS `personal_notes` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_personal_notes_user_date` (`user_id`,`note_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -469,11 +527,19 @@ CREATE TABLE IF NOT EXISTS `reminders` (
   `reminder_time` time NOT NULL,
   `repeat_type` enum('once','daily','weekdays','weekly') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'daily',
   `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `last_triggered_date` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_reminders_user_status` (`user_id`,`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `reminders`
+--
+
+INSERT INTO `reminders` (`id`, `user_id`, `reminder_type`, `title`, `reminder_time`, `repeat_type`, `status`, `last_triggered_date`, `created_at`, `updated_at`) VALUES
+(3, 1, 'snack', 'ssss', '23:13:00', 'once', 'active', '2026-07-31', '2026-07-31 16:11:41', '2026-07-31 16:12:13');
 
 -- --------------------------------------------------------
 
@@ -534,7 +600,15 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   KEY `idx_transactions_user` (`user_id`),
   KEY `idx_transactions_status` (`status`),
   KEY `idx_transactions_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `transactions`
+--
+
+INSERT INTO `transactions` (`id`, `user_id`, `plan_id`, `transaction_code`, `amount`, `payment_method`, `payment_reference`, `status`, `message`, `started_at`, `expired_at`, `created_at`, `updated_at`) VALUES
+(1, 1, 2, 'TXN17855086679191', 99000.00, '', NULL, 'failed', 'Giao dịch thất bại do thẻ bị từ chối', NULL, NULL, '2026-07-31 14:37:47', '2026-07-31 14:37:47'),
+(2, 1, 2, 'TXN17855087485018', 99000.00, '', NULL, 'failed', 'Giao dịch thất bại do thẻ bị từ chối', NULL, NULL, '2026-07-31 14:39:08', '2026-07-31 14:39:08');
 
 -- --------------------------------------------------------
 
@@ -560,15 +634,16 @@ CREATE TABLE IF NOT EXISTS `users` (
   KEY `idx_users_role` (`role`),
   KEY `idx_users_status` (`status`),
   KEY `idx_users_created_at` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `users`
 --
 
 INSERT INTO `users` (`id`, `full_name`, `email`, `password`, `avatar`, `role`, `status`, `email_verified_at`, `last_login_at`, `created_at`, `updated_at`) VALUES
-(1, 'Quản trị viên', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', NULL, 'admin', 'active', '2026-07-31 21:05:22', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(2, 'Nguyễn Văn Demo', 'user@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', NULL, 'user', 'active', '2026-07-31 21:05:22', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
+(1, 'Quản trị viên', 'admin@example.com', '$2y$10$a1vL9jNPpLTESFYvmjNWAe./bLNeHATLlyYhnGh.tztXltmJ8wOcK', NULL, 'admin', 'active', '2026-07-31 21:05:22', NULL, '2026-07-31 14:05:22', '2026-07-31 14:25:34'),
+(2, 'Nguyễn Văn Demo', 'user@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', NULL, 'user', 'active', '2026-07-31 21:05:22', NULL, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(3, 'Anh Tú Huỳnh', 'anh2482006@gmail.com', '$2y$10$a1vL9jNPpLTESFYvmjNWAe./bLNeHATLlyYhnGh.tztXltmJ8wOcK', NULL, 'user', 'active', NULL, NULL, '2026-07-31 14:17:35', '2026-07-31 15:10:28');
 
 -- --------------------------------------------------------
 
@@ -588,7 +663,7 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
   `target_weight_kg` decimal(6,2) DEFAULT NULL,
   `activity_level` enum('sedentary','light','moderate','very_active','extra_active') COLLATE utf8mb4_unicode_ci DEFAULT 'sedentary',
   `health_goal` enum('lose_weight','gain_weight','maintain_weight','gain_muscle') COLLATE utf8mb4_unicode_ci DEFAULT 'maintain_weight',
-  `goal_pace` enum('slow','moderate','fast') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'moderate',
+  goal_pace enum('slow','moderate','fast') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'moderate',
   `diet_type` enum('normal','vegetarian','vegan','low_carb','low_sugar','gluten_free','high_protein') COLLATE utf8mb4_unicode_ci DEFAULT 'normal',
   `allergies` text COLLATE utf8mb4_unicode_ci,
   `disliked_foods` text COLLATE utf8mb4_unicode_ci,
@@ -606,14 +681,15 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `user_profiles`
 --
 
-INSERT INTO `user_profiles` (`id`, `user_id`, `date_of_birth`, `age`, `gender`, `height_cm`, `current_weight_kg`, `target_weight_kg`, `activity_level`, `health_goal`, `goal_pace`, `diet_type`, `allergies`, `disliked_foods`, `meals_per_day`, `bmr`, `tdee`, `bmi`, `calorie_target`, `protein_target`, `carb_target`, `fat_target`, `fiber_target`, `water_target_ml`, `created_at`, `updated_at`) VALUES
-(1, 2, '2000-01-01', 26, 'male', 170.00, 70.00, 65.00, 'moderate', 'lose_weight', 'moderate', 'normal', NULL, NULL, 4, 1637.50, 2538.13, 24.22, 2038.13, 152.86, 203.81, 67.94, 30.00, 2000, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
+INSERT INTO user_profiles (id, user_id, date_of_birth, age, gender, height_cm, current_weight_kg, target_weight_kg, activity_level, health_goal, goal_pace, diet_type, allergies, disliked_foods, meals_per_day, bmr, tdee, bmi, calorie_target, protein_target, carb_target, fat_target, fiber_target, water_target_ml, created_at, updated_at) VALUES
+(1, 2, '2000-01-01', 26, 'male', 170.00, 70.00, 65.00, 'moderate', 'lose_weight', 'moderate', 'normal', NULL, NULL, 4, 1637.50, 2538.13, 24.22, 2038.13, 152.86, 203.81, 67.94, 30.00, 2000, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
+(2, 1, '2006-08-24', 19, 'male', 175.00, 44.00, NULL, 'sedentary', 'gain_weight', 'slow', 'normal', 'ssss', 'sss', 3, 1443.75, 1732.50, 14.37, 2032.50, 152.44, 203.25, 67.75, 25.00, 2000, '2026-07-31 14:31:53', '2026-07-31 16:30:15');
 
 -- --------------------------------------------------------
 
@@ -664,9 +740,42 @@ CREATE TABLE IF NOT EXISTS `weight_logs` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_weight_logs_user_date` (`user_id`,`log_date`),
   KEY `idx_weight_logs_user_date` (`user_id`,`log_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Đang đổ dữ liệu cho bảng `weight_logs`
+--
+
+INSERT INTO `weight_logs` (`id`, `user_id`, `weight_kg`, `bmi`, `log_date`, `note`, `created_at`, `updated_at`) VALUES
+(3, 1, 60.00, 19.59, '2026-07-31', 'sss', '2026-07-31 16:29:06', '2026-07-31 16:29:19'),
+(4, 1, 66.00, 21.55, '2026-07-30', 'ww', '2026-07-31 16:29:29', '2026-07-31 16:29:50'),
+(5, 1, 66.00, 21.55, '2026-07-28', 'ưss', '2026-07-31 16:30:07', '2026-07-31 16:30:07'),
+(6, 1, 44.00, 14.37, '2026-07-27', 'sss', '2026-07-31 16:30:15', '2026-07-31 16:30:15');
+
+--
+-- Dữ liệu mẫu cho dashboard sức khỏe theo giờ
+INSERT IGNORE INTO health_hourly_logs
+(user_id, log_date, log_hour, water_ml, steps, active_minutes, calories_burned, heart_rate, sleep_minutes, mood_level, note)
+SELECT u.id, CURDATE(), sample.log_hour, sample.water_ml, sample.steps,
+       sample.active_minutes, sample.calories_burned, sample.heart_rate,
+       sample.sleep_minutes, sample.mood_level, sample.note
+FROM users u
+CROSS JOIN (
+    SELECT 0 log_hour, 0 water_ml, 0 steps, 0 active_minutes, 0.00 calories_burned, 58 heart_rate, 60 sleep_minutes, NULL mood_level, 'Dữ liệu mẫu: ngủ' note
+    UNION ALL SELECT 1, 0, 0, 0, 0.00, 57, 60, NULL, 'Dữ liệu mẫu: ngủ'
+    UNION ALL SELECT 2, 0, 0, 0, 0.00, 56, 60, NULL, 'Dữ liệu mẫu: ngủ'
+    UNION ALL SELECT 3, 0, 0, 0, 0.00, 56, 60, NULL, 'Dữ liệu mẫu: ngủ'
+    UNION ALL SELECT 4, 0, 0, 0, 0.00, 57, 60, NULL, 'Dữ liệu mẫu: ngủ'
+    UNION ALL SELECT 5, 0, 0, 0, 0.00, 59, 60, NULL, 'Dữ liệu mẫu: ngủ'
+    UNION ALL SELECT 6, 200, 100, 0, 0.00, 64, 30, 3, 'Dữ liệu mẫu: thức dậy'
+    UNION ALL SELECT 8, 350, 900, 10, 50.00, 78, 0, 4, 'Dữ liệu mẫu: đi bộ buổi sáng'
+    UNION ALL SELECT 12, 450, 1800, 15, 85.00, 88, 0, 4, 'Dữ liệu mẫu: vận động buổi trưa'
+    UNION ALL SELECT 16, 350, 1500, 10, 60.00, 82, 0, 4, 'Dữ liệu mẫu: đi bộ buổi chiều'
+    UNION ALL SELECT 19, 400, 2400, 25, 150.00, 96, 0, 4, 'Dữ liệu mẫu: tập luyện'
+    UNION ALL SELECT 22, 250, 800, 5, 35.00, 76, 0, 4, 'Dữ liệu mẫu: thư giãn'
+) sample
+WHERE u.role = 'user' AND u.status = 'active';
+
 -- Ràng buộc đối với các bảng kết xuất
 --
 
@@ -705,6 +814,8 @@ ALTER TABLE `foods`
 --
 -- Ràng buộc cho bảng `meal_logs`
 --
+ALTER TABLE health_hourly_logs
+  ADD CONSTRAINT fk_health_hourly_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE `meal_logs`
   ADD CONSTRAINT `fk_meal_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 

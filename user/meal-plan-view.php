@@ -2,6 +2,7 @@
 // user/meal-plan-view.php
 require_once __DIR__ . '/../includes/auth-check.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 $database = new Database();
 $conn = $database->getConnection();
@@ -46,13 +47,7 @@ require_once __DIR__ . '/../includes/header.php';
     <!-- Header Thực Đơn -->
     <div class="row align-items-center mb-4 bg-white rounded shadow-sm p-4 border-start border-success border-5">
         <div class="col-md-3 text-center mb-3 mb-md-0">
-            <?php if ($plan['image']): ?>
-                <img src="<?php echo BASE_URL . '/uploads/meal_plans/' . $plan['image']; ?>" class="img-fluid rounded shadow-sm" style="max-height: 200px; object-fit: cover;">
-            <?php else: ?>
-                <div class="bg-success bg-opacity-10 rounded d-flex align-items-center justify-content-center" style="height: 150px;">
-                    <i class="bi bi-journal-check text-success" style="font-size: 4rem;"></i>
-                </div>
-            <?php endif; ?>
+            <img src="<?php echo htmlspecialchars(meal_plan_image_url($plan['image']), ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($plan['name']); ?>" class="img-fluid rounded shadow-sm" style="width: 100%; max-height: 200px; object-fit: cover;">
         </div>
         <div class="col-md-9">
             <div class="d-flex justify-content-between align-items-start">
@@ -67,6 +62,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <div>
                     <form method="POST" action="<?php echo BASE_URL; ?>/user/meal-plans.php">
+                        <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         <input type="hidden" name="action" value="toggle_favorite">
                         <input type="hidden" name="plan_id" value="<?php echo $plan['id']; ?>">
                         <button type="submit" class="btn <?php echo $isFav ? 'btn-danger' : 'btn-outline-danger'; ?> rounded-circle" style="width: 45px; height: 45px;" title="<?php echo $isFav ? 'Bỏ yêu thích' : 'Yêu thích'; ?>">
@@ -75,9 +71,9 @@ require_once __DIR__ . '/../includes/header.php';
                     </form>
                 </div>
             </div>
-            
+
             <hr>
-            
+
             <div class="row text-center g-2">
                 <div class="col-6 col-md-3">
                     <div class="bg-light rounded p-2 border">
@@ -109,7 +105,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <!-- Chi tiết Bữa ăn -->
     <h4 class="fw-bold mb-3">Chi tiết Thực đơn</h4>
-    
+
     <div class="row">
         <?php foreach ($meals as $m): ?>
             <div class="col-lg-6 mb-4">
@@ -127,9 +123,9 @@ require_once __DIR__ . '/../includes/header.php';
                             $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
                         ?>
                         <ul class="list-group list-group-flush">
-                            <?php 
+                            <?php
                                 $meal_cal = 0;
-                                foreach ($items as $item): 
+                                foreach ($items as $item):
                                     $meal_cal += $item['calories'];
                             ?>
                             <li class="list-group-item d-flex justify-content-between align-items-center py-3">
@@ -142,11 +138,11 @@ require_once __DIR__ . '/../includes/header.php';
                                 </div>
                             </li>
                             <?php endforeach; ?>
-                            
+
                             <?php if (empty($items)): ?>
                                 <li class="list-group-item text-center py-4 text-muted">Chưa có thông tin món ăn.</li>
                             <?php endif; ?>
-                            
+
                             <li class="list-group-item bg-light text-end">
                                 <strong>Tổng bữa:</strong> <span class="text-success fs-5 fw-bold ms-2"><?php echo round($meal_cal); ?> kcal</span>
                             </li>
@@ -155,7 +151,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </div>
         <?php endforeach; ?>
-        
+
         <?php if (empty($meals)): ?>
             <div class="col-12 text-center py-5 bg-white rounded shadow-sm">
                 <i class="bi bi-calendar-x text-muted mb-3" style="font-size: 3rem;"></i>
@@ -163,7 +159,7 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         <?php endif; ?>
     </div>
-    
+
     <div class="text-center mt-4">
         <a href="<?php echo BASE_URL; ?>/user/meal-plans.php" class="btn btn-outline-secondary px-4 fw-bold">Quay lại danh sách</a>
     </div>
