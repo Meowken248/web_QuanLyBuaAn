@@ -20,13 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $goal = $_POST['health_goal'] ?? '';
         $pace = $_POST['goal_pace'] ?? 'moderate';
         $meals_per_day = filter_var($_POST['meals_per_day'] ?? null, FILTER_VALIDATE_INT);
-        $activity_multiplier = ['sedentary'=>1.2, 'light'=>1.375, 'moderate'=>1.55, 'very_active'=>1.725, 'extra_active'=>1.9];
+        $activity_multiplier = ['sedentary' => 1.2, 'light' => 1.375, 'moderate' => 1.55, 'very_active' => 1.725, 'extra_active' => 1.9];
         $valid_goals = ['lose_weight', 'gain_weight', 'maintain_weight', 'gain_muscle'];
         $goal_adjustments = [
-            'lose_weight' => ['slow'=>-250, 'moderate'=>-500, 'fast'=>-750],
-            'gain_weight' => ['slow'=>300, 'moderate'=>500],
-            'gain_muscle' => ['slow'=>300, 'moderate'=>500],
-            'maintain_weight' => ['moderate'=>0]
+            'lose_weight' => ['slow' => -250, 'moderate' => -500, 'fast' => -750],
+            'gain_weight' => ['slow' => 300, 'moderate' => 500],
+            'gain_muscle' => ['slow' => 300, 'moderate' => 500],
+            'maintain_weight' => ['moderate' => 0]
         ];
         if ($goal === 'maintain_weight') $pace = 'moderate';
         $goal_adjustment = $goal_adjustments[$goal][$pace] ?? null;
@@ -47,12 +47,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $carb_target = ($calorie_target * 0.40) / 4;
             $fat_target = ($calorie_target * 0.30) / 9;
             $data = [
-                'user_id'=>$user_id, 'date_of_birth'=>$dob, 'age'=>$age, 'gender'=>$gender, 'height'=>$height,
-                'current_weight'=>$weight, 'activity_level'=>$activity, 'health_goal'=>$goal, 'goal_pace'=>$pace,
-                'diet_type'=>$_POST['diet_type'] ?? 'normal', 'allergies'=>trim($_POST['allergies'] ?? ''),
-                'disliked_foods'=>trim($_POST['disliked_foods'] ?? ''), 'meals_per_day'=>$meals_per_day,
-                'bmr'=>round($bmr, 2), 'tdee'=>round($tdee, 2), 'calorie_target'=>round($calorie_target, 2),
-                'protein_target'=>round($protein_target, 2), 'carb_target'=>round($carb_target, 2), 'fat_target'=>round($fat_target, 2)
+                'user_id' => $user_id,
+                'date_of_birth' => $dob,
+                'age' => $age,
+                'gender' => $gender,
+                'height' => $height,
+                'current_weight' => $weight,
+                'activity_level' => $activity,
+                'health_goal' => $goal,
+                'goal_pace' => $pace,
+                'diet_type' => $_POST['diet_type'] ?? 'normal',
+                'allergies' => trim($_POST['allergies'] ?? ''),
+                'disliked_foods' => trim($_POST['disliked_foods'] ?? ''),
+                'meals_per_day' => $meals_per_day,
+                'bmr' => round($bmr, 2),
+                'tdee' => round($tdee, 2),
+                'calorie_target' => round($calorie_target, 2),
+                'protein_target' => round($protein_target, 2),
+                'carb_target' => round($carb_target, 2),
+                'fat_target' => round($fat_target, 2)
             ];
             if ($profileModel->saveProfile($data)) {
                 set_flash_message('success', 'Hồ sơ và mục tiêu năng lượng đã được cập nhật.');
@@ -80,10 +93,10 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <div class="card-body p-4 p-lg-5">
                     <?php display_flash_message(); ?>
-                    
+
                     <form method="POST" action="">
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
-                        
+
                         <div class="mb-5" data-aos="fade-up" data-aos-delay="100">
                             <h5 class="mb-4 text-success fw-bold d-flex align-items-center"><i class="bi bi-info-circle me-2"></i>Thông tin cơ bản</h5>
                             <div class="row g-4">
@@ -123,11 +136,11 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select bg-light border-0" id="activity" name="activity_level" required>
-                                            <option value="sedentary" <?php echo (($profile['activity_level'] ?? '') === 'sedentary') ? 'selected' : ''; ?>>Ít vận động (BMR × 1.2)</option>
-                                            <option value="light" <?php echo (($profile['activity_level'] ?? '') === 'light') ? 'selected' : ''; ?>>Vận động nhẹ (BMR × 1.375)</option>
-                                            <option value="moderate" <?php echo (($profile['activity_level'] ?? '') === 'moderate') ? 'selected' : ''; ?>>Vận động vừa (BMR × 1.55)</option>
-                                            <option value="very_active" <?php echo (($profile['activity_level'] ?? '') === 'very_active') ? 'selected' : ''; ?>>Vận động nhiều (BMR × 1.725)</option>
-                                            <option value="extra_active" <?php echo (($profile['activity_level'] ?? '') === 'extra_active') ? 'selected' : ''; ?>>Vận động rất nhiều (BMR × 1.9)</option>
+                                            <option value="sedentary" <?php echo (($profile['activity_level'] ?? '') === 'sedentary') ? 'selected' : ''; ?>>Ít vận động</option>
+                                            <option value="light" <?php echo (($profile['activity_level'] ?? '') === 'light') ? 'selected' : ''; ?>>Vận động nhẹ</option>
+                                            <option value="moderate" <?php echo (($profile['activity_level'] ?? '') === 'moderate') ? 'selected' : ''; ?>>Vận động vừa</option>
+                                            <option value="very_active" <?php echo (($profile['activity_level'] ?? '') === 'very_active') ? 'selected' : ''; ?>>Vận động nhiều</option>
+                                            <option value="extra_active" <?php echo (($profile['activity_level'] ?? '') === 'extra_active') ? 'selected' : ''; ?>>Vận động rất nhiều</option>
                                         </select>
                                         <label for="activity" class="text-muted">Mức độ vận động</label>
                                     </div>
@@ -146,9 +159,9 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select bg-light border-0" id="goalPace" name="goal_pace" required>
-                                            <option value="slow" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'slow') ? 'selected' : ''; ?>>Chậm (giảm −250 / tăng +300 kcal)</option>
-                                            <option value="moderate" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'moderate') ? 'selected' : ''; ?>>Vừa (giảm −500 / tăng +500 kcal)</option>
-                                            <option value="fast" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'fast') ? 'selected' : ''; ?>>Nhanh (chỉ giảm cân: −750 kcal)</option>
+                                            <option value="slow" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'slow') ? 'selected' : ''; ?>>Chậm</option>
+                                            <option value="moderate" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'moderate') ? 'selected' : ''; ?>>Trung Bình</option>
+                                            <option value="fast" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'fast') ? 'selected' : ''; ?>>Nhanh</option>
                                         </select>
                                         <label for="goalPace" class="text-muted">Tốc độ mục tiêu</label>
                                     </div>
@@ -187,14 +200,14 @@ require_once __DIR__ . '/../includes/header.php';
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="d-flex justify-content-end" data-aos="fade-up" data-aos-delay="300">
                             <button type="submit" class="btn btn-success btn-glow px-5 py-3 rounded-pill fw-bold text-uppercase shadow-sm">
                                 <i class="bi bi-save me-2"></i>Lưu hồ sơ & Tính toán
                             </button>
                         </div>
                     </form>
-                    
+
                     <?php if ($profile): ?>
                         <div class="mt-5 pt-4 border-top" data-aos="fade-up" data-aos-delay="400">
                             <h5 class="mb-4 text-dark fw-bold d-flex align-items-center">
@@ -249,26 +262,26 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const goalSelect = document.getElementById('goal');
-    const paceSelect = document.getElementById('goalPace');
-    if (!goalSelect || !paceSelect) return;
+    document.addEventListener('DOMContentLoaded', function() {
+        const goalSelect = document.getElementById('goal');
+        const paceSelect = document.getElementById('goalPace');
+        if (!goalSelect || !paceSelect) return;
 
-    function syncGoalPace() {
-        const goal = goalSelect.value;
-        const fastOption = paceSelect.querySelector('option[value="fast"]');
-        const isMaintain = goal === 'maintain_weight';
-        const isGain = goal === 'gain_weight' || goal === 'gain_muscle';
+        function syncGoalPace() {
+            const goal = goalSelect.value;
+            const fastOption = paceSelect.querySelector('option[value="fast"]');
+            const isMaintain = goal === 'maintain_weight';
+            const isGain = goal === 'gain_weight' || goal === 'gain_muscle';
 
-        if (fastOption) fastOption.disabled = isGain || isMaintain;
-        paceSelect.disabled = isMaintain;
-        if (isMaintain) paceSelect.value = 'moderate';
-        if (isGain && paceSelect.value === 'fast') paceSelect.value = 'moderate';
-    }
+            if (fastOption) fastOption.disabled = isGain || isMaintain;
+            paceSelect.disabled = isMaintain;
+            if (isMaintain) paceSelect.value = 'moderate';
+            if (isGain && paceSelect.value === 'fast') paceSelect.value = 'moderate';
+        }
 
-    goalSelect.addEventListener('change', syncGoalPace);
-    syncGoalPace();
-});
+        goalSelect.addEventListener('change', syncGoalPace);
+        syncGoalPace();
+    });
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
