@@ -17,12 +17,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="<?php echo BASE_URL; ?>/admin/food-categories.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['food-categories.php', 'food-category-edit.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
         <i class="bi bi-tags me-2"></i>Danh mục món ăn
     </a>
-    <a href="<?php echo BASE_URL; ?>/admin/subscription-plans.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['subscription-plans.php', 'subscription-plan-edit.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
-        <i class="bi bi-star me-2"></i>Gói đăng ký
-    </a>
-    <a href="<?php echo BASE_URL; ?>/admin/transactions.php" class="list-group-item list-group-item-action <?php echo $current_page == 'transactions.php' ? 'active bg-dark border-dark' : 'text-dark'; ?>">
-        <i class="bi bi-receipt me-2"></i>Lịch sử giao dịch
-    </a>
+
     <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['contact-messages.php', 'contact-message-view.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
         <i class="bi bi-envelope me-2"></i>Hộp thư liên hệ
     </a>

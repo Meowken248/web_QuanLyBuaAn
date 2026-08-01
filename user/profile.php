@@ -18,9 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $weight = filter_var($_POST['current_weight'] ?? null, FILTER_VALIDATE_FLOAT);
         $activity = $_POST['activity_level'] ?? '';
         $goal = $_POST['health_goal'] ?? '';
+        $pace = $_POST['goal_pace'] ?? 'moderate';
         $meals_per_day = filter_var($_POST['meals_per_day'] ?? null, FILTER_VALIDATE_INT);
-        $activity_multiplier = ['sedentary'=>1.2, 'light'=>1.375, 'moderate'=>1.55, 'active'=>1.725, 'very_active'=>1.9];
-        $valid_goals = ['lose_weight', 'gain_weight', 'keep_weight', 'gain_muscle'];
+        $activity_multiplier = ['sedentary'=>1.2, 'light'=>1.375, 'moderate'=>1.55, 'very_active'=>1.725, 'extra_active'=>1.9];
+        $valid_goals = ['lose_weight', 'gain_weight', 'maintain_weight', 'gain_muscle'];
+        $goal_adjustments = [
+            'lose_weight' => ['slow'=>-250, 'moderate'=>-500, 'fast'=>-750],
+            'gain_weight' => ['slow'=>300, 'moderate'=>500],
+            'gain_muscle' => ['slow'=>300, 'moderate'=>500],
+            'maintain_weight' => ['moderate'=>0]
+        ];
+        if ($goal === 'maintain_weight') $pace = 'moderate';
+        $goal_adjustment = $goal_adjustments[$goal][$pace] ?? null;
         $birth_date = is_valid_date($dob) ? DateTime::createFromFormat('!Y-m-d', $dob) : false;
         $age = $birth_date ? $birth_date->diff(new DateTime('today'))->y : 0;
 
@@ -28,24 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_flash_message('danger', 'Ngày sinh không hợp lệ; độ tuổi phải từ 13 đến 120.');
         } elseif (!in_array($gender, ['male', 'female'], true) || $height === false || $height < 80 || $height > 250 || $weight === false || $weight < 20 || $weight > 400) {
             set_flash_message('danger', 'Giới tính, chiều cao hoặc cân nặng không hợp lệ.');
-        } elseif (!isset($activity_multiplier[$activity]) || !in_array($goal, $valid_goals, true) || $meals_per_day === false || $meals_per_day < 1 || $meals_per_day > 6) {
-            set_flash_message('danger', 'Mức vận động, mục tiêu hoặc số bữa ăn không hợp lệ.');
+        } elseif (!isset($activity_multiplier[$activity]) || !in_array($goal, $valid_goals, true) || $goal_adjustment === null || $meals_per_day === false || $meals_per_day < 1 || $meals_per_day > 6) {
+            set_flash_message('danger', 'Mức vận động, mục tiêu, tốc độ mục tiêu hoặc số bữa ăn không hợp lệ.');
         } else {
             $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) + ($gender === 'male' ? 5 : -161);
             $tdee = $bmr * $activity_multiplier[$activity];
-            $calorie_target = match ($goal) {
-                'lose_weight' => $tdee - 500,
-                'gain_weight', 'gain_muscle' => $tdee + 300,
-                default => $tdee
-            };
-            $calorie_target = max(1200, $calorie_target);
+            $calorie_target = $tdee + $goal_adjustment;
             $protein_target = ($calorie_target * 0.30) / 4;
             $carb_target = ($calorie_target * 0.40) / 4;
             $fat_target = ($calorie_target * 0.30) / 9;
             $data = [
-                'user_id'=>$user_id, 'date_of_birth'=>$dob, 'gender'=>$gender, 'height'=>$height,
-                'current_weight'=>$weight, 'activity_level'=>$activity, 'health_goal'=>$goal,
-                'diet_type'=>$_POST['diet_type'] ?? 'standard', 'allergies'=>trim($_POST['allergies'] ?? ''),
+                'user_id'=>$user_id, 'date_of_birth'=>$dob, 'age'=>$age, 'gender'=>$gender, 'height'=>$height,
+                'current_weight'=>$weight, 'activity_level'=>$activity, 'health_goal'=>$goal, 'goal_pace'=>$pace,
+                'diet_type'=>$_POST['diet_type'] ?? 'normal', 'allergies'=>trim($_POST['allergies'] ?? ''),
                 'disliked_foods'=>trim($_POST['disliked_foods'] ?? ''), 'meals_per_day'=>$meals_per_day,
                 'bmr'=>round($bmr, 2), 'tdee'=>round($tdee, 2), 'calorie_target'=>round($calorie_target, 2),
                 'protein_target'=>round($protein_target, 2), 'carb_target'=>round($carb_target, 2), 'fat_target'=>round($fat_target, 2)
@@ -127,11 +131,11 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select bg-light border-0" id="activity" name="activity_level" required>
-                                            <option value="sedentary" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'sedentary') ? 'selected' : ''; ?>>Ít vận động</option>
-                                            <option value="light" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'light') ? 'selected' : ''; ?>>Vận động nhẹ</option>
-                                            <option value="moderate" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'moderate') ? 'selected' : ''; ?>>Vận động vừa</option>
-                                            <option value="active" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'active') ? 'selected' : ''; ?>>Vận động nhiều</option>
-                                            <option value="very_active" <?php echo (isset($profile['activity_level']) && $profile['activity_level'] == 'very_active') ? 'selected' : ''; ?>>Vận động rất nhiều</option>
+                                            <option value="sedentary" <?php echo (($profile['activity_level'] ?? '') === 'sedentary') ? 'selected' : ''; ?>>Ít vận động (BMR × 1.2)</option>
+                                            <option value="light" <?php echo (($profile['activity_level'] ?? '') === 'light') ? 'selected' : ''; ?>>Vận động nhẹ (BMR × 1.375)</option>
+                                            <option value="moderate" <?php echo (($profile['activity_level'] ?? '') === 'moderate') ? 'selected' : ''; ?>>Vận động vừa (BMR × 1.55)</option>
+                                            <option value="very_active" <?php echo (($profile['activity_level'] ?? '') === 'very_active') ? 'selected' : ''; ?>>Vận động nhiều (BMR × 1.725)</option>
+                                            <option value="extra_active" <?php echo (($profile['activity_level'] ?? '') === 'extra_active') ? 'selected' : ''; ?>>Vận động rất nhiều (BMR × 1.9)</option>
                                         </select>
                                         <label for="activity" class="text-muted">Mức độ vận động</label>
                                     </div>
@@ -141,7 +145,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <select class="form-select bg-light border-0" id="goal" name="health_goal" required>
                                             <option value="lose_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'lose_weight') ? 'selected' : ''; ?>>Giảm cân</option>
                                             <option value="gain_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_weight') ? 'selected' : ''; ?>>Tăng cân</option>
-                                            <option value="keep_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'keep_weight') ? 'selected' : ''; ?>>Giữ cân</option>
+                                            <option value="maintain_weight" <?php echo (($profile['health_goal'] ?? '') === 'maintain_weight') ? 'selected' : ''; ?>>Giữ cân</option>
                                             <option value="gain_muscle" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_muscle') ? 'selected' : ''; ?>>Tăng cơ</option>
                                         </select>
                                         <label for="goal" class="text-muted">Mục tiêu sức khỏe</label>
@@ -149,11 +153,24 @@ require_once __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
+                                        <select class="form-select bg-light border-0" id="goalPace" name="goal_pace" required>
+                                            <option value="slow" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'slow') ? 'selected' : ''; ?>>Chậm (giảm −250 / tăng +300 kcal)</option>
+                                            <option value="moderate" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'moderate') ? 'selected' : ''; ?>>Vừa (giảm −500 / tăng +500 kcal)</option>
+                                            <option value="fast" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'fast') ? 'selected' : ''; ?>>Nhanh (chỉ giảm cân: −750 kcal)</option>
+                                        </select>
+                                        <label for="goalPace" class="text-muted">Tốc độ mục tiêu</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
                                         <select class="form-select bg-light border-0" id="diet" name="diet_type">
-                                            <option value="standard" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'standard') ? 'selected' : ''; ?>>Bình thường</option>
-                                            <option value="vegetarian" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'vegetarian') ? 'selected' : ''; ?>>Ăn chay</option>
-                                            <option value="keto" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'keto') ? 'selected' : ''; ?>>Keto (Ít carb)</option>
-                                            <option value="eat_clean" <?php echo (isset($profile['diet_type']) && $profile['diet_type'] == 'eat_clean') ? 'selected' : ''; ?>>Eat Clean</option>
+                                            <option value="normal" <?php echo (($profile['diet_type'] ?? 'normal') === 'normal') ? 'selected' : ''; ?>>Bình thường</option>
+                                            <option value="vegetarian" <?php echo (($profile['diet_type'] ?? '') === 'vegetarian') ? 'selected' : ''; ?>>Ăn chay</option>
+                                            <option value="vegan" <?php echo (($profile['diet_type'] ?? '') === 'vegan') ? 'selected' : ''; ?>>Thuần chay</option>
+                                            <option value="low_carb" <?php echo (($profile['diet_type'] ?? '') === 'low_carb') ? 'selected' : ''; ?>>Ít carb / Keto</option>
+                                            <option value="low_sugar" <?php echo (($profile['diet_type'] ?? '') === 'low_sugar') ? 'selected' : ''; ?>>Ít đường</option>
+                                            <option value="gluten_free" <?php echo (($profile['diet_type'] ?? '') === 'gluten_free') ? 'selected' : ''; ?>>Không gluten</option>
+                                            <option value="high_protein" <?php echo (($profile['diet_type'] ?? '') === 'high_protein') ? 'selected' : ''; ?>>Giàu protein</option>
                                         </select>
                                         <label for="diet" class="text-muted">Chế độ ăn yêu thích</label>
                                     </div>
@@ -238,5 +255,28 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const goalSelect = document.getElementById('goal');
+    const paceSelect = document.getElementById('goalPace');
+    if (!goalSelect || !paceSelect) return;
+
+    function syncGoalPace() {
+        const goal = goalSelect.value;
+        const fastOption = paceSelect.querySelector('option[value="fast"]');
+        const isMaintain = goal === 'maintain_weight';
+        const isGain = goal === 'gain_weight' || goal === 'gain_muscle';
+
+        if (fastOption) fastOption.disabled = isGain || isMaintain;
+        paceSelect.disabled = isMaintain;
+        if (isMaintain) paceSelect.value = 'moderate';
+        if (isGain && paceSelect.value === 'fast') paceSelect.value = 'moderate';
+    }
+
+    goalSelect.addEventListener('change', syncGoalPace);
+    syncGoalPace();
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -78,7 +78,7 @@ require_once __DIR__ . '/includes/header.php';
             <ul class="list-unstyled mt-4">
                 <li class="mb-3 d-flex"><i class="bi bi-check-circle-fill text-info me-3 fs-5"></i> <div><strong>Tư vấn cá nhân hóa:</strong> AI biết các chỉ số của bạn và lượng calo bạn đã nạp hôm nay để đưa ra lời khuyên chính xác.</div></li>
                 <li class="mb-3 d-flex"><i class="bi bi-check-circle-fill text-info me-3 fs-5"></i> <div><strong>Gợi ý thực đơn:</strong> Gợi ý các món ăn phù hợp với mục tiêu (giảm cân, tăng cơ).</div></li>
-                <li class="mb-3 d-flex"><i class="bi bi-check-circle-fill text-info me-3 fs-5"></i> <div><strong>Hỗ trợ Premium:</strong> Người dùng Premium nhận được phản hồi nhanh và chi tiết hơn.</div></li>
+                <li class="mb-3 d-flex"><i class="bi bi-check-circle-fill text-info me-3 fs-5"></i> <div><strong>Miễn phí toàn bộ:</strong> Mọi tài khoản đã đăng ký đều được sử dụng đầy đủ trợ lý AI và các tính năng cá nhân hóa.</div></li>
             </ul>
         </div>
     </div>

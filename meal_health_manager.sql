@@ -306,7 +306,7 @@ CREATE TABLE IF NOT EXISTS `meal_plans` (
 
 INSERT INTO `meal_plans` (`id`, `name`, `slug`, `description`, `goal_type`, `diet_type`, `total_calories`, `total_protein`, `total_carbs`, `total_fat`, `total_fiber`, `image`, `is_premium`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'Thực đơn giảm cân cơ bản', 'thuc-don-giam-can-co-ban', 'Thực đơn mẫu khoảng 1.500 calories, ưu tiên rau xanh và protein nạc.', 'lose_weight', 'normal', 1500.00, 110.00, 160.00, 45.00, 28.00, NULL, 0, 'active', 1, '2026-07-31 14:05:22', '2026-07-31 14:05:22'),
-(2, 'Thực đơn tăng cơ giàu Protein', 'thuc-don-tang-co-giau-protein', 'Thực đơn giàu protein dành cho người tập gym.', 'gain_muscle', 'high_protein', 2400.00, 180.00, 280.00, 65.00, 32.00, NULL, 1, 'active', 1, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
+(2, 'Thực đơn tăng cơ giàu Protein', 'thuc-don-tang-co-giau-protein', 'Thực đơn giàu protein dành cho người tập gym.', 'gain_muscle', 'high_protein', 2400.00, 180.00, 280.00, 65.00, 32.00, NULL, 0, 'active', 1, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
 
 -- --------------------------------------------------------
 
@@ -588,6 +588,7 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
   `target_weight_kg` decimal(6,2) DEFAULT NULL,
   `activity_level` enum('sedentary','light','moderate','very_active','extra_active') COLLATE utf8mb4_unicode_ci DEFAULT 'sedentary',
   `health_goal` enum('lose_weight','gain_weight','maintain_weight','gain_muscle') COLLATE utf8mb4_unicode_ci DEFAULT 'maintain_weight',
+  `goal_pace` enum('slow','moderate','fast') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'moderate',
   `diet_type` enum('normal','vegetarian','vegan','low_carb','low_sugar','gluten_free','high_protein') COLLATE utf8mb4_unicode_ci DEFAULT 'normal',
   `allergies` text COLLATE utf8mb4_unicode_ci,
   `disliked_foods` text COLLATE utf8mb4_unicode_ci,
@@ -611,8 +612,8 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
 -- Đang đổ dữ liệu cho bảng `user_profiles`
 --
 
-INSERT INTO `user_profiles` (`id`, `user_id`, `date_of_birth`, `age`, `gender`, `height_cm`, `current_weight_kg`, `target_weight_kg`, `activity_level`, `health_goal`, `diet_type`, `allergies`, `disliked_foods`, `meals_per_day`, `bmr`, `tdee`, `bmi`, `calorie_target`, `protein_target`, `carb_target`, `fat_target`, `fiber_target`, `water_target_ml`, `created_at`, `updated_at`) VALUES
-(1, 2, '2000-01-01', 26, 'male', 170.00, 70.00, 65.00, 'moderate', 'lose_weight', 'normal', NULL, NULL, 4, 1642.50, 2545.88, 24.22, 2100.00, 140.00, 240.00, 65.00, 30.00, 2000, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
+INSERT INTO `user_profiles` (`id`, `user_id`, `date_of_birth`, `age`, `gender`, `height_cm`, `current_weight_kg`, `target_weight_kg`, `activity_level`, `health_goal`, `goal_pace`, `diet_type`, `allergies`, `disliked_foods`, `meals_per_day`, `bmr`, `tdee`, `bmi`, `calorie_target`, `protein_target`, `carb_target`, `fat_target`, `fiber_target`, `water_target_ml`, `created_at`, `updated_at`) VALUES
+(1, 2, '2000-01-01', 26, 'male', 170.00, 70.00, 65.00, 'moderate', 'lose_weight', 'moderate', 'normal', NULL, NULL, 4, 1637.50, 2538.13, 24.22, 2038.13, 152.86, 203.81, 67.94, 30.00, 2000, '2026-07-31 14:05:22', '2026-07-31 14:05:22');
 
 -- --------------------------------------------------------
 

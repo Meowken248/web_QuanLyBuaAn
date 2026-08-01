@@ -22,7 +22,7 @@
                 <ul class="list-unstyled">
                     <li class="mb-2"><a href="<?php echo BASE_URL; ?>/index.php" class="text-decoration-none text-muted">Trang chủ</a></li>
                     <li class="mb-2"><a href="<?php echo BASE_URL; ?>/features.php" class="text-decoration-none text-muted">Tính năng</a></li>
-                    <li class="mb-2"><a href="<?php echo BASE_URL; ?>/pricing.php" class="text-decoration-none text-muted">Bảng giá</a></li>
+
                     <li class="mb-2"><a href="<?php echo BASE_URL; ?>/about.php" class="text-decoration-none text-muted">Giới thiệu</a></li>
                 </ul>
             </div>
@@ -53,7 +53,7 @@
 <!-- Chart.js (included globally or can be conditional) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Custom JS -->
-<script src="<?php echo BASE_URL; ?>/assets/js/main.js"></script>
+<script src="<?php echo BASE_URL; ?>/assets/js/main.js?v=<?php echo filemtime(__DIR__ . '/../assets/js/main.js'); ?>"></script>
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <!-- Floating Chatbot Bubble -->
 <?php if (isset($_SESSION['user_id']) && (!isset($hide_footer) || !$hide_footer)): ?>

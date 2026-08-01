@@ -60,7 +60,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <th>Tên thực đơn</th>
                                     <th>Mục tiêu</th>
                                     <th>Calories</th>
-                                    <th>Trạng thái / Gói</th>
+                                    <th>Trạng thái</th>
                                     <th class="text-end">Hành động</th>
                                 </tr>
                             </thead>
@@ -94,12 +94,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <?php else: ?>
                                             <span class="badge bg-secondary">Đang tắt</span>
                                         <?php endif; ?>
-                                        <br>
-                                        <?php if ($p['is_premium']): ?>
-                                            <span class="badge bg-warning text-dark mt-1"><i class="bi bi-star-fill me-1"></i>Premium</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-info mt-1">Miễn phí</span>
-                                        <?php endif; ?>
+
                                     </td>
                                     <td class="text-end">
                                         <a href="<?php echo BASE_URL; ?>/admin/meal-plan-builder.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-info text-white" title="Xây dựng thực đơn"><i class="bi bi-list-check"></i> Chi tiết bữa ăn</a>

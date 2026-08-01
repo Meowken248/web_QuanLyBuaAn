@@ -37,11 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
 
 // Lấy danh sách users
 $users = $conn->query("
-    SELECT u.id, u.full_name, u.email, u.role, u.status, u.created_at, 
-           s.plan_id, s.end_date, s.status as sub_status 
-    FROM users u 
-    LEFT JOIN user_subscriptions s ON u.id = s.user_id AND s.status = 'active'
-    ORDER BY u.id DESC
+    SELECT id, full_name, email, role, status, created_at
+    FROM users
+    ORDER BY id DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $page_title = 'Quản lý Người dùng';
@@ -73,7 +71,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <th>Họ Tên</th>
                                     <th>Email</th>
                                     <th>Vai trò</th>
-                                    <th>Gói hiện tại</th>
+                                    <th>Quyền sử dụng</th>
                                     <th>Ngày đăng ký</th>
                                     <th>Hành động</th>
                                 </tr>
@@ -92,12 +90,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if (!empty($u['plan_id'])): ?>
-                                            <span class="badge bg-success">Premium</span>
-                                            <div class="small text-muted mt-1">Hết hạn: <?php echo !empty($u['end_date']) ? date('d/m/Y', strtotime($u['end_date'])) : 'Vĩnh viễn'; ?></div>
-                                        <?php else: ?>
-                                            <span class="badge bg-light text-dark border">Miễn phí</span>
-                                        <?php endif; ?>
+                                        <span class="badge bg-success">Đầy đủ · Miễn phí</span>
                                     </td>
                                     <td><?php echo date('d/m/Y', strtotime($u['created_at'])); ?></td>
                                     <td>
@@ -146,8 +139,8 @@ require_once __DIR__ . '/../includes/header.php';
                                                         <strong><?php echo $u['role'] === 'admin' ? 'Quản trị viên' : 'Khách hàng'; ?></strong>
                                                     </li>
                                                     <li class="list-group-item px-0 d-flex justify-content-between">
-                                                        <span>Gói dịch vụ</span>
-                                                        <strong><?php echo !empty($u['plan_id']) ? '<span class="text-success">Premium</span>' : 'Miễn phí'; ?></strong>
+                                                        <span>Quyền sử dụng</span>
+                                                        <strong class="text-success">Toàn bộ tính năng · Miễn phí</strong>
                                                     </li>
                                                     <li class="list-group-item px-0 d-flex justify-content-between">
                                                         <span>Ngày đăng ký</span>

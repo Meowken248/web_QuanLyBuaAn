@@ -48,9 +48,7 @@ require_once __DIR__ . '/../config/app.php';
                 <li class="nav-item">
                     <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'foods.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/foods.php">Thư viện món ăn</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'pricing.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/pricing.php">Bảng giá</a>
-                </li>
+
             </ul>
             <div class="d-flex align-items-center">
                 <?php if (isset($_SESSION['user_id'])): ?>

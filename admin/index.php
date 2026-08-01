@@ -10,7 +10,7 @@ $conn = $database->getConnection();
 $stats = [
     'users' => $conn->query("SELECT COUNT(*) FROM users")->fetchColumn(),
     'foods' => $conn->query("SELECT COUNT(*) FROM foods")->fetchColumn(),
-    'transactions' => $conn->query("SELECT COUNT(*) FROM transactions WHERE status='success'")->fetchColumn(),
+    'meal_plans' => $conn->query("SELECT COUNT(*) FROM meal_plans WHERE status='active'")->fetchColumn(),
     'meals_logged' => $conn->query("SELECT COUNT(*) FROM meal_logs")->fetchColumn(),
 ];
 
@@ -52,8 +52,8 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="col-md-3">
                     <div class="card bg-warning text-dark shadow-sm border-0">
                         <div class="card-body">
-                            <h6 class="text-black-50">Giao dịch thành công</h6>
-                            <h2 class="fw-bold mb-0"><?php echo $stats['transactions']; ?></h2>
+                            <h6 class="text-black-50">Thực đơn đang hiển thị</h6>
+                            <h2 class="fw-bold mb-0"><?php echo $stats['meal_plans']; ?></h2>
                         </div>
                     </div>
                 </div>

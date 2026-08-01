@@ -45,7 +45,7 @@ PROMPT;
     if (is_array($profile)) {
         $allowed_fields = [
             'age', 'gender', 'height', 'current_weight', 'target_weight_kg',
-            'activity_level', 'health_goal', 'diet_type', 'allergies',
+            'activity_level', 'health_goal', 'goal_pace', 'diet_type', 'allergies',
             'disliked_foods', 'meals_per_day', 'calorie_target',
             'protein_target', 'carb_target', 'fat_target', 'fiber_target',
             'water_target_ml'

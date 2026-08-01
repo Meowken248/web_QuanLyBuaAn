@@ -28,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description']);
     $goal_type = $_POST['goal_type'];
     $diet_type = trim($_POST['diet_type']);
-    $is_premium = isset($_POST['is_premium']) ? 1 : 0;
     $status = $_POST['status'];
     
     // Upload image
@@ -49,13 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if ($id > 0) {
-        $stmt = $conn->prepare("UPDATE meal_plans SET name=:n, slug=:s, description=:d, goal_type=:g, diet_type=:dt, image=:img, is_premium=:ip, status=:st WHERE id=:id");
-        $stmt->execute([':n'=>$name, ':s'=>$slug, ':d'=>$description, ':g'=>$goal_type, ':dt'=>$diet_type, ':img'=>$image, ':ip'=>$is_premium, ':st'=>$status, ':id'=>$id]);
+        $stmt = $conn->prepare("UPDATE meal_plans SET name=:n, slug=:s, description=:d, goal_type=:g, diet_type=:dt, image=:img, is_premium=0, status=:st WHERE id=:id");
+        $stmt->execute([':n'=>$name, ':s'=>$slug, ':d'=>$description, ':g'=>$goal_type, ':dt'=>$diet_type, ':img'=>$image, ':st'=>$status, ':id'=>$id]);
         $_SESSION['success'] = 'Đã cập nhật thực đơn thành công.';
         redirect('/admin/meal-plans.php');
     } else {
-        $stmt = $conn->prepare("INSERT INTO meal_plans (name, slug, description, goal_type, diet_type, image, is_premium, status, created_by) VALUES (:n, :s, :d, :g, :dt, :img, :ip, :st, :cb)");
-        $stmt->execute([':n'=>$name, ':s'=>$slug, ':d'=>$description, ':g'=>$goal_type, ':dt'=>$diet_type, ':img'=>$image, ':ip'=>$is_premium, ':st'=>$status, ':cb'=>$_SESSION['user_id']]);
+        $stmt = $conn->prepare("INSERT INTO meal_plans (name, slug, description, goal_type, diet_type, image, status, created_by) VALUES (:n, :s, :d, :g, :dt, :img, :st, :cb)");
+        $stmt->execute([':n'=>$name, ':s'=>$slug, ':d'=>$description, ':g'=>$goal_type, ':dt'=>$diet_type, ':img'=>$image, ':st'=>$status, ':cb'=>$_SESSION['user_id']]);
         $_SESSION['success'] = 'Đã thêm thực đơn mới.';
         redirect('/admin/meal-plans.php');
     }
@@ -123,7 +122,7 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
 
                         <div class="row mb-4 align-items-center">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label class="form-label fw-bold">Ảnh đại diện (Tùy chọn)</label>
                                 <input type="file" class="form-control" name="image" accept="image/*">
                                 <?php if (isset($plan['image']) && $plan['image']): ?>
@@ -132,12 +131,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     </div>
                                 <?php endif; ?>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-check form-switch mt-4 fs-5">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="is_premium" name="is_premium" value="1" <?php echo ($plan['is_premium'] ?? 0) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label fw-bold text-warning" for="is_premium"><i class="bi bi-star-fill me-1"></i>Thực đơn Premium (VIP)</label>
-                                </div>
-                            </div>
+
                         </div>
 
                         <div class="text-end">

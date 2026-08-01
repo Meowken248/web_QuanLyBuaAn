@@ -28,11 +28,13 @@ class ProfileModel {
             // Cập nhật
             $query = "UPDATE " . $this->table_name . " SET 
                 date_of_birth = :date_of_birth,
+                age = :age,
                 gender = :gender,
                 height_cm = :height,
                 current_weight_kg = :current_weight,
                 activity_level = :activity_level,
                 health_goal = :health_goal,
+                goal_pace = :goal_pace,
                 diet_type = :diet_type,
                 allergies = :allergies,
                 disliked_foods = :disliked_foods,
@@ -47,9 +49,9 @@ class ProfileModel {
         } else {
             // Thêm mới
             $query = "INSERT INTO " . $this->table_name . " 
-                (user_id, date_of_birth, gender, height_cm, current_weight_kg, activity_level, health_goal, diet_type, allergies, disliked_foods, meals_per_day, bmr, tdee, calorie_target, protein_target, carb_target, fat_target)
+                (user_id, date_of_birth, age, gender, height_cm, current_weight_kg, activity_level, health_goal, goal_pace, diet_type, allergies, disliked_foods, meals_per_day, bmr, tdee, calorie_target, protein_target, carb_target, fat_target)
                 VALUES 
-                (:user_id, :date_of_birth, :gender, :height, :current_weight, :activity_level, :health_goal, :diet_type, :allergies, :disliked_foods, :meals_per_day, :bmr, :tdee, :calorie_target, :protein_target, :carb_target, :fat_target)";
+                (:user_id, :date_of_birth, :age, :gender, :height, :current_weight, :activity_level, :health_goal, :goal_pace, :diet_type, :allergies, :disliked_foods, :meals_per_day, :bmr, :tdee, :calorie_target, :protein_target, :carb_target, :fat_target)";
         }
 
         $stmt = $this->conn->prepare($query);
@@ -57,11 +59,13 @@ class ProfileModel {
         // Bind parameters
         $stmt->bindParam(':user_id', $data['user_id']);
         $stmt->bindParam(':date_of_birth', $data['date_of_birth']);
+        $stmt->bindParam(':age', $data['age']);
         $stmt->bindParam(':gender', $data['gender']);
         $stmt->bindParam(':height', $data['height']);
         $stmt->bindParam(':current_weight', $data['current_weight']);
         $stmt->bindParam(':activity_level', $data['activity_level']);
         $stmt->bindParam(':health_goal', $data['health_goal']);
+        $stmt->bindParam(':goal_pace', $data['goal_pace']);
         $stmt->bindParam(':diet_type', $data['diet_type']);
         $stmt->bindParam(':allergies', $data['allergies']);
         $stmt->bindParam(':disliked_foods', $data['disliked_foods']);

@@ -13,7 +13,6 @@ $profileModel = new ProfileModel();
 $profile = $profileModel->getProfileByUserId($user_id);
 
 $goalFilter = isset($_GET['goal']) ? $_GET['goal'] : '';
-$isPremiumFilter = isset($_GET['premium']) ? (int)$_GET['premium'] : -1;
 
 $whereClauses = ["status = 'active'"];
 $params = [];
@@ -22,10 +21,7 @@ if ($goalFilter) {
     $whereClauses[] = "goal_type = :goal";
     $params[':goal'] = $goalFilter;
 }
-if ($isPremiumFilter >= 0) {
-    $whereClauses[] = "is_premium = :prem";
-    $params[':prem'] = $isPremiumFilter;
-}
+
 
 $whereSql = "WHERE " . implode(' AND ', $whereClauses);
 
@@ -109,9 +105,7 @@ require_once __DIR__ . '/../includes/header.php';
                         
                         <!-- Badges -->
                         <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
-                            <?php if ($plan['is_premium']): ?>
-                                <span class="badge bg-warning text-dark px-3 py-2 fw-bold shadow-sm rounded-pill"><i class="bi bi-star-fill me-1"></i>Premium</span>
-                            <?php endif; ?>
+
                             <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill"><?php echo round($plan['total_calories']); ?> kcal</span>
                         </div>
                         

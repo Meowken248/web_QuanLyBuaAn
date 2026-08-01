@@ -19,8 +19,6 @@ if (!$plan) {
     redirect('/user/meal-plans.php');
 }
 
-// Nếu là Premium, có thể yêu cầu user là VIP (nếu hệ thống có phân quyền). Ở đây tạm thời hiển thị badge thôi.
-
 // Check yêu thích
 $stmtFav = $conn->prepare("SELECT 1 FROM favorite_meal_plans WHERE user_id = :uid AND meal_plan_id = :pid");
 $stmtFav->execute([':uid' => $user_id, ':pid' => $id]);
@@ -62,9 +60,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="mb-2">
                         <span class="badge bg-secondary me-1"><?php echo htmlspecialchars($plan['diet_type']); ?></span>
                         <span class="badge bg-info text-dark me-1"><?php echo $plan['goal_type']; ?></span>
-                        <?php if ($plan['is_premium']): ?>
-                            <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>Premium</span>
-                        <?php endif; ?>
+
                     </div>
                     <h2 class="fw-bold mb-2"><?php echo htmlspecialchars($plan['name']); ?></h2>
                     <p class="text-muted mb-0"><?php echo nl2br(htmlspecialchars($plan['description'] ?: 'Thực đơn dinh dưỡng chuẩn bị sẵn cho bạn.')); ?></p>

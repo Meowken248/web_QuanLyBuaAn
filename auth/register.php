@@ -96,15 +96,21 @@ require_once __DIR__ . '/../includes/header.php';
                                 
                                 <div class="row g-2 mb-3">
                                     <div class="col-sm-6">
-                                        <div class="form-floating">
-                                            <input type="password" class="form-control" id="floatingPassword" name="password" placeholder="Mật khẩu" required minlength="8">
+                                        <div class="form-floating position-relative">
+                                            <input type="password" class="form-control pe-5" id="floatingPassword" name="password" placeholder="Mật khẩu" required minlength="8">
                                             <label for="floatingPassword" class="text-muted"><i class="bi bi-lock me-2"></i>Mật khẩu</label>
+                                            <button type="button" class="btn btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-2 password-toggle" data-password-toggle="floatingPassword" aria-label="Hiện mật khẩu" aria-pressed="false">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
-                                        <div class="form-floating">
-                                            <input type="password" class="form-control" id="floatingPasswordConfirm" name="password_confirm" placeholder="Nhập lại" required minlength="8">
+                                        <div class="form-floating position-relative">
+                                            <input type="password" class="form-control pe-5" id="floatingPasswordConfirm" name="password_confirm" placeholder="Nhập lại" required minlength="8">
                                             <label for="floatingPasswordConfirm" class="text-muted"><i class="bi bi-check-circle me-2"></i>Nhập lại mật khẩu</label>
+                                            <button type="button" class="btn btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-2 password-toggle" data-password-toggle="floatingPasswordConfirm" aria-label="Hiện mật khẩu xác nhận" aria-pressed="false">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
