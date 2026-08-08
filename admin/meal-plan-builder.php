@@ -44,8 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'add_meal') {
         $type = $_POST['meal_type'];
         $title = trim($_POST['title']);
-        $stmt = $conn->prepare("INSERT INTO meal_plan_meals (meal_plan_id, meal_type, title, sort_order) VALUES (:pid, :type, :title, 0)");
-        $stmt->execute([':pid' => $id, ':type' => $type, ':title' => $title]);
+        $start_time = $_POST['start_time'] ?? '';
+        $end_time = $_POST['end_time'] ?? '';
+        $time_frame = '';
+        if ($start_time && $end_time) {
+            $time_frame = $start_time . ' - ' . $end_time;
+        } elseif ($start_time) {
+            $time_frame = $start_time;
+        }
+        
+        $stmt = $conn->prepare("INSERT INTO meal_plan_meals (meal_plan_id, meal_type, title, time_frame, sort_order) VALUES (:pid, :type, :title, :time_frame, 0)");
+        $stmt->execute([':pid' => $id, ':type' => $type, ':title' => $title, ':time_frame' => $time_frame]);
         $_SESSION['success'] = 'Đã thêm bữa ăn mới.';
         
     } elseif ($_POST['action'] === 'delete_meal') {
@@ -177,6 +186,9 @@ require_once __DIR__ . '/../includes/header.php';
                                 <h5 class="fw-bold mb-0 text-primary">
                                     <i class="bi bi-clock me-2"></i><?php echo $meal_types[$m['meal_type']] ?? $m['meal_type']; ?> 
                                     - <?php echo htmlspecialchars($m['title']); ?>
+                                    <?php if (!empty($m['time_frame'])): ?>
+                                        <span class="badge bg-secondary ms-2" style="font-size: 0.8rem;"><i class="bi bi-alarm me-1"></i><?php echo htmlspecialchars($m['time_frame']); ?></span>
+                                    <?php endif; ?>
                                 </h5>
                                 <form method="POST" class="m-0" onsubmit="return confirm('Bạn có chắc muốn xóa bữa ăn này cùng các món ăn bên trong?');">
                                     <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
@@ -313,9 +325,18 @@ require_once __DIR__ . '/../includes/header.php';
                                     </select>
                                 </div>
                                 
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tên gợi nhớ (Bắt buộc)</label>
+                                    <input type="text" class="form-control" name="title" id="meal_title_input" value="" required placeholder="VD: Bữa sáng nhẹ">
+                                </div>
+                                
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Tên gợi nhớ (Tùy chọn)</label>
-                                    <input type="text" class="form-control" name="title" id="meal_title_input" value="Bữa sáng" required placeholder="VD: Bữa sáng nhẹ">
+                                    <label class="form-label fw-bold">Khung giờ (Tùy chọn)</label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="time" class="form-control" name="start_time">
+                                        <span class="mx-2 fw-bold text-muted">-</span>
+                                        <input type="time" class="form-control" name="end_time">
+                                    </div>
                                 </div>
                                 
                                 <button type="submit" class="btn btn-success w-100 fw-bold">
@@ -331,13 +352,7 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-    const typeSelect = document.getElementById('meal_type_select');
-    const titleInput = document.getElementById('meal_title_input');
-    
-    typeSelect.addEventListener('change', function() {
-        const text = this.options[this.selectedIndex].text;
-        titleInput.value = text;
-    });
+    // Xóa tự động điền Tên gợi nhớ để người dùng tự nhập
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
