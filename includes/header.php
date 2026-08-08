@@ -48,6 +48,9 @@ require_once __DIR__ . '/../config/app.php';
                 <li class="nav-item">
                     <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'foods.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/foods.php">Thư viện món ăn</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'smart-menu.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/smart-menu.php">Thực đơn Thông minh <span class="badge bg-danger rounded-pill" style="font-size: 0.65em; vertical-align: top;">AI</span></a>
+                </li>
 
             </ul>
             <div class="d-flex align-items-center">

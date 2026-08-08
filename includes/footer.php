@@ -244,5 +244,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 </script>
+<!-- Back Button (Trừ trang chủ) -->
+<?php if (basename($_SERVER['PHP_SELF']) != 'index.php'): ?>
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 1050;">
+    <button onclick="window.history.back()" class="btn btn-light rounded-circle shadow d-flex align-items-center justify-content-center border" style="width: 50px; height: 50px; opacity: 0.85; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.85" title="Quay lại trang trước">
+        <i class="bi bi-arrow-left fs-4 text-dark"></i>
+    </button>
+</div>
+<?php endif; ?>
+
 </body>
 </html>

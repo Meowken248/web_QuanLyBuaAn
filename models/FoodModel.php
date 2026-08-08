@@ -90,4 +90,31 @@ class FoodModel {
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    // ==========================================
+    // SMART MENU METHODS
+    // ==========================================
+
+    // Lấy món ăn theo mùa
+    public function getFoodsBySeason($season) {
+        $query = "SELECT f.*, c.name as category_name 
+                  FROM " . $this->table_name . " f
+                  LEFT JOIN food_categories c ON f.category_id = c.id
+                  WHERE f.status = 'active' AND FIND_IN_SET(:season, f.season) > 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':season', $season);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Lấy tất cả món ăn cho chức năng tìm kiếm nguyên liệu
+    public function getAllActiveFoods() {
+        $query = "SELECT f.*, c.name as category_name 
+                  FROM " . $this->table_name . " f
+                  LEFT JOIN food_categories c ON f.category_id = c.id
+                  WHERE f.status = 'active'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
