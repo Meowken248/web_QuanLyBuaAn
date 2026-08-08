@@ -182,17 +182,7 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="container-fluid health-dashboard py-4 px-lg-4">
 <div class="row g-4">
-<aside class="col-lg-2">
-  <div class="list-group shadow-sm mb-4">
-    <a href="<?php echo BASE_URL; ?>/user/dashboard.php" class="list-group-item list-group-item-action active bg-success border-success"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>    <a href="<?php echo BASE_URL; ?>/user/profile.php" class="list-group-item list-group-item-action"><i class="bi bi-person-circle me-2"></i>Hồ sơ sức khỏe</a>
-    <a href="<?php echo BASE_URL; ?>/user/meals.php" class="list-group-item list-group-item-action"><i class="bi bi-journal-text me-2"></i>Nhật ký bữa ăn</a>
-    <a href="<?php echo BASE_URL; ?>/user/weight-logs.php" class="list-group-item list-group-item-action"><i class="bi bi-graph-up me-2"></i>Cân nặng</a>
-    <a href="<?php echo BASE_URL; ?>/user/chatbot.php" class="list-group-item list-group-item-action"><i class="bi bi-robot me-2"></i>Trợ lý dinh dưỡng</a>
-  </div>
-  <div class="dash-card"><div class="dash-body"><div class="small text-muted mb-2">Cần hỗ trợ?</div><div class="fw-bold mb-3">Hỏi trợ lý về số liệu dinh dưỡng.</div><a href="<?php echo BASE_URL; ?>/user/chatbot.php" class="btn btn-success w-100">Hỏi trợ lý</a></div></div>
-</aside>
-
-<main class="col-lg-10">
+<div class="col-12">
 <header class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-4">
   <div><h1 class="h3 fw-bold mb-1">Tổng quan sức khỏe hôm nay</h1><p class="text-muted mb-0">Xin chào <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'bạn'); ?>. Dữ liệu cập nhật đến <?php echo date('H:i'); ?>.</p></div>
   <div class="text-md-end"><div class="fw-bold"><?php echo date('d/m/Y'); ?></div><div class="small text-muted">Asia/Ho_Chi_Minh</div></div>
@@ -274,7 +264,7 @@ $metrics=[
 <?php for($h=0;$h<24;$h++): ?><tr><td class="ps-4 fw-bold"><?php echo sprintf('%02d:00',$h); ?></td><td><?php echo $hourlyCalories[$h]?round($hourlyCalories[$h]).' kcal':'-'; ?></td><td><?php echo $hourlyBurned[$h]?round($hourlyBurned[$h]).' kcal':'-'; ?></td><td><?php echo $hourlyWater[$h]?$hourlyWater[$h].' ml':'-'; ?></td><td><?php echo $hourlySteps[$h]?number_format($hourlySteps[$h],0,',','.'):'-'; ?></td><td><?php echo $hourlyActive[$h]?$hourlyActive[$h].' phút':'-'; ?></td><td><?php echo $hourlyHeart[$h]!==null?$hourlyHeart[$h].' bpm':'-'; ?></td><td><?php echo $hourlySleep[$h]?$hourlySleep[$h].' phút':'-'; ?></td><td class="small text-muted"><?php echo $hourlyNotes[$h]!==''?htmlspecialchars($hourlyNotes[$h]):'-'; ?></td></tr><?php endfor; ?>
 </tbody></table></div></details></section>
 <p class="small text-muted">Các chỉ số phục vụ theo dõi thói quen cá nhân, không thay thế chẩn đoán hoặc tư vấn y tế.</p>
-</main></div></div>
+</div></div></div>
 
 <script>
 document.addEventListener('DOMContentLoaded',function(){

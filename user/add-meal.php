@@ -309,10 +309,10 @@ require_once __DIR__ . '/../includes/header.php';
                             <h6 class="text-success fw-bold mb-3"><i class="bi bi-fire me-2"></i>Thành phần dinh dưỡng (trên khẩu phần)</h6>
                         </div>
                         
-                        <?php foreach (['calories'=>'Calories','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $field => $label): ?>
+                        <?php foreach (['calories'=>'Calories ','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $field => $label): ?>
                         <div class="col">
-                            <label class="form-label text-muted fw-bold"><?php echo $label; ?> <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light border-0" name="<?php echo $field; ?>" placeholder="0.00" required>
+                            <label class="form-label text-muted fw-bold"><?php echo $label; ?> <?php if($field !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label>
+                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light border-0 <?php echo $field === 'calories' ? 'text-muted fw-bold shadow-none' : ''; ?>" name="<?php echo $field; ?>" placeholder="0.00" <?php echo $field === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>>
                         </div>
                         <?php endforeach; ?>
                         <div class="col-12"><div class="form-text">Calories = Protein × 4 + Carbs × 4 + Fat × 9. Tổng macros và chất xơ không được vượt khẩu phần nếu tính theo gram.</div></div>
@@ -330,9 +330,21 @@ require_once __DIR__ . '/../includes/header.php';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-clear-zero]').forEach(input => {
-        input.addEventListener('focus', () => { if (parseFloat(input.value) === 0) input.value = ''; });
+        input.addEventListener('focus', () => { if (parseFloat(input.value) === 0 && !input.readOnly) input.value = ''; });
         input.addEventListener('blur', () => { if (input.value === '') input.value = '0.00'; });
     });
+
+    const macros = document.querySelectorAll('input[name="protein"], input[name="carbs"], input[name="fat"]');
+    const calInput = document.querySelector('input[name="calories"]');
+    if (calInput && macros.length > 0) {
+        const calcCals = () => {
+            let p = parseFloat(document.querySelector('input[name="protein"]').value) || 0;
+            let c = parseFloat(document.querySelector('input[name="carbs"]').value) || 0;
+            let f = parseFloat(document.querySelector('input[name="fat"]').value) || 0;
+            calInput.value = (p * 4 + c * 4 + f * 9).toFixed(2);
+        };
+        macros.forEach(el => el.addEventListener('input', calcCals));
+    }
 
     // Tự động tính toán calories khi thay đổi số lượng
     const qtyInputs = document.querySelectorAll('.meal-qty-input');
