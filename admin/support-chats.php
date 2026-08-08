@@ -33,6 +33,16 @@ $stmt = $conn->query("
     ORDER BY last_time DESC, sc.created_at DESC
 ");
 $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Helper: lấy chữ cái đầu viết tắt từ tên
+function getInitials($name) {
+    $words = explode(' ', trim($name));
+    $initials = '';
+    foreach ($words as $w) {
+        if ($w !== '') $initials .= mb_strtoupper(mb_substr($w, 0, 1, 'UTF-8'), 'UTF-8');
+    }
+    return mb_substr($initials, 0, 2, 'UTF-8');
+}
 ?>
 
 <div class="container-fluid py-4 h-100">
@@ -41,36 +51,49 @@ $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php require __DIR__ . '/includes/sidebar.php'; ?>
         </div>
         <div class="col-md-10 d-flex flex-column" style="height: calc(100vh - 130px);">
-            <div class="row h-100 g-0 card shadow border-0 mt-2 mb-3 flex-row overflow-hidden">
-                <!-- Left Sidebar: Chat List -->
-                <div class="col-md-4 border-end bg-white d-flex flex-column h-100">
-                    <div class="card-header bg-light border-bottom py-3 d-flex align-items-center rounded-0" style="min-height: 73px;">
-                        <div>
-                            <h5 class="mb-0 fw-bold">Danh sách hội thoại</h5>
-                            <small class="text-muted">Quản lý tin nhắn khách hàng</small>
-                        </div>
+            <div class="d-flex h-100 rounded-4 overflow-hidden shadow mt-2 mb-3" style="border: 1px solid #e0e0e0;">
+
+                <!-- ========== LEFT: Chat List ========== -->
+                <div class="d-flex flex-column h-100 bg-white" style="width: 340px; min-width: 280px; border-right: 1px solid #e0e0e0;">
+                    <!-- Left Header -->
+                    <div class="px-3 py-3 border-bottom" style="background: #f8f9fa;">
+                        <h6 class="mb-0 fw-bold text-uppercase text-dark" style="letter-spacing: 0.5px; font-size: 0.85rem;">Danh sách hội thoại</h6>
+                        <small class="text-muted" style="font-size: 0.75rem;">Quản lý tin nhắn khách hàng</small>
                     </div>
-                    <div class="list-group list-group-flush flex-grow-1 overflow-auto" style="background-color: #ffffff;">
+
+                    <!-- Chat List -->
+                    <div class="flex-grow-1 overflow-auto">
                         <?php if (empty($chats)): ?>
-                            <div class="text-center py-4 text-muted small">Chưa có cuộc hội thoại nào.</div>
+                            <div class="text-center py-5 text-muted small">
+                                <i class="bi bi-chat-dots d-block mb-2" style="font-size: 2rem; opacity: 0.3;"></i>
+                                Chưa có cuộc hội thoại nào.
+                            </div>
                         <?php else: ?>
                             <?php foreach ($chats as $chat): ?>
-                                <?php $isActive = ($target_user_id == $chat['user_id']); ?>
-                                <a href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $chat['user_id']; ?>" 
-                                   class="list-group-item list-group-item-action p-3 <?php echo $isActive ? 'active text-white' : ''; ?>" style="background-color: #53853fff;">
-                                    <div class="d-flex w-100 justify-content-between mb-1">
-                                        <h6 class="mb-0 fw-bold text-truncate" style="max-width: 150px;"><?php echo htmlspecialchars($chat['full_name']); ?></h6>
-                                        <small class="<?php echo $isActive ? 'text-white-50' : 'text-muted'; ?>">
-                                            <?php echo $chat['last_time'] ? date('H:i d/m', strtotime($chat['last_time'])) : ''; ?>
-                                        </small>
+                                <?php
+                                    $isActive = ($target_user_id == $chat['user_id']);
+                                    $initials = getInitials($chat['full_name']);
+                                    $timeStr = $chat['last_time'] ? 'Hôm nay, ' . date('H:i', strtotime($chat['last_time'])) . ' - ' . date('d/m', strtotime($chat['last_time'])) : '';
+                                ?>
+                                <a href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $chat['user_id']; ?>"
+                                   class="chat-list-item d-flex align-items-start px-3 py-3 text-decoration-none <?php echo $isActive ? 'active' : ''; ?>"
+                                   style="border-bottom: 1px solid #f0f0f0; <?php echo $isActive ? 'border-left: 4px solid #198754; background: #f0faf5;' : 'border-left: 4px solid transparent;'; ?>">
+                                    <!-- Avatar -->
+                                    <div class="flex-shrink-0 me-3 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" 
+                                         style="width: 44px; height: 44px; font-size: 0.85rem; background: <?php echo $isActive ? '#198754' : '#6c757d'; ?>;">
+                                        <?php echo $initials; ?>
                                     </div>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="text-truncate small <?php echo $isActive ? 'text-white' : 'text-secondary'; ?>" style="max-width: 200px;">
-                                            <?php echo htmlspecialchars($chat['last_message'] ?: 'Chưa có tin nhắn'); ?>
+                                    <!-- Info -->
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark text-truncate" style="font-size: 0.9rem; max-width: 130px;"><?php echo htmlspecialchars($chat['full_name']); ?></span>
+                                            <?php if ($chat['unread_count'] > 0): ?>
+                                                <span class="badge bg-success rounded-pill ms-1" style="font-size: 0.65rem;"><?php echo $chat['unread_count']; ?></span>
+                                            <?php endif; ?>
                                         </div>
-                                        <?php if ($chat['unread_count'] > 0): ?>
-                                            <span class="badge <?php echo $isActive ? 'bg-light text-success' : 'bg-danger'; ?> rounded-pill"><?php echo $chat['unread_count']; ?></span>
-                                        <?php endif; ?>
+                                        <div class="text-muted text-truncate" style="font-size: 0.75rem;">
+                                            <?php echo $timeStr; ?> · <?php echo htmlspecialchars(mb_strimwidth($chat['last_message'] ?: 'Chưa có tin nhắn', 0, 30, '...', 'UTF-8')); ?>
+                                        </div>
                                     </div>
                                 </a>
                             <?php endforeach; ?>
@@ -78,45 +101,47 @@ $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                 </div>
 
-                <!-- Right Side: Chat View -->
-                <div class="col-md-8 d-flex flex-column h-100">
+                <!-- ========== RIGHT: Chat View ========== -->
+                <div class="d-flex flex-column flex-grow-1 h-100">
                     <?php if ($target_user): ?>
-                        <div class="card-header bg-success text-white py-3 d-flex align-items-center border-0 rounded-0" style="min-height: 73px;">
-                            <i class="bi bi-person-circle fs-4 me-2"></i>
+                        <?php $userInitials = getInitials($target_user['full_name']); ?>
+                        <!-- Right Header -->
+                        <div class="d-flex align-items-center px-4 py-3 text-white" style="background: linear-gradient(135deg, #1a6b3c 0%, #198754 100%); min-height: 68px;">
                             <div>
-                                <h5 class="mb-0 fw-bold"><?php echo htmlspecialchars($target_user['full_name']); ?></h5>
-                                <small class="text-white-50">Đang hỗ trợ trực tuyến</small>
+                                <h6 class="mb-0 fw-bold" style="font-size: 1rem;">Hỗ trợ: <?php echo htmlspecialchars($target_user['full_name']); ?></h6>
+                                <small style="font-size: 0.75rem; opacity: 0.8;"><span style="color: #90ee90;">●</span> Đang hoạt động trực tuyến</small>
                             </div>
                         </div>
 
-                        <div class="card-body bg-light overflow-auto p-4 flex-grow-1" id="support-chat-box">
-                            <div class="text-center mb-4 text-muted small">
-                                Cuộc trò chuyện bắt đầu<br>
-                                <?php echo date('d/m/Y H:i'); ?>
-                            </div>
+                        <!-- Chat Messages -->
+                        <div class="flex-grow-1 overflow-auto p-4" id="support-chat-box">
                             <div class="text-center text-muted py-3" id="support-loading">
                                 <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
                                 Đang tải tin nhắn...
                             </div>
                         </div>
 
-                        <div class="card-footer bg-white p-3 border-0 border-top">
+                        <!-- Chat Input -->
+                        <div class="px-4 py-3 bg-white border-top">
                             <form id="support-chat-form">
-                                <div class="input-group">
-                                    <input type="text" id="support-chat-input" class="form-control form-control-lg border-success" placeholder="Nhập tin nhắn..." autocomplete="off" required>
-                                    <button type="submit" class="btn btn-success px-4" id="support-chat-btn">
-                                        <i class="bi bi-send-fill"></i>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="text" id="support-chat-input" class="form-control rounded-3 border" placeholder="Nhập tin nhắn..." autocomplete="off" required
+                                           style="padding: 10px 16px; font-size: 0.9rem;">
+                                    <button type="submit" class="btn btn-success rounded-3 px-3 d-flex align-items-center gap-2" id="support-chat-btn"
+                                            style="white-space: nowrap; padding: 10px 18px;">
+                                        Gửi <i class="bi bi-send-fill"></i>
                                     </button>
                                 </div>
                             </form>
                             <div class="text-center mt-2">
-                                <small class="text-muted">Tin nhắn sẽ được gửi trực tiếp đến người dùng.</small>
+                                <small class="text-muted" style="font-size: 0.7rem;">Tin nhắn sẽ được gửi trực tiếp đến người dùng.</small>
                             </div>
                         </div>
                     <?php else: ?>
-                        <div class="d-flex flex-column align-items-center justify-content-center h-100 bg-light text-muted">
-                            <i class="bi bi-chat-dots" style="font-size: 4rem; opacity: 0.2;"></i>
-                            <h5 class="mt-3">Hãy chọn một cuộc trò chuyện để bắt đầu</h5>
+                        <!-- Empty State -->
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted" style="background: #efeae2;">
+                            <i class="bi bi-chat-square-text" style="font-size: 4rem; opacity: 0.15;"></i>
+                            <h5 class="mt-3 fw-normal" style="opacity: 0.5;">Hãy chọn một cuộc trò chuyện để bắt đầu</h5>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -126,7 +151,41 @@ $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <style>
-/* Chat styles are now handled entirely by Bootstrap utility classes */
+/* Chat list item hover */
+.chat-list-item { transition: background 0.15s; }
+.chat-list-item:hover:not(.active) { background: #f8f9fa !important; }
+
+/* Chat bubbles */
+.chat-bubble-user {
+    background: #dcf8c6;
+    color: #111;
+    padding: 10px 14px;
+    border-radius: 12px 12px 0 12px;
+    display: inline-block;
+    word-break: break-word;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+}
+.chat-bubble-admin {
+    background: #198754;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 12px 12px 12px 0;
+    display: inline-block;
+    word-break: break-word;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+}
+.chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
 </style>
 
 <?php if ($target_user): ?>
@@ -139,30 +198,32 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let lastId = 0;
     const targetUserId = <?php echo $target_user_id; ?>;
+    const userInitials = '<?php echo $userInitials; ?>';
 
     function renderMessage(msg) {
         const isSelf = msg.sender_type === 'admin';
-        
         const time = new Date(msg.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
         const safeMessage = msg.message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         
         if (isSelf) {
+            // Admin message — right side, green bubble
             return `
-                <div class="d-flex mb-4 justify-content-end" id="msg-${msg.id}">
-                    <div class="flex-grow-1 text-end">
-                        <div class="bg-success text-white p-3 rounded shadow-sm d-inline-block text-start" style="max-width: 80%;">${safeMessage}</div>
-                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">${time}</div>
+                <div class="d-flex mb-3 justify-content-end" id="msg-${msg.id}">
+                    <div class="text-end me-2" style="max-width: 75%;">
+                        <div class="chat-bubble-admin">${safeMessage}</div>
+                        <div class="text-muted mt-1" style="font-size: 0.65rem;">${time}</div>
                     </div>
-                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center ms-3 shadow-sm flex-shrink-0" style="width: 40px; height: 40px;"><i class="bi bi-headset"></i></div>
+                    <div class="chat-avatar" style="background: #198754;">A</div>
                 </div>
             `;
         } else {
+            // User message — left side, light green bubble
             return `
-                <div class="d-flex mb-4" id="msg-${msg.id}">
-                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm flex-shrink-0" style="width: 40px; height: 40px;"><i class="bi bi-person"></i></div>
-                    <div class="flex-grow-1">
-                        <div class="bg-white p-3 rounded shadow-sm d-inline-block border" style="max-width: 80%;">${safeMessage}</div>
-                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">${time}</div>
+                <div class="d-flex mb-3" id="msg-${msg.id}">
+                    <div class="chat-avatar me-2" style="background: #6c757d;">${userInitials}</div>
+                    <div style="max-width: 75%;">
+                        <div class="chat-bubble-user">${safeMessage}</div>
+                        <div class="text-muted mt-1" style="font-size: 0.65rem;">${time}</div>
                     </div>
                 </div>
             `;
@@ -174,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.messages.length > 0) {
-                    if (lastId === 0) chatBox.innerHTML = ''; // Clear loading
+                    if (lastId === 0) chatBox.innerHTML = '';
                     
                     let shouldScroll = (chatBox.scrollTop + chatBox.clientHeight) >= chatBox.scrollHeight - 50;
                     
@@ -187,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         chatBox.scrollTop = chatBox.scrollHeight;
                     }
                 } else if (lastId === 0) {
-                    chatBox.innerHTML = '<div class="text-center text-muted py-4">Bắt đầu cuộc trò chuyện.</div>';
+                    chatBox.innerHTML = '<div class="text-center text-muted py-4" style="font-size: 0.85rem;">Bắt đầu cuộc trò chuyện.</div>';
                 }
             })
             .catch(err => console.error(err));
@@ -213,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 chatInput.value = '';
-                fetchMessages(); // Fetch immediately
+                fetchMessages();
             }
         })
         .finally(() => {
