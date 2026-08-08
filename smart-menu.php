@@ -13,6 +13,17 @@ $che_do = $_GET['che_do'] ?? '';
 $ketQua = null;
 $loaiKetQua = null;
 
+$hasActiveMenu = false;
+if (isset($_SESSION['user_id'])) {
+    $db = new Database();
+    $conn = $db->getConnection();
+    $stmt = $conn->prepare("SELECT id FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' LIMIT 1");
+    $stmt->execute([':user_id' => $_SESSION['user_id']]);
+    if ($stmt->fetch()) {
+        $hasActiveMenu = true;
+    }
+}
+
 if (isset($_GET['che_do'])) {
     switch ($che_do) {
         case 'theo_mua':
@@ -178,6 +189,16 @@ if (isset($_GET['che_do'])) {
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
+            <?php if ($hasActiveMenu): ?>
+                <div class="alert alert-info shadow-sm rounded-4 mb-4 d-flex flex-column flex-md-row align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill fs-3 me-md-3 mb-2 mb-md-0 text-info"></i>
+                    <div class="text-center text-md-start mb-3 mb-md-0">
+                        <strong>Bạn đang có một thực đơn đang áp dụng!</strong>
+                        <br>Bạn có thể tiếp tục theo dõi tiến độ, hoặc nếu bạn bấm "Lưu Thực Đơn Này" ở dưới, thực đơn cũ sẽ được thay thế bằng thực đơn mới.
+                    </div>
+                    <a href="<?= BASE_URL ?>/my-smart-menu.php" class="btn btn-outline-info ms-md-auto fw-bold text-nowrap">Xem Thực Đơn Của Tôi</a>
+                </div>
+            <?php endif; ?>
             <div class="card smart-menu-card p-4 p-md-5 mb-5" data-aos="fade-up" data-aos-delay="100">
                 
                 <ul class="nav nav-pills nav-pills-custom justify-content-center mb-4" id="pills-tab" role="tablist">
@@ -286,6 +307,42 @@ if (isset($_GET['che_do'])) {
                     
                     <?php if ($loaiKetQua === 'ai_thuc_don'): ?>
                         <p class="text-muted"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> <i>Chỉ số Calo & Protein là ước tính trung bình tham khảo cho từng bữa.</i></p>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <div class="mt-4">
+                                <button type="button" id="btn-save-menu" class="btn btn-success btn-lg rounded-pill fw-bold shadow px-5" onclick="saveSmartMenu()">
+                                    <i class="bi bi-save me-2"></i>Lưu Thực Đơn Này
+                                </button>
+                            </div>
+                            <script>
+                                function saveSmartMenu() {
+                                    const btn = document.getElementById('btn-save-menu');
+                                    const originalHtml = btn.innerHTML;
+                                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang lưu...';
+                                    btn.disabled = true;
+                                    
+                                    const menuData = <?= json_encode($ketQua) ?>;
+                                    fetch('<?= BASE_URL ?>/api/save_smart_menu.php', {
+                                        method: 'POST',
+                                        headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({ menu_data: menuData })
+                                    })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.status === 'success') {
+                                            window.location.href = '<?= BASE_URL ?>/my-smart-menu.php';
+                                        } else {
+                                            alert('Lỗi: ' + data.message);
+                                            btn.innerHTML = originalHtml;
+                                            btn.disabled = false;
+                                        }
+                                    }).catch(err => {
+                                        alert('Lỗi kết nối!');
+                                        btn.innerHTML = originalHtml;
+                                        btn.disabled = false;
+                                    });
+                                }
+                            </script>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
 
