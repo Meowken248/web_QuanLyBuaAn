@@ -34,6 +34,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['contact-messages.php', 'contact-message-view.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
                 <i class="bi bi-envelope me-2"></i>Hộp thư liên hệ
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/support-chats.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['support-chats.php', 'support-chat-view.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
+                <i class="bi bi-chat-dots me-2"></i>Hỗ trợ trực tuyến
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['meal-plans.php', 'meal-plan-edit.php', 'meal-plan-builder.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
                 <i class="bi bi-journal-check me-2"></i>Thực đơn mẫu
             </a>

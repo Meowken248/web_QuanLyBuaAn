@@ -274,6 +274,9 @@ h1, h2, h3, h4, h5, h6 {
 /* Shared user navigation */
 .user-global-sidebar {
     width: 288px;
+    position: sticky;
+    top: 90px;
+    z-index: 10;
 }
 
 .user-sidebar-nav {
@@ -345,21 +348,25 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (min-width: 992px) {
     .user-global-sidebar {
-        position: fixed;
-        top: 90px;
-        left: 24px;
-        z-index: 1010;
+        position: sticky !important;
+        top: 90px !important;
+        height: max-content;
         max-height: calc(100vh - 114px);
         overflow-y: auto;
         scrollbar-width: thin;
+        flex-shrink: 0;
+        align-self: flex-start;
+        margin-left: 24px;
+        z-index: 10;
     }
 
     body.user-area > main > .container,
     body.user-area > main > .container-fluid {
-        width: calc(100% - 352px);
+        width: 100%;
         max-width: none;
         margin-right: 24px;
-        margin-left: 328px;
+        margin-left: 0;
+        flex-grow: 1;
     }
 }
 

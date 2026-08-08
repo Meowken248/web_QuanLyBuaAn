@@ -39,9 +39,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($name)) {
         $field_errors['name'] = 'Vui lòng nhập tên danh mục.';
+    } else {
+        $check_name_sql = "SELECT id FROM food_categories WHERE name = :name";
+        $name_params = [':name' => $name];
+        if ($is_edit) {
+            $check_name_sql .= " AND id != :id";
+            $name_params[':id'] = $id;
+        }
+        $stmt_check_name = $conn->prepare($check_name_sql);
+        $stmt_check_name->execute($name_params);
+        if ($stmt_check_name->fetch()) {
+            $field_errors['name'] = 'Tên danh mục này đã tồn tại, vui lòng chọn tên khác.';
+        }
     }
     
     if (empty($field_errors)) {
+        // Đảm bảo slug là duy nhất
+        $original_slug = $slug;
+        $counter = 1;
+        while (true) {
+            $check_sql = "SELECT id FROM food_categories WHERE slug = :slug";
+            $params = [':slug' => $slug];
+            if ($is_edit) {
+                $check_sql .= " AND id != :id";
+                $params[':id'] = $id;
+            }
+            $stmt_check = $conn->prepare($check_sql);
+            $stmt_check->execute($params);
+            if (!$stmt_check->fetch()) {
+                break;
+            }
+            $slug = $original_slug . '-' . $counter;
+            $counter++;
+        }
+
         if ($is_edit) {
             $stmt = $conn->prepare("UPDATE food_categories SET name = :name, slug = :slug, status = :status WHERE id = :id");
             $stmt->execute([
