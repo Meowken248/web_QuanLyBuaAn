@@ -107,23 +107,25 @@ require __DIR__ . '/../includes/header.php';
                                 </div>
                             </div>
                             
-                            <table class="table table-bordered align-middle mt-4">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th colspan="2" class="text-center">Chi tiết bổ sung</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="w-50 text-muted"><i class="bi bi-asterisk text-success me-2"></i>Chất xơ (Fiber)</td>
-                                        <td class="fw-bold"><?php echo floatval($food['fiber'] ?? 0); ?>g</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted"><i class="bi bi-asterisk text-success me-2"></i>Đường (Sugar)</td>
-                                        <td class="fw-bold"><?php echo floatval($food['sugar'] ?? 0); ?>g</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mt-4 text-nowrap">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th colspan="2" class="text-center">Chi tiết bổ sung</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="w-50 text-muted"><i class="bi bi-asterisk text-success me-2"></i>Chất xơ (Fiber)</td>
+                                            <td class="fw-bold"><?php echo floatval($food['fiber'] ?? 0); ?>g</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted"><i class="bi bi-asterisk text-success me-2"></i>Đường (Sugar)</td>
+                                            <td class="fw-bold"><?php echo floatval($food['sugar'] ?? 0); ?>g</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -159,7 +159,7 @@ if ($cal_percent > 100) $cal_percent = 100;
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle border-top">
+                            <table class="table table-hover mb-0 align-middle border-top text-nowrap">
                                 <thead class="table-light text-muted small text-uppercase">
                                     <tr>
                                         <th class="ps-4">Món ăn</th>

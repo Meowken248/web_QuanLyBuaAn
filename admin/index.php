@@ -32,7 +32,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-10">
             <h3 class="fw-bold mb-4">Bảng điều khiển Quản trị viên</h3>
             
-            <div class="row mb-4">
+            <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <div class="card bg-primary text-white shadow-sm border-0">
                         <div class="card-body">
@@ -72,34 +72,36 @@ require_once __DIR__ . '/../includes/header.php';
                     <h5 class="mb-0 fw-bold">Người dùng mới đăng ký</h5>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>ID</th>
-                                <th>Họ Tên</th>
-                                <th>Email</th>
-                                <th>Vai trò</th>
-                                <th>Ngày đăng ký</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($recent_users as $u): ?>
-                            <tr>
-                                <td><?php echo $u['id']; ?></td>
-                                <td><?php echo htmlspecialchars($u['full_name']); ?></td>
-                                <td><?php echo htmlspecialchars($u['email']); ?></td>
-                                <td>
-                                    <?php if ($u['role'] === 'admin'): ?>
-                                        <span class="badge bg-danger">Admin</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">User</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($u['created_at'])); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 text-nowrap">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Họ Tên</th>
+                                    <th>Email</th>
+                                    <th>Vai trò</th>
+                                    <th>Ngày đăng ký</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($recent_users as $u): ?>
+                                <tr>
+                                    <td><?php echo $u['id']; ?></td>
+                                    <td><?php echo htmlspecialchars($u['full_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($u['email']); ?></td>
+                                    <td>
+                                        <?php if ($u['role'] === 'admin'): ?>
+                                            <span class="badge bg-danger">Admin</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">User</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo date('d/m/Y H:i', strtotime($u['created_at'])); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             

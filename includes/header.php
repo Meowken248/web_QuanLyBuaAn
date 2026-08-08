@@ -36,26 +36,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
         <a class="navbar-brand company-brand" href="<?php echo BASE_URL; ?>" aria-label="<?php echo htmlspecialchars(APP_NAME); ?>">
             <img src="<?php echo BASE_URL; ?>/img/logo_cty.png" alt="<?php echo htmlspecialchars(APP_NAME); ?>" class="company-logo company-logo-navbar">
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/index.php">Trang chủ</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'features.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/features.php">Tính năng</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'foods.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/foods.php">Thư viện món ăn</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'smart-menu.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/smart-menu.php">Thực đơn Thông minh <span class="badge bg-danger rounded-pill" style="font-size: 0.65em; vertical-align: top;">AI</span></a>
-                </li>
-
-            </ul>
-            <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center ms-auto order-lg-last">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <?php
                         if (!isset($conn)) {
@@ -129,7 +110,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                 </span>
                             <?php endif; ?>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-lg-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 300px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 300px;">
                             <li><h6 class="dropdown-header fw-bold">Thông báo mới</h6></li>
                             <?php
                                 $stmtList = $conn->prepare("SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT 5");
@@ -162,7 +143,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                             </div>
                             <strong class="d-none d-md-block"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Tài khoản'); ?></strong>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-lg-end text-small shadow border-0 mt-2" aria-labelledby="dropdownUser">
+                        <ul class="dropdown-menu dropdown-menu-end text-small shadow border-0 mt-2" aria-labelledby="dropdownUser">
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/profile.php"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
                             <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/reminders.php"><i class="bi bi-alarm me-2"></i>Nhắc nhở của tôi</a></li>
@@ -184,6 +165,25 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                     <a href="<?php echo BASE_URL; ?>/auth/register.php" class="btn btn-success btn-glow">Đăng ký miễn phí</a>
                 <?php endif; ?>
             </div>
+        <button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/index.php">Trang chủ</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'features.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/features.php">Tính năng</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'foods.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/foods.php">Thư viện món ăn</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'smart-menu.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/smart-menu.php">Thực đơn Thông minh <span class="badge bg-danger rounded-pill" style="font-size: 0.65em; vertical-align: top;">AI</span></a>
+                </li>
+
+            </ul>
         </div>
     </div>
 </nav>

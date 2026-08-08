@@ -191,7 +191,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     $stmtItems->execute([':mid' => $m['id']]);
                                     $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
                                 ?>
-                                <table class="table table-hover align-middle mb-0">
+                                <table class="table table-hover align-middle mb-0 text-nowrap">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Món ăn</th>

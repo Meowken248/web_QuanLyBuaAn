@@ -149,7 +149,7 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0 text-nowrap">
                             <thead class="table-light">
                                 <tr>
                                     <th>Ngày</th>
