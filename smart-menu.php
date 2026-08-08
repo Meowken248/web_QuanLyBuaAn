@@ -429,12 +429,12 @@ if (isset($_GET['che_do'])) {
                                             <div class="card-body p-0 ps-3 border-start border-3 border-success ms-2">
                                                 <?php foreach ($ngay['buoi'] as $bua): ?>
                                                     <div class="meal-item py-3 px-3 border-bottom border-dashed border-light rounded-3 mb-2">
-                                                        <div class="d-flex justify-content-between align-items-start flex-wrap">
-                                                            <div>
+                                                        <div class="d-flex align-items-start">
+                                                            <div class="flex-grow-1 pe-3">
                                                                 <span class="meal-name d-block fs-5 mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><?= htmlspecialchars($bua['ten_bua']) ?></span>
                                                                 <p class="mb-0 text-dark ms-4" style="font-size: 1.05rem;"><?= htmlspecialchars($bua['mon']) ?></p>
                                                             </div>
-                                                            <div class="text-end ms-4 mt-2 mt-sm-0 bg-light rounded-3 p-2 border">
+                                                            <div class="flex-shrink-0 text-center bg-light rounded-3 p-2 border">
                                                                 <div class="text-dark fw-bold"><?= $bua['calo'] ?> <small class="text-muted fw-normal">kcal</small></div>
                                                                 <div class="text-primary fw-bold mt-1"><?= $bua['protein'] ?>g <small class="text-muted fw-normal">Pro</small></div>
                                                             </div>

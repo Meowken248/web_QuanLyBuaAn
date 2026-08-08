@@ -81,29 +81,29 @@ $img_src = food_image_url($food['image'] ?? null);
                             <span class="text-muted small">Khẩu phần: <?php echo $food['serving_size']; ?> <?php echo htmlspecialchars($food['serving_unit']); ?></span>
                         </div>
                         
-                        <div class="row g-3 text-center mb-4">
+                        <div class="row g-2 g-md-3 text-center mb-4">
                             <div class="col-6 col-md-3">
-                                <div class="bg-white p-3 rounded shadow-sm border border-danger-subtle">
-                                    <div class="text-danger fw-bold fs-3"><?php echo $food['calories']; ?></div>
-                                    <div class="text-muted small fw-semibold text-uppercase">Kcal</div>
+                                <div class="bg-white p-2 p-md-3 rounded shadow-sm border border-danger-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="text-danger fw-bold fs-4 fs-md-3 text-nowrap"><?php echo floatval($food['calories']); ?></div>
+                                    <div class="text-muted small fw-semibold text-uppercase mt-1">Kcal</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="bg-white p-3 rounded shadow-sm border border-primary-subtle">
-                                    <div class="text-primary fw-bold fs-3"><?php echo $food['protein']; ?>g</div>
-                                    <div class="text-muted small fw-semibold text-uppercase">Protein</div>
+                                <div class="bg-white p-2 p-md-3 rounded shadow-sm border border-primary-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="text-primary fw-bold fs-4 fs-md-3 text-nowrap"><?php echo floatval($food['protein']); ?>g</div>
+                                    <div class="text-muted small fw-semibold text-uppercase mt-1">Protein</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="bg-white p-3 rounded shadow-sm border border-warning-subtle">
-                                    <div class="text-warning fw-bold fs-3"><?php echo $food['carbs']; ?>g</div>
-                                    <div class="text-muted small fw-semibold text-uppercase">Carbs</div>
+                                <div class="bg-white p-2 p-md-3 rounded shadow-sm border border-warning-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="text-warning fw-bold fs-4 fs-md-3 text-nowrap"><?php echo floatval($food['carbs']); ?>g</div>
+                                    <div class="text-muted small fw-semibold text-uppercase mt-1">Carbs</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="bg-white p-3 rounded shadow-sm border border-info-subtle">
-                                    <div class="text-info fw-bold fs-3"><?php echo $food['fat']; ?>g</div>
-                                    <div class="text-muted small fw-semibold text-uppercase">Fat</div>
+                                <div class="bg-white p-2 p-md-3 rounded shadow-sm border border-info-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="text-info fw-bold fs-4 fs-md-3 text-nowrap"><?php echo floatval($food['fat']); ?>g</div>
+                                    <div class="text-muted small fw-semibold text-uppercase mt-1">Fat</div>
                                 </div>
                             </div>
                         </div>
