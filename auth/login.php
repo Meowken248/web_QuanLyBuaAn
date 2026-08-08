@@ -14,27 +14,34 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $error = '';
+$field_errors = [];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = 'Yêu cầu không hợp lệ. Vui lòng thử lại.';
-    } elseif (empty($email) || empty($password)) {
-        $error = 'Vui lòng nhập email và mật khẩu.';
     } else {
-        $userModel = new UserModel();
-        $result = $userModel->login($email, $password);
+        if (empty($email)) $field_errors['email'] = 'Vui lòng nhập email.';
+        if (empty($password)) $field_errors['password'] = 'Vui lòng nhập mật khẩu.';
         
-        if ($result['status']) {
-            set_flash_message('success', 'Đăng nhập thành công!');
-            if ($_SESSION['user_role'] === 'admin') {
-                redirect('/admin/index.php');
+        if (empty($field_errors)) {
+            $userModel = new UserModel();
+            $result = $userModel->login($email, $password);
+            
+            if ($result['status']) {
+                set_flash_message('success', 'Đăng nhập thành công!');
+                if ($_SESSION['user_role'] === 'admin') {
+                    redirect('/admin/index.php');
+                } else {
+                    redirect('/user/dashboard.php');
+                }
             } else {
-                redirect('/user/dashboard.php');
+                $error = $result['message'];
             }
         } else {
-            $error = $result['message'];
+            $error = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.';
         }
     }
 }
@@ -74,17 +81,23 @@ require_once __DIR__ . '/../includes/header.php';
                             <form method="POST" action="">
                                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                 
-                                <div class="form-floating mb-3">
-                                    <input type="email" class="form-control" id="floatingInput" name="email" placeholder="name@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
-                                    <label for="floatingInput" class="text-muted"><i class="bi bi-envelope me-2"></i>Email</label>
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" id="floatingInput" name="email" placeholder="name@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                                        <label for="floatingInput" class="text-muted"><i class="bi bi-envelope me-2"></i>Email</label>
+                                    </div>
+                                    <?php if(isset($field_errors['email'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['email']; ?></div><?php endif; ?>
                                 </div>
                                 
-                                <div class="form-floating mb-4 position-relative">
-                                    <input type="password" class="form-control pe-5" id="floatingPassword" name="password" placeholder="Password" required>
-                                    <label for="floatingPassword" class="text-muted"><i class="bi bi-lock me-2"></i>Mật khẩu</label>
-                                    <button type="button" class="btn btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-2 password-toggle" data-password-toggle="floatingPassword" aria-label="Hiện mật khẩu" aria-pressed="false">
-                                        <i class="bi bi-eye" aria-hidden="true"></i>
-                                    </button>
+                                <div class="mb-4">
+                                    <div class="form-floating position-relative">
+                                        <input type="password" class="form-control pe-5 <?php echo isset($field_errors['password']) ? 'is-invalid' : ''; ?>" id="floatingPassword" name="password" placeholder="Password" required>
+                                        <label for="floatingPassword" class="text-muted"><i class="bi bi-lock me-2"></i>Mật khẩu</label>
+                                        <button type="button" class="btn btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-2 password-toggle" data-password-toggle="floatingPassword" aria-label="Hiện mật khẩu" aria-pressed="false">
+                                            <i class="bi bi-eye" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <?php if(isset($field_errors['password'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['password']; ?></div><?php endif; ?>
                                 </div>
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-4">

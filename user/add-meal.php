@@ -72,21 +72,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
             $values[$field] = filter_var($raw, FILTER_VALIDATE_FLOAT);
         }
 
-        $invalid = $name === '' || $serving_size === false || $serving_size <= 0 || $serving_unit === ''
-            || !is_valid_date($fdate) || !in_array($fmtype, $valid_meal_types, true);
-        foreach ($values as $value) {
-            if ($value === false || $value < 0) $invalid = true;
+        $custom_food_errors = [];
+        if ($name === '') $custom_food_errors['name'] = 'Vui lòng nhập tên món ăn.';
+        if ($serving_size === false || $serving_size <= 0) $custom_food_errors['serving_size'] = 'Khẩu phần không hợp lệ.';
+        if ($serving_unit === '') $custom_food_errors['serving_unit'] = 'Vui lòng nhập đơn vị.';
+        
+        foreach ($values as $k => $value) {
+            if ($value === false || $value < 0) $custom_food_errors[$k] = 'Giá trị không hợp lệ.';
         }
+        
         $macro_total = $values['protein'] + $values['carbs'] + $values['fat'] + $values['fiber'];
-        if (in_array(mb_strtolower($serving_unit), ['g', 'gram', 'grams'], true) && $macro_total > $serving_size + 0.01) $invalid = true;
+        if (in_array(mb_strtolower($serving_unit), ['g', 'gram', 'grams'], true) && $macro_total > $serving_size + 0.01) {
+            $custom_food_errors['serving_size'] = 'Tổng macros và chất xơ không vượt quá khẩu phần.';
+        }
         $estimated_calories = $values['protein'] * 4 + $values['carbs'] * 4 + $values['fat'] * 9;
         if ($estimated_calories > 0 && abs($values['calories'] - $estimated_calories) > max(20, $estimated_calories * 0.2)) {
-            set_flash_message('danger', 'Calories lệch nhiều so với macros (ước tính ' . round($estimated_calories, 1) . ' kcal).');
-            $invalid = true;
+            $custom_food_errors['calories'] = 'Calories lệch nhiều so với macros (ước tính ' . round($estimated_calories, 1) . ' kcal).';
         }
 
-        if ($invalid) {
-            if (empty($_SESSION['flash_message'])) set_flash_message('danger', 'Dữ liệu món ăn không hợp lệ. Kiểm tra khẩu phần, đơn vị và các chỉ số dinh dưỡng.');
+        if (!empty($custom_food_errors)) {
+            $show_custom_food_modal = true;
+            if (empty($_SESSION['flash_message'])) set_flash_message('danger', 'Dữ liệu không hợp lệ. Vui lòng kiểm tra các ô báo đỏ.');
         } else {
             $image_path = null;
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK && $_FILES['image']['size'] <= 5 * 1024 * 1024) {
@@ -141,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                 }
                 error_log("Lỗi tạo món ăn: " . $e->getMessage());
                 set_flash_message('danger', 'Không thể tạo món ăn: ' . $e->getMessage());
+                $show_custom_food_modal = true;
             }
         }
     }
@@ -295,7 +302,8 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row g-4">
                         <div class="col-12">
                             <label class="form-label text-muted fw-bold">Tên món ăn <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-lg bg-light border-0" name="name" required placeholder="VD: Cơm tấm sườn sành điệu...">
+                            <input type="text" class="form-control form-control-lg bg-light <?php echo isset($custom_food_errors['name']) ? 'is-invalid border-danger' : 'border-0'; ?>" name="name" required placeholder="VD: Cơm tấm sườn sành điệu..." value="<?php echo old('name'); ?>">
+                            <?php if(isset($custom_food_errors['name'])): ?><div class="invalid-feedback"><?php echo $custom_food_errors['name']; ?></div><?php endif; ?>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted fw-bold">Tải ảnh lên (Tùy chọn)</label>
@@ -303,20 +311,22 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Khẩu phần <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0.01" class="form-control bg-light border-0" name="serving_size" value="100" required>
+                            <input type="number" step="0.01" min="0.01" class="form-control bg-light <?php echo isset($custom_food_errors['serving_size']) ? 'is-invalid border-danger' : 'border-0'; ?>" name="serving_size" value="<?php echo old('serving_size', '100'); ?>" required>
+                            <?php if(isset($custom_food_errors['serving_size'])): ?><div class="invalid-feedback"><?php echo $custom_food_errors['serving_size']; ?></div><?php endif; ?>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Đơn vị <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control bg-light border-0" name="serving_unit" value="gram" required>
+                            <input type="text" class="form-control bg-light <?php echo isset($custom_food_errors['serving_unit']) ? 'is-invalid border-danger' : 'border-0'; ?>" name="serving_unit" value="<?php echo old('serving_unit', 'gram'); ?>" required>
+                            <?php if(isset($custom_food_errors['serving_unit'])): ?><div class="invalid-feedback"><?php echo $custom_food_errors['serving_unit']; ?></div><?php endif; ?>
                         </div>
                         
                         <div class="col-md-6">
                             <label class="form-label text-muted fw-bold">Nguyên liệu</label>
-                            <textarea class="form-control bg-light border-0" name="ingredients" rows="3" placeholder="VD: 100g sườn, 1 muỗng mật ong..."></textarea>
+                            <textarea class="form-control bg-light border-0" name="ingredients" rows="3" placeholder="VD: 100g sườn, 1 muỗng mật ong..."><?php echo old('ingredients'); ?></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted fw-bold">Cách làm</label>
-                            <textarea class="form-control bg-light border-0" name="instructions" rows="3" placeholder="VD: Ướp sườn trong 30 phút, nướng ở 180 độ..."></textarea>
+                            <textarea class="form-control bg-light border-0" name="instructions" rows="3" placeholder="VD: Ướp sườn trong 30 phút, nướng ở 180 độ..."><?php echo old('instructions'); ?></textarea>
                         </div>
                         
                         <div class="col-12">
@@ -327,7 +337,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php foreach (['calories'=>'Calories ','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $field => $label): ?>
                         <div class="col">
                             <label class="form-label text-muted fw-bold"><?php echo $label; ?> <?php if($field !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label>
-                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light border-0 <?php echo $field === 'calories' ? 'text-muted fw-bold shadow-none' : ''; ?>" name="<?php echo $field; ?>" placeholder="0.00" <?php echo $field === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>>
+                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light <?php echo isset($custom_food_errors[$field]) ? 'is-invalid border-danger' : 'border-0'; ?> <?php echo $field === 'calories' ? 'text-muted fw-bold shadow-none' : ''; ?>" name="<?php echo $field; ?>" placeholder="0.00" value="<?php echo old($field); ?>" <?php echo $field === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>>
+                            <?php if(isset($custom_food_errors[$field])): ?><div class="invalid-feedback"><?php echo $custom_food_errors[$field]; ?></div><?php endif; ?>
                         </div>
                         <?php endforeach; ?>
                         <div class="col-12"><div class="form-text">Calories = Protein × 4 + Carbs × 4 + Fat × 9. Tổng macros và chất xơ không được vượt khẩu phần nếu tính theo gram.</div></div>
@@ -379,5 +390,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<?php if (!empty($show_custom_food_modal)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var createFoodModal = new bootstrap.Modal(document.getElementById('createFoodModal'));
+    createFoodModal.show();
+});
+</script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

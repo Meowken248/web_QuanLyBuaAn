@@ -32,14 +32,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $goal_adjustment = $goal_adjustments[$goal][$pace] ?? null;
         $birth_date = is_valid_date($dob) ? DateTime::createFromFormat('!Y-m-d', $dob) : false;
         $age = $birth_date ? $birth_date->diff(new DateTime('today'))->y : 0;
+        
+        $field_errors = [];
 
         if (!$birth_date || $birth_date > new DateTime('today') || $age < 13 || $age > 120) {
-            set_flash_message('danger', 'Ngày sinh không hợp lệ; độ tuổi phải từ 13 đến 120.');
-        } elseif (!in_array($gender, ['male', 'female'], true) || $height === false || $height < 80 || $height > 250 || $weight === false || $weight < 20 || $weight > 400) {
-            set_flash_message('danger', 'Giới tính, chiều cao hoặc cân nặng không hợp lệ.');
-        } elseif (!isset($activity_multiplier[$activity]) || !in_array($goal, $valid_goals, true) || $goal_adjustment === null || $meals_per_day === false || $meals_per_day < 1 || $meals_per_day > 6) {
-            set_flash_message('danger', 'Mức vận động, mục tiêu, tốc độ mục tiêu hoặc số bữa ăn không hợp lệ.');
-        } else {
+            $field_errors['date_of_birth'] = 'Ngày sinh không hợp lệ (13-120 tuổi).';
+        }
+        if (!in_array($gender, ['male', 'female'], true)) {
+            $field_errors['gender'] = 'Giới tính không hợp lệ.';
+        }
+        if ($height === false || $height < 80 || $height > 250) {
+            $field_errors['height'] = 'Chiều cao không hợp lệ (80-250cm).';
+        }
+        if ($weight === false || $weight < 20 || $weight > 400) {
+            $field_errors['current_weight'] = 'Cân nặng không hợp lệ (20-400kg).';
+        }
+        if (!isset($activity_multiplier[$activity])) {
+            $field_errors['activity_level'] = 'Mức vận động không hợp lệ.';
+        }
+        if (!in_array($goal, $valid_goals, true)) {
+            $field_errors['health_goal'] = 'Mục tiêu sức khỏe không hợp lệ.';
+        }
+        if ($goal_adjustment === null) {
+            $field_errors['goal_pace'] = 'Tốc độ mục tiêu không hợp lệ.';
+        }
+        if ($meals_per_day === false || $meals_per_day < 1 || $meals_per_day > 6) {
+            $field_errors['meals_per_day'] = 'Số bữa ăn không hợp lệ (1-6).';
+        }
+
+        if (empty($field_errors)) {
             $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) + ($gender === 'male' ? 5 : -161);
             $tdee = $bmr * $activity_multiplier[$activity];
             $calorie_target = $tdee + $goal_adjustment;
@@ -73,6 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 set_flash_message('danger', 'Không thể lưu hồ sơ, vui lòng thử lại.');
             }
+        } else {
+            set_flash_message('danger', 'Vui lòng kiểm tra lại các lỗi bên dưới.');
         }
     }
 }
@@ -102,30 +125,34 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="date" class="form-control bg-light border-0" id="dob" name="date_of_birth" max="<?php echo date('Y-m-d', strtotime('-13 years')); ?>" min="<?php echo date('Y-m-d', strtotime('-120 years')); ?>" value="<?php echo htmlspecialchars($profile['date_of_birth'] ?? ''); ?>" required>
+                                        <input type="date" class="form-control bg-light border-0 <?php echo isset($field_errors['date_of_birth']) ? 'is-invalid' : ''; ?>" id="dob" name="date_of_birth" max="<?php echo date('Y-m-d', strtotime('-13 years')); ?>" min="<?php echo date('Y-m-d', strtotime('-120 years')); ?>" value="<?php echo old('date_of_birth', $profile['date_of_birth'] ?? ''); ?>" required>
                                         <label for="dob" class="text-muted">Ngày sinh</label>
                                     </div>
+                                    <?php if(isset($field_errors['date_of_birth'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['date_of_birth']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select bg-light border-0" id="gender" name="gender" required>
-                                            <option value="male" <?php echo (isset($profile['gender']) && $profile['gender'] == 'male') ? 'selected' : ''; ?>>Nam</option>
-                                            <option value="female" <?php echo (isset($profile['gender']) && $profile['gender'] == 'female') ? 'selected' : ''; ?>>Nữ</option>
+                                        <select class="form-select bg-light border-0 <?php echo isset($field_errors['gender']) ? 'is-invalid' : ''; ?>" id="gender" name="gender" required>
+                                            <option value="male" <?php echo old('gender', $profile['gender'] ?? '') == 'male' ? 'selected' : ''; ?>>Nam</option>
+                                            <option value="female" <?php echo old('gender', $profile['gender'] ?? '') == 'female' ? 'selected' : ''; ?>>Nữ</option>
                                         </select>
                                         <label for="gender" class="text-muted">Giới tính</label>
                                     </div>
+                                    <?php if(isset($field_errors['gender'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['gender']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="number" class="form-control bg-light border-0" id="height" name="height" value="<?php echo htmlspecialchars($profile['height'] ?? ''); ?>" required placeholder="cm">
+                                        <input type="number" class="form-control bg-light border-0 <?php echo isset($field_errors['height']) ? 'is-invalid' : ''; ?>" id="height" name="height" value="<?php echo old('height', $profile['height'] ?? ''); ?>" required placeholder="cm">
                                         <label for="height" class="text-muted">Chiều cao (cm)</label>
                                     </div>
+                                    <?php if(isset($field_errors['height'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['height']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="number" step="0.1" class="form-control bg-light border-0" id="weight" name="current_weight" value="<?php echo htmlspecialchars($profile['current_weight'] ?? ''); ?>" required placeholder="kg">
+                                        <input type="number" step="0.1" class="form-control bg-light border-0 <?php echo isset($field_errors['current_weight']) ? 'is-invalid' : ''; ?>" id="weight" name="current_weight" value="<?php echo old('current_weight', $profile['current_weight'] ?? ''); ?>" required placeholder="kg">
                                         <label for="weight" class="text-muted">Cân nặng (kg)</label>
                                     </div>
+                                    <?php if(isset($field_errors['current_weight'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['current_weight']; ?></div><?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -135,68 +162,75 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select bg-light border-0" id="activity" name="activity_level" required>
-                                            <option value="sedentary" <?php echo (($profile['activity_level'] ?? '') === 'sedentary') ? 'selected' : ''; ?>>Ít vận động</option>
-                                            <option value="light" <?php echo (($profile['activity_level'] ?? '') === 'light') ? 'selected' : ''; ?>>Vận động nhẹ</option>
-                                            <option value="moderate" <?php echo (($profile['activity_level'] ?? '') === 'moderate') ? 'selected' : ''; ?>>Vận động vừa</option>
-                                            <option value="very_active" <?php echo (($profile['activity_level'] ?? '') === 'very_active') ? 'selected' : ''; ?>>Vận động nhiều</option>
-                                            <option value="extra_active" <?php echo (($profile['activity_level'] ?? '') === 'extra_active') ? 'selected' : ''; ?>>Vận động rất nhiều</option>
+                                        <select class="form-select bg-light border-0 <?php echo isset($field_errors['activity_level']) ? 'is-invalid' : ''; ?>" id="activity" name="activity_level" required>
+                                            <option value="sedentary" <?php echo old('activity_level', $profile['activity_level'] ?? '') === 'sedentary' ? 'selected' : ''; ?>>Ít vận động</option>
+                                            <option value="light" <?php echo old('activity_level', $profile['activity_level'] ?? '') === 'light' ? 'selected' : ''; ?>>Vận động nhẹ</option>
+                                            <option value="moderate" <?php echo old('activity_level', $profile['activity_level'] ?? '') === 'moderate' ? 'selected' : ''; ?>>Vận động vừa</option>
+                                            <option value="very_active" <?php echo old('activity_level', $profile['activity_level'] ?? '') === 'very_active' ? 'selected' : ''; ?>>Vận động nhiều</option>
+                                            <option value="extra_active" <?php echo old('activity_level', $profile['activity_level'] ?? '') === 'extra_active' ? 'selected' : ''; ?>>Vận động rất nhiều</option>
                                         </select>
                                         <label for="activity" class="text-muted">Mức độ vận động</label>
                                     </div>
+                                    <?php if(isset($field_errors['activity_level'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['activity_level']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select bg-light border-0" id="goal" name="health_goal" required>
-                                            <option value="lose_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'lose_weight') ? 'selected' : ''; ?>>Giảm cân</option>
-                                            <option value="gain_weight" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_weight') ? 'selected' : ''; ?>>Tăng cân</option>
-                                            <option value="maintain_weight" <?php echo (($profile['health_goal'] ?? '') === 'maintain_weight') ? 'selected' : ''; ?>>Giữ cân</option>
-                                            <option value="gain_muscle" <?php echo (isset($profile['health_goal']) && $profile['health_goal'] == 'gain_muscle') ? 'selected' : ''; ?>>Tăng cơ</option>
+                                        <select class="form-select bg-light border-0 <?php echo isset($field_errors['health_goal']) ? 'is-invalid' : ''; ?>" id="goal" name="health_goal" required>
+                                            <option value="lose_weight" <?php echo old('health_goal', $profile['health_goal'] ?? '') === 'lose_weight' ? 'selected' : ''; ?>>Giảm cân</option>
+                                            <option value="gain_weight" <?php echo old('health_goal', $profile['health_goal'] ?? '') === 'gain_weight' ? 'selected' : ''; ?>>Tăng cân</option>
+                                            <option value="maintain_weight" <?php echo old('health_goal', $profile['health_goal'] ?? '') === 'maintain_weight' ? 'selected' : ''; ?>>Giữ cân</option>
+                                            <option value="gain_muscle" <?php echo old('health_goal', $profile['health_goal'] ?? '') === 'gain_muscle' ? 'selected' : ''; ?>>Tăng cơ</option>
                                         </select>
                                         <label for="goal" class="text-muted">Mục tiêu sức khỏe</label>
                                     </div>
+                                    <?php if(isset($field_errors['health_goal'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['health_goal']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select bg-light border-0" id="goalPace" name="goal_pace" required>
-                                            <option value="slow" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'slow') ? 'selected' : ''; ?>>Chậm</option>
-                                            <option value="moderate" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'moderate') ? 'selected' : ''; ?>>Trung Bình</option>
-                                            <option value="fast" <?php echo (($profile['goal_pace'] ?? 'moderate') === 'fast') ? 'selected' : ''; ?>>Nhanh</option>
+                                        <select class="form-select bg-light border-0 <?php echo isset($field_errors['goal_pace']) ? 'is-invalid' : ''; ?>" id="goalPace" name="goal_pace" required>
+                                            <option value="slow" <?php echo old('goal_pace', $profile['goal_pace'] ?? 'moderate') === 'slow' ? 'selected' : ''; ?>>Chậm</option>
+                                            <option value="moderate" <?php echo old('goal_pace', $profile['goal_pace'] ?? 'moderate') === 'moderate' ? 'selected' : ''; ?>>Trung Bình</option>
+                                            <option value="fast" <?php echo old('goal_pace', $profile['goal_pace'] ?? 'moderate') === 'fast' ? 'selected' : ''; ?>>Nhanh</option>
                                         </select>
                                         <label for="goalPace" class="text-muted">Tốc độ mục tiêu</label>
                                     </div>
+                                    <?php if(isset($field_errors['goal_pace'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['goal_pace']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select bg-light border-0" id="diet" name="diet_type">
-                                            <option value="normal" <?php echo (($profile['diet_type'] ?? 'normal') === 'normal') ? 'selected' : ''; ?>>Bình thường</option>
-                                            <option value="vegetarian" <?php echo (($profile['diet_type'] ?? '') === 'vegetarian') ? 'selected' : ''; ?>>Ăn chay</option>
-                                            <option value="vegan" <?php echo (($profile['diet_type'] ?? '') === 'vegan') ? 'selected' : ''; ?>>Thuần chay</option>
-                                            <option value="low_carb" <?php echo (($profile['diet_type'] ?? '') === 'low_carb') ? 'selected' : ''; ?>>Ít carb / Keto</option>
-                                            <option value="low_sugar" <?php echo (($profile['diet_type'] ?? '') === 'low_sugar') ? 'selected' : ''; ?>>Ít đường</option>
-                                            <option value="gluten_free" <?php echo (($profile['diet_type'] ?? '') === 'gluten_free') ? 'selected' : ''; ?>>Không gluten</option>
-                                            <option value="high_protein" <?php echo (($profile['diet_type'] ?? '') === 'high_protein') ? 'selected' : ''; ?>>Giàu protein</option>
+                                        <select class="form-select bg-light border-0 <?php echo isset($field_errors['diet_type']) ? 'is-invalid' : ''; ?>" id="diet" name="diet_type">
+                                            <option value="normal" <?php echo old('diet_type', $profile['diet_type'] ?? 'normal') === 'normal' ? 'selected' : ''; ?>>Bình thường</option>
+                                            <option value="vegetarian" <?php echo old('diet_type', $profile['diet_type'] ?? '') === 'vegetarian' ? 'selected' : ''; ?>>Ăn chay</option>
+                                            <option value="vegan" <?php echo old('diet_type', $profile['diet_type'] ?? '') === 'vegan' ? 'selected' : ''; ?>>Thuần chay</option>
+                                            <option value="low_carb" <?php echo old('diet_type', $profile['diet_type'] ?? '') === 'low_carb' ? 'selected' : ''; ?>>Ít carb / Keto</option>
+                                            <option value="low_sugar" <?php echo old('diet_type', $profile['diet_type'] ?? '') === 'low_sugar' ? 'selected' : ''; ?>>Ít đường</option>
+                                            <option value="gluten_free" <?php echo old('diet_type', $profile['diet_type'] ?? '') === 'gluten_free' ? 'selected' : ''; ?>>Không gluten</option>
+                                            <option value="high_protein" <?php echo old('diet_type', $profile['diet_type'] ?? '') === 'high_protein' ? 'selected' : ''; ?>>Giàu protein</option>
                                         </select>
                                         <label for="diet" class="text-muted">Chế độ ăn yêu thích</label>
                                     </div>
+                                    <?php if(isset($field_errors['diet_type'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['diet_type']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="number" class="form-control bg-light border-0" id="meals_per_day" name="meals_per_day" value="<?php echo htmlspecialchars($profile['meals_per_day'] ?? '3'); ?>" min="1" max="6" placeholder="3">
+                                        <input type="number" class="form-control bg-light border-0 <?php echo isset($field_errors['meals_per_day']) ? 'is-invalid' : ''; ?>" id="meals_per_day" name="meals_per_day" value="<?php echo old('meals_per_day', $profile['meals_per_day'] ?? '3'); ?>" min="1" max="6" placeholder="3">
                                         <label for="meals_per_day" class="text-muted">Số bữa ăn/ngày mong muốn</label>
                                     </div>
+                                    <?php if(isset($field_errors['meals_per_day'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['meals_per_day']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control bg-light border-0" id="allergies" name="allergies" value="<?php echo htmlspecialchars($profile['allergies'] ?? ''); ?>" placeholder="VD: Hải sản, đậu phộng...">
+                                        <input type="text" class="form-control bg-light border-0 <?php echo isset($field_errors['allergies']) ? 'is-invalid' : ''; ?>" id="allergies" name="allergies" value="<?php echo old('allergies', $profile['allergies'] ?? ''); ?>" placeholder="VD: Hải sản, đậu phộng...">
                                         <label for="allergies" class="text-muted">Dị ứng thực phẩm</label>
                                     </div>
+                                    <?php if(isset($field_errors['allergies'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['allergies']; ?></div><?php endif; ?>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control bg-light border-0" id="disliked" name="disliked_foods" value="<?php echo htmlspecialchars($profile['disliked_foods'] ?? ''); ?>" placeholder="VD: Hành, ngò...">
+                                        <input type="text" class="form-control bg-light border-0 <?php echo isset($field_errors['disliked_foods']) ? 'is-invalid' : ''; ?>" id="disliked" name="disliked_foods" value="<?php echo old('disliked_foods', $profile['disliked_foods'] ?? ''); ?>" placeholder="VD: Hành, ngò...">
                                         <label for="disliked" class="text-muted">Thực phẩm không thích</label>
                                     </div>
+                                    <?php if(isset($field_errors['disliked_foods'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['disliked_foods']; ?></div><?php endif; ?>
                                 </div>
                             </div>
                         </div>

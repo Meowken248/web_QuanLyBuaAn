@@ -10,6 +10,7 @@ $conn = $database->getConnection();
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $is_edit = $id > 0;
 $category = null;
+$field_errors = [];
 
 if ($is_edit) {
     $stmt = $conn->prepare("SELECT * FROM food_categories WHERE id = :id");
@@ -37,8 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($name)) {
-        $_SESSION['error'] = 'Vui lòng nhập tên danh mục.';
-    } else {
+        $field_errors['name'] = 'Vui lòng nhập tên danh mục.';
+    }
+    
+    if (empty($field_errors)) {
         if ($is_edit) {
             $stmt = $conn->prepare("UPDATE food_categories SET name = :name, slug = :slug, status = :status WHERE id = :id");
             $stmt->execute([
@@ -58,6 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['success'] = 'Thêm danh mục mới thành công.';
         }
         redirect('/admin/food-categories.php');
+    } else {
+        $_SESSION['error'] = 'Vui lòng kiểm tra lại thông tin nhập liệu.';
     }
 }
 
@@ -93,12 +98,13 @@ require_once __DIR__ . '/../includes/header.php';
                         
                         <div class="mb-3">
                             <label for="name" class="form-label fw-bold">Tên danh mục <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars($_POST['name'] ?? $category['name'] ?? ''); ?>" required>
+                            <input type="text" class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" id="name" name="name" value="<?php echo old('name', $category['name'] ?? ''); ?>" required>
+                            <?php if(isset($field_errors['name'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['name']; ?></div><?php endif; ?>
                         </div>
 
                         <div class="mb-3">
                             <label for="slug" class="form-label fw-bold">Đường dẫn (Slug)</label>
-                            <input type="text" class="form-control" id="slug" name="slug" value="<?php echo htmlspecialchars($_POST['slug'] ?? $category['slug'] ?? ''); ?>" placeholder="Để trống để tự động tạo từ tên danh mục">
+                            <input type="text" class="form-control" id="slug" name="slug" value="<?php echo old('slug', $category['slug'] ?? ''); ?>" placeholder="Để trống để tự động tạo từ tên danh mục">
                             <div class="form-text">Chuỗi URL thân thiện. Ví dụ: do-uong, mon-chinh</div>
                         </div>
 
