@@ -103,16 +103,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
             $conn = (new Database())->getConnection();
             $conn->beginTransaction();
             try {
+                $stmt_cat = $conn->query("SELECT id FROM food_categories ORDER BY id ASC LIMIT 1");
+                $default_category_id = $stmt_cat->fetchColumn() ?: 1;
+
                 $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-')) . '-' . time();
-                $stmt = $conn->prepare("INSERT INTO foods (category_id,name,slug,image,ingredients,instructions,serving_size,serving_unit,calories,protein,carbs,fat,fiber,status,created_by) VALUES (NULL,:name,:slug,:image,:ingredients,:instructions,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,'active',:created_by)");
+                $stmt = $conn->prepare("INSERT INTO foods (category_id,name,slug,image,ingredients,instructions,serving_size,serving_unit,calories,protein,carbs,fat,fiber,status,created_by) VALUES (:category_id,:name,:slug,:image,:ingredients,:instructions,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,'active',:created_by)");
                 $stmt->execute([
-                    ':name'=>$name, ':slug'=>$slug, ':image'=>$image_path,
+                    ':category_id'=>$default_category_id, ':name'=>$name, ':slug'=>$slug, ':image'=>$image_path,
                     ':ingredients'=>trim($_POST['ingredients'] ?? ''), ':instructions'=>trim($_POST['instructions'] ?? ''),
                     ':serving_size'=>$serving_size, ':serving_unit'=>$serving_unit,
                     ':calories'=>$values['calories'], ':protein'=>$values['protein'], ':carbs'=>$values['carbs'],
                     ':fat'=>$values['fat'], ':fiber'=>$values['fiber'], ':created_by'=>(int)$_SESSION['user_id']
                 ]);
                 $new_food_id = (int)$conn->lastInsertId();
+                
+                // Commit ngay lập tức để giải phóng khóa (lock) trên bảng foods.
+                // Tránh lỗi Deadlock/Hang do MealModel sử dụng một kết nối CSDL khác.
+                $conn->commit();
+
                 $meal_log_id = $mealModel->getOrCreateMealLog($_SESSION['user_id'], $fdate, $fmtype);
                 if (!$new_food_id || !$meal_log_id || !$mealModel->addMealItem([
                     ':meal_log_id'=>$meal_log_id, ':food_id'=>$new_food_id, ':quantity'=>$serving_size,
@@ -120,12 +128,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                     ':calories'=>$values['calories'], ':protein'=>$values['protein'], ':carbs'=>$values['carbs'],
                     ':fat'=>$values['fat'], ':fiber'=>$values['fiber']
                 ])) throw new RuntimeException('Không thể thêm món vào nhật ký.');
-                $conn->commit();
+                
                 set_flash_message('success', 'Đã tạo món ăn mới và thêm vào nhật ký.');
                 redirect('/user/meals.php?date=' . urlencode($fdate));
             } catch (Throwable $e) {
-                if ($conn->inTransaction()) $conn->rollBack();
-                set_flash_message('danger', 'Không thể tạo món ăn. Vui lòng thử lại.');
+                try {
+                    if (isset($conn) && $conn->inTransaction()) {
+                        $conn->rollBack();
+                    }
+                } catch (Throwable $e2) {
+                    // Bỏ qua lỗi khi rollback (ví dụ: mất kết nối)
+                }
+                error_log("Lỗi tạo món ăn: " . $e->getMessage());
+                set_flash_message('danger', 'Không thể tạo món ăn: ' . $e->getMessage());
             }
         }
     }

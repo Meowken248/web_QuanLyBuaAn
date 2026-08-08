@@ -137,7 +137,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <i class="bi bi-image"></i>
                                                 </div>
                                             <?php endif; ?>
-                                            <a href="<?php echo BASE_URL; ?>/food-detail.php?id=<?php echo $f['id']; ?>" target="_blank" class="text-decoration-none fw-bold text-dark">
+                                            <a href="<?php echo BASE_URL; ?>/admin/food-detail.php?id=<?php echo $f['id']; ?>" class="text-decoration-none fw-bold text-dark">
                                                 <?php echo htmlspecialchars($f['name']); ?>
                                             </a>
                                         </div>
@@ -195,7 +195,4 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

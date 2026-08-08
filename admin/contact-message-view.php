@@ -112,9 +112,5 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <?php 
-if (isset($hide_footer) && $hide_footer) {
-    echo '</body></html>';
-} else {
-    require_once __DIR__ . '/../includes/footer.php'; 
-}
+require_once __DIR__ . '/../includes/footer.php'; 
 ?>
