@@ -278,11 +278,11 @@ require_once '../includes/header.php';
 
 <div class="container-fluid py-4">
     <div class="row">
-        <div class="col-md-3 col-lg-2 p-0">
+        <div class="col-md-2">
             <?php require_once 'includes/sidebar.php'; ?>
         </div>
         
-        <div class="col-md-9 col-lg-10 pt-3">
+        <div class="col-md-10">
             <!-- Header Section -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
