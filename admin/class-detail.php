@@ -29,6 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             $stmt = $conn->prepare("DELETE FROM users WHERE id = :id AND class_id = :class_id");
             $stmt->execute([':id' => (int)$_POST['student_id'], ':class_id' => $class_id]);
+            
+            // Cập nhật lại STT cho các sinh viên còn lại trong lớp
+            $conn->exec("SET @stt = 0");
+            $reorder = $conn->prepare("UPDATE users SET stt = (@stt := @stt + 1) WHERE class_id = :cid ORDER BY stt ASC, id ASC");
+            $reorder->execute([':cid' => $class_id]);
+            
             $message = "Đã xóa sinh viên thành công!";
         } catch (PDOException $e) {
             $error = "Lỗi khi xóa sinh viên: " . $e->getMessage();
@@ -40,12 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             $stmt = $conn->prepare("DELETE FROM users WHERE id IN ($placeholders) AND class_id = ?");
             $stmt->execute($params);
+            
+            // Cập nhật lại STT cho các sinh viên còn lại trong lớp
+            $conn->exec("SET @stt = 0");
+            $reorder = $conn->prepare("UPDATE users SET stt = (@stt := @stt + 1) WHERE class_id = :cid ORDER BY stt ASC, id ASC");
+            $reorder->execute([':cid' => $class_id]);
+            
             $message = "Đã xóa " . $stmt->rowCount() . " sinh viên thành công!";
         } catch (PDOException $e) {
             $error = "Lỗi khi xóa hàng loạt: " . $e->getMessage();
         }
     } elseif ($_POST['action'] === 'add_student') {
-        $stt = (int)$_POST['stt'];
         $mssv = trim($_POST['mssv']);
         $full_name = trim($_POST['full_name']);
         $dob_raw = trim($_POST['birth_date']); 
@@ -57,6 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } else {
             $hashed_password = password_hash($password_raw, PASSWORD_DEFAULT);
             try {
+                // Tự động tính STT tiếp theo
+                $stt_stmt = $conn->prepare("SELECT MAX(stt) FROM users WHERE class_id = :cid");
+                $stt_stmt->execute([':cid' => $class_id]);
+                $max_stt = (int)$stt_stmt->fetchColumn();
+                $new_stt = $max_stt + 1;
+
                 $stmt = $conn->prepare("INSERT INTO users (full_name, email, password, mssv, birth_date, class_id, stt, role, status) 
                                         VALUES (:full_name, :email, :password, :mssv, :birth_date, :class_id, :stt, 'user', 'active')");
                 $stmt->execute([
@@ -66,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ':mssv' => $mssv,
                     ':birth_date' => !empty($dob_raw) ? $dob_raw : null,
                     ':class_id' => $class_id,
-                    ':stt' => $stt
+                    ':stt' => $new_stt
                 ]);
                 $message = "Thêm sinh viên bằng tay thành công!";
             } catch (PDOException $e) {
@@ -368,15 +385,9 @@ require_once '../includes/header.php';
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add_student">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold">STT</label>
-                            <input type="number" class="form-control" name="stt">
-                        </div>
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label fw-bold">MSSV *</label>
-                            <input type="text" class="form-control" name="mssv" required>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">MSSV *</label>
+                        <input type="text" class="form-control" name="mssv" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Họ Và Tên *</label>

@@ -19,8 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (!empty($class_code) && !empty($class_name)) {
             try {
-                $stmt = $conn->prepare("INSERT INTO classes (class_code, class_name) VALUES (:code, :name)");
-                $stmt->execute([':code' => $class_code, ':name' => $class_name]);
+                // Lấy STT lớn nhất hiện tại
+                $stt_stmt = $conn->query("SELECT MAX(stt) FROM classes");
+                $max_stt = (int)$stt_stmt->fetchColumn();
+                $new_stt = $max_stt + 1;
+
+                $stmt = $conn->prepare("INSERT INTO classes (class_code, class_name, stt) VALUES (:code, :name, :stt)");
+                $stmt->execute([':code' => $class_code, ':name' => $class_name, ':stt' => $new_stt]);
                 $message = "Thêm lớp học thành công!";
             } catch (PDOException $e) {
                 if ($e->getCode() == 23000) { // Duplicate entry
@@ -46,6 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $stmt = $conn->prepare("DELETE FROM classes WHERE id = :id");
                 $stmt->execute([':id' => $delete_class_id]);
+                
+                // Cập nhật lại STT cho các lớp còn lại
+                $conn->exec("SET @stt = 0");
+                $conn->exec("UPDATE classes SET stt = (@stt := @stt + 1) ORDER BY stt ASC, id ASC");
+                
                 $message = "Đã xóa lớp học thành công!";
             } catch (PDOException $e) {
                 $error = "Lỗi khi xóa lớp: " . $e->getMessage();
@@ -60,7 +70,7 @@ $stmt = $conn->query("
     FROM classes c 
     LEFT JOIN users u ON c.id = u.class_id 
     GROUP BY c.id 
-    ORDER BY c.created_at DESC
+    ORDER BY c.stt ASC
 ");
 $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -100,7 +110,7 @@ require_once '../includes/header.php';
                     <table class="table table-hover table-striped align-middle mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th scope="col" class="ps-4">ID</th>
+                                <th scope="col" class="ps-4">STT</th>
                                 <th scope="col">Mã Lớp</th>
                                 <th scope="col">Tên Lớp</th>
                                 <th scope="col">Sĩ số</th>
@@ -118,7 +128,7 @@ require_once '../includes/header.php';
                             <?php else: ?>
                                 <?php foreach ($classes as $cls): ?>
                                     <tr>
-                                        <td class="ps-4"><strong>#<?= $cls['id'] ?></strong></td>
+                                        <td class="ps-4"><strong>#<?= $cls['stt'] ?></strong></td>
                                         <td><span class="badge bg-secondary"><?= htmlspecialchars($cls['class_code']) ?></span></td>
                                         <td class="fw-bold">
                                             <a href="class-detail.php?id=<?= $cls['id'] ?>" class="text-decoration-none text-dark">
