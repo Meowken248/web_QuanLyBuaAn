@@ -33,12 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error = "Vui lòng nhập đầy đủ Mã lớp và Tên lớp.";
         }
     } elseif ($_POST['action'] === 'delete' && isset($_POST['id'])) {
-        try {
-            $stmt = $conn->prepare("DELETE FROM classes WHERE id = :id");
-            $stmt->execute([':id' => (int)$_POST['id']]);
-            $message = "Đã xóa lớp học!";
-        } catch (PDOException $e) {
-            $error = "Không thể xóa lớp (Có thể còn sinh viên trong lớp này).";
+        $delete_class_id = (int)$_POST['id'];
+        
+        // Kiểm tra xem lớp còn sinh viên không
+        $check_stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE class_id = :class_id");
+        $check_stmt->execute([':class_id' => $delete_class_id]);
+        $student_count = $check_stmt->fetchColumn();
+        
+        if ($student_count > 0) {
+            $error = "Không thể xóa lớp học này vì vẫn còn $student_count sinh viên trong lớp. Hãy xóa sinh viên trước.";
+        } else {
+            try {
+                $stmt = $conn->prepare("DELETE FROM classes WHERE id = :id");
+                $stmt->execute([':id' => $delete_class_id]);
+                $message = "Đã xóa lớp học thành công!";
+            } catch (PDOException $e) {
+                $error = "Lỗi khi xóa lớp: " . $e->getMessage();
+            }
         }
     }
 }

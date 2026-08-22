@@ -24,13 +24,55 @@ $message = '';
 $error = '';
 
 // Xử lý Xóa sinh viên
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_student') {
-    try {
-        $stmt = $conn->prepare("DELETE FROM users WHERE id = :id AND class_id = :class_id");
-        $stmt->execute([':id' => (int)$_POST['student_id'], ':class_id' => $class_id]);
-        $message = "Đã xóa sinh viên thành công!";
-    } catch (PDOException $e) {
-        $error = "Lỗi khi xóa sinh viên: " . $e->getMessage();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'delete_student') {
+        try {
+            $stmt = $conn->prepare("DELETE FROM users WHERE id = :id AND class_id = :class_id");
+            $stmt->execute([':id' => (int)$_POST['student_id'], ':class_id' => $class_id]);
+            $message = "Đã xóa sinh viên thành công!";
+        } catch (PDOException $e) {
+            $error = "Lỗi khi xóa sinh viên: " . $e->getMessage();
+        }
+    } elseif ($_POST['action'] === 'bulk_delete' && !empty($_POST['student_ids'])) {
+        $ids = $_POST['student_ids'];
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $params = array_merge($ids, [$class_id]);
+        try {
+            $stmt = $conn->prepare("DELETE FROM users WHERE id IN ($placeholders) AND class_id = ?");
+            $stmt->execute($params);
+            $message = "Đã xóa " . $stmt->rowCount() . " sinh viên thành công!";
+        } catch (PDOException $e) {
+            $error = "Lỗi khi xóa hàng loạt: " . $e->getMessage();
+        }
+    } elseif ($_POST['action'] === 'add_student') {
+        $stt = (int)$_POST['stt'];
+        $mssv = trim($_POST['mssv']);
+        $full_name = trim($_POST['full_name']);
+        $dob_raw = trim($_POST['birth_date']); 
+        $email = trim($_POST['email']);
+        $password_raw = trim($_POST['password']);
+        
+        if (empty($mssv) || empty($full_name) || empty($email) || empty($password_raw)) {
+            $error = "Vui lòng nhập đầy đủ thông tin bắt buộc.";
+        } else {
+            $hashed_password = password_hash($password_raw, PASSWORD_DEFAULT);
+            try {
+                $stmt = $conn->prepare("INSERT INTO users (full_name, email, password, mssv, birth_date, class_id, stt, role, status) 
+                                        VALUES (:full_name, :email, :password, :mssv, :birth_date, :class_id, :stt, 'user', 'active')");
+                $stmt->execute([
+                    ':full_name' => $full_name,
+                    ':email' => $email,
+                    ':password' => $hashed_password,
+                    ':mssv' => $mssv,
+                    ':birth_date' => !empty($dob_raw) ? $dob_raw : null,
+                    ':class_id' => $class_id,
+                    ':stt' => $stt
+                ]);
+                $message = "Thêm sinh viên bằng tay thành công!";
+            } catch (PDOException $e) {
+                $error = "Lỗi khi thêm sinh viên: " . $e->getMessage();
+            }
+        }
     }
 }
 
@@ -42,16 +84,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if ($ext === 'xlsx') {
             if ($xlsx = Shuchkin\SimpleXLSX::parse($file['tmp_name'])) {
-                $rows = $xlsx->rows();
                 $successCount = 0;
                 $errorCount = 0;
                 $errorLog = [];
+                $isValidFormat = false;
                 
                 // Bỏ qua dòng tiêu đề (dòng 0)
                 foreach ($xlsx->rows() as $i => $row) {
-                    if ($i === 0) continue; // Bỏ qua dòng tiêu đề
-                    
                     $row = (array)$row; // Ép kiểu mảng để khắc phục lỗi báo sai của IDE
+                    
+                    if ($i === 0) {
+                        $col0 = isset($row[0]) ? mb_strtolower(trim((string)$row[0]), 'UTF-8') : '';
+                        $col1 = isset($row[1]) ? mb_strtolower(trim((string)$row[1]), 'UTF-8') : '';
+                        
+                        if (count($row) >= 6 && ($col0 === 'stt' || $col1 === 'mssv')) {
+                            $isValidFormat = true;
+                            continue;
+                        } else {
+                            $error = "Định dạng file không hợp lệ! Vui lòng upload đúng file mẫu (Dòng đầu tiên phải có các cột STT, MSSV...).";
+                            break;
+                        }
+                    }
 
                     // Cấu trúc cột mong đợi: 0:STT, 1:MSSV, 2:Họ Tên, 3:Ngày Sinh, 4:Email, 5:Mật khẩu
                     if (count($row) < 6) continue; // Bỏ qua nếu thiếu dữ liệu
@@ -114,9 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                     }
                 }
                 
-                $message = "Import thành công $successCount sinh viên.";
-                if ($errorCount > 0) {
-                    $error = "Có $errorCount dòng bị lỗi: " . implode("<br>", $errorLog);
+                if ($isValidFormat) {
+                    $message = "Import thành công $successCount sinh viên.";
+                    if ($errorCount > 0) {
+                        $error = "Có $errorCount dòng bị lỗi: " . implode("<br>", $errorLog);
+                    }
                 }
             } else {
                 $error = "Lỗi đọc file Excel: " . Shuchkin\SimpleXLSX::parseError();
@@ -206,15 +261,29 @@ require_once '../includes/header.php';
             </div>
 
             <!-- Student List -->
+            <form method="post" id="bulkDeleteForm">
+                <input type="hidden" name="action" value="bulk_delete">
+            </form>
             <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2"></i>Danh sách Sinh viên trong lớp</h5>
-                </div>
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2"></i>Danh sách Sinh viên trong lớp</h5>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-primary rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                                <i class="bi bi-person-plus-fill me-1"></i>Thêm Sinh Viên
+                            </button>
+                            <button type="submit" form="bulkDeleteForm" class="btn btn-sm btn-danger rounded-pill shadow-sm" id="btnBulkDelete" disabled onclick="return confirm('Bạn có chắc chắn muốn xóa những sinh viên đã chọn?');">
+                                <i class="bi bi-trash-fill me-1"></i>Xóa Đã Chọn
+                            </button>
+                        </div>
+                    </div>
                 <div class="card-body p-0 table-responsive">
                     <table class="table table-hover table-striped align-middle mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th scope="col" class="ps-4">STT</th>
+                                <th scope="col" class="ps-3" style="width: 40px;">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                </th>
+                                <th scope="col">STT</th>
                                 <th scope="col">MSSV</th>
                                 <th scope="col">Họ Và Tên</th>
                                 <th scope="col">Ngày Sinh</th>
@@ -225,7 +294,7 @@ require_once '../includes/header.php';
                         <tbody>
                             <?php if (empty($students)): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">
+                                    <td colspan="7" class="text-center py-5 text-muted">
                                         <i class="bi bi-person-x fs-1 d-block mb-3"></i>
                                         Lớp học này chưa có sinh viên nào.
                                     </td>
@@ -233,7 +302,10 @@ require_once '../includes/header.php';
                             <?php else: ?>
                                 <?php foreach ($students as $student): ?>
                                     <tr>
-                                        <td class="ps-4 fw-bold text-muted"><?= htmlspecialchars($student['stt'] ?? '-') ?></td>
+                                        <td class="ps-3">
+                                            <input form="bulkDeleteForm" class="form-check-input student-checkbox" type="checkbox" name="student_ids[]" value="<?= $student['id'] ?>">
+                                        </td>
+                                        <td class="fw-bold text-muted"><?= htmlspecialchars($student['stt'] ?? '-') ?></td>
                                         <td><span class="badge bg-secondary"><?= htmlspecialchars($student['mssv'] ?? '-') ?></span></td>
                                         <td class="fw-bold"><?= htmlspecialchars($student['full_name']) ?></td>
                                         <td><?= $student['birth_date'] ? date('d/m/Y', strtotime($student['birth_date'])) : '-' ?></td>
@@ -284,5 +356,78 @@ require_once '../includes/header.php';
         </div>
     </div>
 </div>
+
+<!-- Modal Thêm Sinh Viên -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form method="post">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill text-primary me-2"></i>Thêm Sinh Viên Bằng Tay</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add_student">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">STT</label>
+                            <input type="number" class="form-control" name="stt">
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-bold">MSSV *</label>
+                            <input type="text" class="form-control" name="mssv" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ Và Tên *</label>
+                        <input type="text" class="form-control" name="full_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ngày Sinh</label>
+                        <input type="date" class="form-control" name="birth_date">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email *</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mật Khẩu *</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Thêm Sinh Viên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    const btnBulkDelete = document.getElementById('btnBulkDelete');
+
+    function updateDeleteButton() {
+        const checkedCount = document.querySelectorAll('.student-checkbox:checked').length;
+        if (btnBulkDelete) {
+            btnBulkDelete.disabled = checkedCount === 0;
+        }
+    }
+
+    if(selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateDeleteButton();
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateDeleteButton);
+    });
+});
+</script>
 
 <?php require_once '../includes/footer.php'; ?>
