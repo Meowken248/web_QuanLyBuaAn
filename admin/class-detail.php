@@ -25,6 +25,37 @@ $error = '';
 $field_errors = [];
 $old_input = [];
 
+// Xử lý Export Excel
+if (isset($_GET['action']) && $_GET['action'] === 'export') {
+    require_once '../includes/SimpleXLSXGen.php';
+    
+    $stmt = $conn->prepare("SELECT stt, mssv, full_name, birth_date, email FROM users WHERE class_id = :class_id ORDER BY stt ASC, id ASC");
+    $stmt->execute([':class_id' => $class_id]);
+    $export_students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $filename = "DanhSachSinhVien_" . $class['class_code'] . "_" . date('Ymd') . ".xlsx";
+    
+    $data = [
+        ['<b>STT</b>', '<b>MSSV</b>', '<b>Họ Và Tên</b>', '<b>Ngày Sinh</b>', '<b>Email</b>', '<b>Mật Khẩu</b>']
+    ];
+    
+    foreach ($export_students as $row) {
+        $dob = $row['birth_date'] ? date('d/m/Y', strtotime($row['birth_date'])) : '';
+        $data[] = [
+            $row['stt'],
+            (string)$row['mssv'],
+            $row['full_name'],
+            $dob,
+            $row['email'],
+            '' // Mật khẩu trống khi export
+        ];
+    }
+    
+    $xlsx = Shuchkin\SimpleXLSXGen::fromArray($data);
+    $xlsx->downloadAs($filename);
+    exit;
+}
+
 // Xử lý Xóa sinh viên
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'delete_student') {
@@ -320,11 +351,14 @@ require_once '../includes/header.php';
                     <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-excel text-success me-2"></i>Import Tài Khoản Sinh Viên</h5>
                     <p class="text-muted mb-3">Tải lên file Excel (.xlsx) với các cột theo thứ tự: <strong>STT | MSSV | Họ Và Tên | Ngày Sinh | Email | Mật Khẩu</strong>.</p>
                     
-                    <form method="post" enctype="multipart/form-data" class="d-flex align-items-center">
-                        <input class="form-control me-3" type="file" name="excel_file" accept=".xlsx" required style="max-width: 400px;">
+                    <form method="post" enctype="multipart/form-data" class="d-flex align-items-center flex-wrap gap-2">
+                        <input class="form-control" type="file" name="excel_file" accept=".xlsx" required style="max-width: 400px;">
                         <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
                             <i class="bi bi-cloud-upload me-2"></i>Upload & Import
                         </button>
+                        <a href="?id=<?= $class_id ?>&action=export" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
+                        </a>
                     </form>
                 </div>
             </div>
