@@ -346,8 +346,8 @@ require_once '../includes/header.php';
                         </div>
                     </div>
                 <div class="card-body p-0 table-responsive">
-                    <table class="table table-hover table-striped align-middle mb-0">
-                        <thead class="table-dark">
+                    <table class="table table-hover align-middle mb-0 text-nowrap">
+                        <thead class="table-light">
                             <tr>
                                 <th scope="col" class="ps-3" style="width: 40px;">
                                     <input class="form-check-input" type="checkbox" id="selectAll">
@@ -380,7 +380,7 @@ require_once '../includes/header.php';
                                         <td><?= $student['birth_date'] ? date('d/m/Y', strtotime($student['birth_date'])) : '-' ?></td>
                                         <td><?= htmlspecialchars($student['email']) ?></td>
                                         <td class="text-end pe-4">
-                                            <a href="user-edit.php?id=<?= $student['id'] ?>" class="btn btn-sm btn-primary rounded-pill shadow-sm">
+                                            <a href="student-edit.php?id=<?= $student['id'] ?>" class="btn btn-sm btn-primary rounded-pill shadow-sm">
                                                 <i class="bi bi-pencil"></i> Sửa
                                             </a>
                                             <form method="post" class="d-inline" onsubmit="return confirm('Xóa sinh viên này khỏi hệ thống?');">
@@ -529,28 +529,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Check Full Name
             const fullName = document.getElementById('full_name');
-const fullNameFeedback = fullName.nextElementSibling;
-const fullNameValue = fullName.value.trim();
-
-// Regex: mỗi từ phải viết hoa chữ cái đầu (hỗ trợ tiếng Việt có dấu)
-const capitalizedWordRegex = /^[A-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶĐÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ][a-zàáảãạâầấẩẫậăằắẳẵặđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]*$/;
-
-if (!fullNameValue) {
-    fullName.classList.add('is-invalid');
-    if (fullNameFeedback) fullNameFeedback.textContent = 'Vui lòng nhập Họ và tên.';
-    isValid = false;
-} else {
-    const words = fullNameValue.split(/\s+/);
-    const allCapitalized = words.every(word => capitalizedWordRegex.test(word));
-
-    if (!allCapitalized) {
-        fullName.classList.add('is-invalid');
-        if (fullNameFeedback) fullNameFeedback.textContent = 'Họ và tên phải viết hoa chữ cái đầu mỗi từ (VD: Nguyễn Văn A).';
-        isValid = false;
-    } else {
-        fullName.classList.remove('is-invalid');
-    }
-}
+            if (!fullName.value.trim()) {
+                fullName.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                fullName.classList.remove('is-invalid');
+            }
 
             // Check Email
             const email = document.getElementById('email');

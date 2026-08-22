@@ -80,11 +80,11 @@ require_once '../includes/header.php';
 
 <div class="container-fluid py-4">
     <div class="row">
-        <div class="col-md-3 col-lg-2 p-0">
+        <div class="col-md-2">
             <?php require_once 'includes/sidebar.php'; ?>
         </div>
         
-        <div class="col-md-9 col-lg-10 pt-3">
+        <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold"><i class="bi bi-mortarboard text-primary me-2"></i>Quản lý Lớp học & Sinh viên</h2>
                 <button type="button" class="btn btn-primary fw-bold rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addClassModal">
@@ -107,8 +107,8 @@ require_once '../includes/header.php';
 
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body p-0 table-responsive">
-                    <table class="table table-hover table-striped align-middle mb-0">
-                        <thead class="table-dark">
+                    <table class="table table-hover align-middle mb-0 text-nowrap">
+                        <thead class="table-light">
                             <tr>
                                 <th scope="col" class="ps-4">STT</th>
                                 <th scope="col">Mã Lớp</th>
