@@ -22,6 +22,8 @@ if (!$class) {
 
 $message = '';
 $error = '';
+$field_errors = [];
+$old_input = [];
 
 // Xử lý Xóa sinh viên
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -57,15 +59,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error = "Lỗi khi xóa hàng loạt: " . $e->getMessage();
         }
     } elseif ($_POST['action'] === 'add_student') {
-        $mssv = trim($_POST['mssv']);
-        $full_name = trim($_POST['full_name']);
-        $dob_raw = trim($_POST['birth_date']); 
-        $email = trim($_POST['email']);
-        $password_raw = trim($_POST['password']);
+        $mssv = trim($_POST['mssv'] ?? '');
+        $full_name = trim($_POST['full_name'] ?? '');
+        $dob_raw = trim($_POST['birth_date'] ?? ''); 
+        $email = trim($_POST['email'] ?? '');
+        $password_raw = trim($_POST['password'] ?? '');
         
-        if (empty($mssv) || empty($full_name) || empty($email) || empty($password_raw)) {
-            $error = "Vui lòng nhập đầy đủ thông tin bắt buộc.";
+        $old_input = [
+            'mssv' => $mssv,
+            'full_name' => $full_name,
+            'birth_date' => $dob_raw,
+            'email' => $email
+        ];
+        
+        if (empty($mssv)) $field_errors['mssv'] = "Vui lòng nhập MSSV.";
+        if (empty($full_name)) $field_errors['full_name'] = "Vui lòng nhập Họ và tên.";
+        
+        if (empty($email)) {
+            $field_errors['email'] = "Vui lòng nhập địa chỉ Email.";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $field_errors['email'] = "Vui lòng nhập địa chỉ Email hợp lệ.";
+        }
+
+        if (empty($password_raw)) $field_errors['password'] = "Vui lòng nhập Mật khẩu.";
+        
+        if (empty($dob_raw)) {
+            $field_errors['birth_date'] = "Vui lòng nhập Ngày sinh.";
         } else {
+            try {
+                $dobDate = new DateTime($dob_raw);
+                $today = new DateTime();
+                if ($dobDate > $today) {
+                    $field_errors['birth_date'] = "Sinh viên phải từ 18 tuổi trở lên.";
+                } else {
+                    $age = $today->diff($dobDate)->y;
+                    if ($age < 18) {
+                        $field_errors['birth_date'] = "Sinh viên phải từ 18 tuổi trở lên.";
+                    } elseif ($age > 100) {
+                        $field_errors['birth_date'] = "Ngày sinh không hợp lệ (quá 100 tuổi).";
+                    }
+                }
+            } catch (Exception $e) {
+                $field_errors['birth_date'] = "Định dạng ngày sinh không hợp lệ.";
+            }
+        }
+
+        if (empty($field_errors)) {
+            $check_stmt = $conn->prepare("SELECT email, mssv FROM users WHERE email = :email OR mssv = :mssv");
+            $check_stmt->execute([':email' => $email, ':mssv' => $mssv]);
+            $duplicates = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($duplicates) {
+                foreach ($duplicates as $dup) {
+                    if ($dup['email'] === $email) $field_errors['email'] = "Email này đã được sử dụng.";
+                    if ($dup['mssv'] === $mssv) $field_errors['mssv'] = "MSSV này đã tồn tại.";
+                }
+            }
+        }
+        
+        if (empty($field_errors)) {
             $hashed_password = password_hash($password_raw, PASSWORD_DEFAULT);
             try {
                 // Tự động tính STT tiếp theo
@@ -86,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ':stt' => $new_stt
                 ]);
                 $message = "Thêm sinh viên bằng tay thành công!";
+                $old_input = []; 
             } catch (PDOException $e) {
                 $error = "Lỗi khi thêm sinh viên: " . $e->getMessage();
             }
@@ -378,7 +430,7 @@ require_once '../includes/header.php';
 <div class="modal fade" id="addStudentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content rounded-4 border-0 shadow">
-            <form method="post">
+            <form method="post" id="addStudentForm" novalidate>
                 <div class="modal-header border-bottom-0">
                     <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill text-primary me-2"></i>Thêm Sinh Viên Bằng Tay</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -387,23 +439,28 @@ require_once '../includes/header.php';
                     <input type="hidden" name="action" value="add_student">
                     <div class="mb-3">
                         <label class="form-label fw-bold">MSSV *</label>
-                        <input type="text" class="form-control" name="mssv" required>
+                        <input type="text" class="form-control <?= isset($field_errors['mssv']) ? 'is-invalid' : '' ?>" name="mssv" id="mssv" value="<?= htmlspecialchars($old_input['mssv'] ?? '') ?>" required>
+                        <div class="invalid-feedback"><?= $field_errors['mssv'] ?? 'Vui lòng nhập MSSV.' ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Họ Và Tên *</label>
-                        <input type="text" class="form-control" name="full_name" required>
+                        <input type="text" class="form-control <?= isset($field_errors['full_name']) ? 'is-invalid' : '' ?>" name="full_name" id="full_name" value="<?= htmlspecialchars($old_input['full_name'] ?? '') ?>" required>
+                        <div class="invalid-feedback"><?= $field_errors['full_name'] ?? 'Vui lòng nhập Họ và tên.' ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Ngày Sinh</label>
-                        <input type="date" class="form-control" name="birth_date">
+                        <label class="form-label fw-bold">Ngày Sinh *</label>
+                        <input type="date" class="form-control <?= isset($field_errors['birth_date']) ? 'is-invalid' : '' ?>" name="birth_date" id="birth_date" value="<?= htmlspecialchars($old_input['birth_date'] ?? '') ?>" required>
+                        <div class="invalid-feedback" id="birth_date_error"><?= $field_errors['birth_date'] ?? 'Vui lòng nhập Ngày sinh hợp lệ.' ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email *</label>
-                        <input type="email" class="form-control" name="email" required>
+                        <input type="email" class="form-control <?= isset($field_errors['email']) ? 'is-invalid' : '' ?>" name="email" id="email" value="<?= htmlspecialchars($old_input['email'] ?? '') ?>" required>
+                        <div class="invalid-feedback"><?= $field_errors['email'] ?? 'Vui lòng nhập địa chỉ Email hợp lệ.' ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mật Khẩu *</label>
-                        <input type="password" class="form-control" name="password" required>
+                        <input type="password" class="form-control <?= isset($field_errors['password']) ? 'is-invalid' : '' ?>" name="password" id="password" required>
+                        <div class="invalid-feedback"><?= $field_errors['password'] ?? 'Vui lòng nhập Mật khẩu.' ?></div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
@@ -438,7 +495,129 @@ document.addEventListener('DOMContentLoaded', function() {
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateDeleteButton);
     });
+
+    // Form Validation for Add Student
+    const addStudentForm = document.getElementById('addStudentForm');
+    const birthDateInput = document.getElementById('birth_date');
+    const birthDateError = document.getElementById('birth_date_error');
+
+    if (birthDateInput) {
+        // Set max date to 18 years ago, min date to 100 years ago
+        const today = new Date();
+        const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+        const minDate = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+        
+        birthDateInput.setAttribute('max', maxDate);
+        birthDateInput.setAttribute('min', minDate);
+    }
+
+    if (addStudentForm) {
+        addStudentForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            let isValid = true;
+            
+            // Check MSSV
+            const mssv = document.getElementById('mssv');
+            if (!mssv.value.trim()) {
+                mssv.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                mssv.classList.remove('is-invalid');
+            }
+
+            // Check Full Name
+            const fullName = document.getElementById('full_name');
+const fullNameFeedback = fullName.nextElementSibling;
+const fullNameValue = fullName.value.trim();
+
+// Regex: mỗi từ phải viết hoa chữ cái đầu (hỗ trợ tiếng Việt có dấu)
+const capitalizedWordRegex = /^[A-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶĐÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ][a-zàáảãạâầấẩẫậăằắẳẵặđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]*$/;
+
+if (!fullNameValue) {
+    fullName.classList.add('is-invalid');
+    if (fullNameFeedback) fullNameFeedback.textContent = 'Vui lòng nhập Họ và tên.';
+    isValid = false;
+} else {
+    const words = fullNameValue.split(/\s+/);
+    const allCapitalized = words.every(word => capitalizedWordRegex.test(word));
+
+    if (!allCapitalized) {
+        fullName.classList.add('is-invalid');
+        if (fullNameFeedback) fullNameFeedback.textContent = 'Họ và tên phải viết hoa chữ cái đầu mỗi từ (VD: Nguyễn Văn A).';
+        isValid = false;
+    } else {
+        fullName.classList.remove('is-invalid');
+    }
+}
+
+            // Check Email
+            const email = document.getElementById('email');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email.value.trim() || !emailRegex.test(email.value.trim())) {
+                email.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                email.classList.remove('is-invalid');
+            }
+
+            // Check Password
+            const password = document.getElementById('password');
+            if (!password.value.trim()) {
+                password.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                password.classList.remove('is-invalid');
+            }
+
+            // Check Birth Date
+            const dobValue = birthDateInput.value;
+            if (dobValue) {
+                const dobDate = new Date(dobValue);
+                const maxAllowedDate = new Date(birthDateInput.getAttribute('max'));
+                const minAllowedDate = new Date(birthDateInput.getAttribute('min'));
+                
+                if (dobDate > maxAllowedDate) {
+                    birthDateInput.classList.add('is-invalid');
+                    birthDateError.textContent = "Sinh viên phải từ 18 tuổi trở lên.";
+                    isValid = false;
+                } else if (dobDate < minAllowedDate) {
+                    birthDateInput.classList.add('is-invalid');
+                    birthDateError.textContent = "Ngày sinh không hợp lệ (quá 100 tuổi).";
+                    isValid = false;
+                } else {
+                    birthDateInput.classList.remove('is-invalid');
+                }
+            } else {
+                birthDateInput.classList.add('is-invalid');
+                birthDateError.textContent = "Vui lòng nhập Ngày sinh.";
+                isValid = false;
+            }
+
+            if (isValid) {
+                addStudentForm.submit();
+            }
+        });
+
+        // Clear validation on input
+        const inputs = addStudentForm.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+            });
+        });
+    }
 });
 </script>
+
+<?php if (!empty($field_errors)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var addStudentModal = new bootstrap.Modal(document.getElementById('addStudentModal'));
+    addStudentModal.show();
+});
+</script>
+<?php endif; ?>
 
 <?php require_once '../includes/footer.php'; ?>
