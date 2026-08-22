@@ -1,0 +1,174 @@
+<?php
+// admin/classes.php
+session_start();
+require_once '../config/app.php';
+require_once '../config/database.php';
+require_once '../includes/admin-check.php';
+
+$db = new Database();
+$conn = $db->getConnection();
+
+// Xử lý thêm lớp
+$message = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'add') {
+        $class_code = trim($_POST['class_code']);
+        $class_name = trim($_POST['class_name']);
+        
+        if (!empty($class_code) && !empty($class_name)) {
+            try {
+                $stmt = $conn->prepare("INSERT INTO classes (class_code, class_name) VALUES (:code, :name)");
+                $stmt->execute([':code' => $class_code, ':name' => $class_name]);
+                $message = "Thêm lớp học thành công!";
+            } catch (PDOException $e) {
+                if ($e->getCode() == 23000) { // Duplicate entry
+                    $error = "Mã lớp này đã tồn tại!";
+                } else {
+                    $error = "Lỗi: " . $e->getMessage();
+                }
+            }
+        } else {
+            $error = "Vui lòng nhập đầy đủ Mã lớp và Tên lớp.";
+        }
+    } elseif ($_POST['action'] === 'delete' && isset($_POST['id'])) {
+        try {
+            $stmt = $conn->prepare("DELETE FROM classes WHERE id = :id");
+            $stmt->execute([':id' => (int)$_POST['id']]);
+            $message = "Đã xóa lớp học!";
+        } catch (PDOException $e) {
+            $error = "Không thể xóa lớp (Có thể còn sinh viên trong lớp này).";
+        }
+    }
+}
+
+// Lấy danh sách lớp kèm số sinh viên
+$stmt = $conn->query("
+    SELECT c.*, COUNT(u.id) as student_count 
+    FROM classes c 
+    LEFT JOIN users u ON c.id = u.class_id 
+    GROUP BY c.id 
+    ORDER BY c.created_at DESC
+");
+$classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$page_title = "Quản lý Lớp học";
+require_once '../includes/header.php';
+?>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 p-0">
+            <?php require_once 'includes/sidebar.php'; ?>
+        </div>
+        
+        <div class="col-md-9 col-lg-10 pt-3">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold"><i class="bi bi-mortarboard text-primary me-2"></i>Quản lý Lớp học & Sinh viên</h2>
+                <button type="button" class="btn btn-primary fw-bold rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                    <i class="bi bi-plus-circle me-1"></i>Thêm Lớp Mới
+                </button>
+            </div>
+
+            <?php if ($message): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th scope="col" class="ps-4">ID</th>
+                                <th scope="col">Mã Lớp</th>
+                                <th scope="col">Tên Lớp</th>
+                                <th scope="col">Sĩ số</th>
+                                <th scope="col" class="text-end pe-4">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($classes)): ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                        Chưa có lớp học nào. Hãy thêm lớp đầu tiên!
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($classes as $cls): ?>
+                                    <tr>
+                                        <td class="ps-4"><strong>#<?= $cls['id'] ?></strong></td>
+                                        <td><span class="badge bg-secondary"><?= htmlspecialchars($cls['class_code']) ?></span></td>
+                                        <td class="fw-bold">
+                                            <a href="class-detail.php?id=<?= $cls['id'] ?>" class="text-decoration-none text-dark">
+                                                <?= htmlspecialchars($cls['class_name']) ?>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info text-dark rounded-pill">
+                                                <i class="bi bi-people me-1"></i><?= $cls['student_count'] ?> SV
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="class-detail.php?id=<?= $cls['id'] ?>" class="btn btn-sm btn-success rounded-pill shadow-sm">
+                                                <i class="bi bi-eye"></i> Xem / Nhập Excel
+                                            </a>
+                                            <form method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa lớp này?');">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="id" value="<?= $cls['id'] ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm Lớp -->
+<div class="modal fade" id="addClassModal" tabindex="-1" aria-labelledby="addClassModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form method="post">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold" id="addClassModalLabel"><i class="bi bi-plus-circle text-primary me-2"></i>Thêm Lớp Học Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã Lớp</label>
+                        <input type="text" class="form-control" name="class_code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên Lớp</label>
+                        <input type="text" class="form-control" name="class_name" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Lưu Lớp Học</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php require_once '../includes/footer.php'; ?>

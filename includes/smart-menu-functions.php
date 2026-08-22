@@ -4,7 +4,8 @@
 // 1. XỬ LÝ THEO NGUYÊN LIỆU CÓ SẴN
 function locMonAnTheoNguyenLieu(array $thuVien, array $nguyenLieuNhap): array
 {
-    $nguyenLieuNhap = array_map(fn($nl) => mb_strtolower(trim($nl), 'UTF-8'), $nguyenLieuNhap);
+    $nguyenLieuNhap = array_filter(array_map(fn($nl) => mb_strtolower(trim($nl), 'UTF-8'), $nguyenLieuNhap));
+    if (empty($nguyenLieuNhap)) return [];
 
     $ketQua = [];
     foreach ($thuVien as $mon) {
@@ -14,7 +15,18 @@ function locMonAnTheoNguyenLieu(array $thuVien, array $nguyenLieuNhap): array
         
         if (empty($nlMon)) continue;
 
-        $soTrung = count(array_intersect($nlMon, $nguyenLieuNhap));
+        $soTrung = 0;
+        $matchedNl = []; // Đánh dấu nguyên liệu món đã khớp để không đếm trùng
+        foreach ($nguyenLieuNhap as $nlNhap) {
+            foreach ($nlMon as $idx => $nl) {
+                if (!isset($matchedNl[$idx]) && str_contains($nl, $nlNhap)) {
+                    $soTrung++;
+                    $matchedNl[$idx] = true;
+                    break; // Chuyển sang nguyên liệu nhập tiếp theo
+                }
+            }
+        }
+        
         if ($soTrung > 0) {
             $mon['do_phu_hop'] = round($soTrung / count($nlMon) * 100); // % nguyên liệu có sẵn khớp
             $ketQua[] = $mon;

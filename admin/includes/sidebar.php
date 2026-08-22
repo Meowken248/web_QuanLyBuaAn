@@ -25,6 +25,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="<?php echo BASE_URL; ?>/admin/users.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['users.php', 'user-edit.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
                 <i class="bi bi-people me-2"></i>Quản lý người dùng
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/classes.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['classes.php', 'class-detail.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
+                <i class="bi bi-mortarboard me-2"></i>Quản lý Lớp & Sinh viên
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['foods.php', 'food-edit.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
                 <i class="bi bi-egg-fried me-2"></i>Thư viện món ăn
             </a>

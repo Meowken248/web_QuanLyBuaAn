@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
 $users = $conn->query("
     SELECT id, full_name, email, role, status, created_at
     FROM users
+    WHERE email NOT LIKE '%edu.vn'
     ORDER BY id DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
