@@ -95,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $dob_raw = trim($_POST['birth_date'] ?? ''); 
         $email = trim($_POST['email'] ?? '');
         $password_raw = trim($_POST['password'] ?? '');
+        $confirm_password_raw = trim($_POST['confirm_password'] ?? '');
         
         $old_input = [
             'mssv' => $mssv,
@@ -112,7 +113,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $field_errors['email'] = "Vui lòng nhập địa chỉ Email hợp lệ.";
         }
 
-        if (empty($password_raw)) $field_errors['password'] = "Vui lòng nhập Mật khẩu.";
+        if (empty($password_raw)) {
+            $field_errors['password'] = "Vui lòng nhập Mật khẩu.";
+        } elseif (strlen($password_raw) < 6) {
+            $field_errors['password'] = "Mật khẩu phải có ít nhất 6 ký tự.";
+        }
+
+        if (empty($confirm_password_raw)) {
+            $field_errors['confirm_password'] = "Vui lòng xác nhận mật khẩu.";
+        } elseif ($password_raw !== $confirm_password_raw) {
+            $field_errors['confirm_password'] = "Mật khẩu xác nhận không khớp.";
+        }
         
         if (empty($dob_raw)) {
             $field_errors['birth_date'] = "Vui lòng nhập Ngày sinh.";
@@ -371,7 +382,7 @@ require_once '../includes/header.php';
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2"></i>Danh sách Sinh viên trong lớp</h5>
                         <div>
-                            <button type="button" class="btn btn-sm btn-primary rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                            <button type="button" id="btnAddStudent" class="btn btn-sm btn-primary rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
                                 <i class="bi bi-person-plus-fill me-1"></i>Thêm Sinh Viên
                             </button>
                             <button type="submit" form="bulkDeleteForm" class="btn btn-sm btn-danger rounded-pill shadow-sm" id="btnBulkDelete" disabled onclick="return confirm('Bạn có chắc chắn muốn xóa những sinh viên đã chọn?');">
@@ -456,6 +467,13 @@ require_once '../includes/header.php';
                 </div>
                 <?php endif; ?>
             </div>
+
+            <!-- Nút quay lại ở góc dưới bên trái -->
+            <div class="mt-4 mb-4">
+                <a href="classes.php" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-arrow-left me-2"></i>Quay lại danh sách lớp
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -472,29 +490,44 @@ require_once '../includes/header.php';
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add_student">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">MSSV *</label>
+                        <label class="form-label fw-bold">MSSV <span class="text-danger">*</span></label>
                         <input type="text" class="form-control <?= isset($field_errors['mssv']) ? 'is-invalid' : '' ?>" name="mssv" id="mssv" value="<?= htmlspecialchars($old_input['mssv'] ?? '') ?>" required>
                         <div class="invalid-feedback"><?= $field_errors['mssv'] ?? 'Vui lòng nhập MSSV.' ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Họ Và Tên *</label>
+                        <label class="form-label fw-bold">Họ Và Tên <span class="text-danger">*</span></label>
                         <input type="text" class="form-control <?= isset($field_errors['full_name']) ? 'is-invalid' : '' ?>" name="full_name" id="full_name" value="<?= htmlspecialchars($old_input['full_name'] ?? '') ?>" required>
                         <div class="invalid-feedback"><?= $field_errors['full_name'] ?? 'Vui lòng nhập Họ và tên.' ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Ngày Sinh *</label>
+                        <label class="form-label fw-bold">Ngày Sinh <span class="text-danger">*</span></label>
                         <input type="date" class="form-control <?= isset($field_errors['birth_date']) ? 'is-invalid' : '' ?>" name="birth_date" id="birth_date" value="<?= htmlspecialchars($old_input['birth_date'] ?? '') ?>" required>
                         <div class="invalid-feedback" id="birth_date_error"><?= $field_errors['birth_date'] ?? 'Vui lòng nhập Ngày sinh hợp lệ.' ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Email *</label>
+                        <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
                         <input type="email" class="form-control <?= isset($field_errors['email']) ? 'is-invalid' : '' ?>" name="email" id="email" value="<?= htmlspecialchars($old_input['email'] ?? '') ?>" required>
                         <div class="invalid-feedback"><?= $field_errors['email'] ?? 'Vui lòng nhập địa chỉ Email hợp lệ.' ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Mật Khẩu *</label>
-                        <input type="password" class="form-control <?= isset($field_errors['password']) ? 'is-invalid' : '' ?>" name="password" id="password" required>
-                        <div class="invalid-feedback"><?= $field_errors['password'] ?? 'Vui lòng nhập Mật khẩu.' ?></div>
+                        <label class="form-label fw-bold">Mật Khẩu <span class="text-danger">*</span></label>
+                        <div class="input-group has-validation">
+                            <input type="password" class="form-control <?= isset($field_errors['password']) ? 'is-invalid' : '' ?>" name="password" id="password" required>
+                            <button class="btn btn-outline-secondary" type="button" data-password-toggle="password" aria-label="Hiện mật khẩu">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <div class="invalid-feedback" id="password_error"><?= $field_errors['password'] ?? 'Vui lòng nhập Mật khẩu (tối thiểu 6 ký tự).' ?></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Xác nhận Mật Khẩu <span class="text-danger">*</span></label>
+                        <div class="input-group has-validation">
+                            <input type="password" class="form-control <?= isset($field_errors['confirm_password']) ? 'is-invalid' : '' ?>" name="confirm_password" id="confirm_password" required>
+                            <button class="btn btn-outline-secondary" type="button" data-password-toggle="confirm_password" aria-label="Hiện mật khẩu">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <div class="invalid-feedback" id="confirm_password_error"><?= $field_errors['confirm_password'] ?? 'Vui lòng xác nhận mật khẩu.' ?></div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
@@ -529,6 +562,19 @@ document.addEventListener('DOMContentLoaded', function() {
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateDeleteButton);
     });
+
+    // Explicit modal show fallback
+    const btnAddStudent = document.getElementById('btnAddStudent');
+    if (btnAddStudent) {
+        btnAddStudent.addEventListener('click', function(e) {
+            e.preventDefault();
+            const modalEl = document.getElementById('addStudentModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            }
+        });
+    }
 
     // Form Validation for Add Student
     const addStudentForm = document.getElementById('addStudentForm');
@@ -582,11 +628,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Check Password
             const password = document.getElementById('password');
+            const passwordError = document.getElementById('password_error');
             if (!password.value.trim()) {
                 password.classList.add('is-invalid');
+                if (passwordError) passwordError.textContent = "Vui lòng nhập Mật khẩu.";
+                isValid = false;
+            } else if (password.value.length < 6) {
+                password.classList.add('is-invalid');
+                if (passwordError) passwordError.textContent = "Mật khẩu phải có ít nhất 6 ký tự.";
                 isValid = false;
             } else {
                 password.classList.remove('is-invalid');
+            }
+
+            // Check Confirm Password
+            const confirmPassword = document.getElementById('confirm_password');
+            const confirmPasswordError = document.getElementById('confirm_password_error');
+            if (!confirmPassword.value.trim()) {
+                confirmPassword.classList.add('is-invalid');
+                if (confirmPasswordError) confirmPasswordError.textContent = "Vui lòng xác nhận mật khẩu.";
+                isValid = false;
+            } else if (confirmPassword.value !== password.value) {
+                confirmPassword.classList.add('is-invalid');
+                if (confirmPasswordError) confirmPasswordError.textContent = "Mật khẩu xác nhận không khớp.";
+                isValid = false;
+            } else {
+                confirmPassword.classList.remove('is-invalid');
             }
 
             // Check Birth Date

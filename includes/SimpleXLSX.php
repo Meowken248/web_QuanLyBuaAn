@@ -984,6 +984,11 @@ class SimpleXLSX
 
         return $s;
     }
+    /**
+     * @param int $worksheetIndex
+     * @param int $limit
+     * @return array<int, array<int, mixed>>
+     */
     public function rows($worksheetIndex = 0, $limit = 0)
     {
         return iterator_to_array($this->readRows($worksheetIndex, $limit), false);

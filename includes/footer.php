@@ -138,8 +138,9 @@
     </div>
     
     <!-- Nút mở chat -->
-    <button id="chatbot-toggle-btn" class="btn btn-primary btn-glow rounded-circle shadow-heavy d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border: 3px solid white; outline: none;">
+    <button id="chatbot-toggle-btn" class="btn btn-primary btn-glow rounded-circle shadow-heavy d-flex align-items-center justify-content-center position-relative" style="width: 60px; height: 60px; border: 3px solid white; outline: none;">
         <i class="bi bi-chat-dots-fill fs-3 text-white"></i>
+        <span id="userChatbotBadgeContainer"></span>
     </button>
 </div>
 

@@ -8,8 +8,8 @@ $database = new Database();
 $conn = $database->getConnection();
 $csrf_token = generate_csrf_token();
 
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = 20;
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = 10;
 $offset = ($page - 1) * $limit;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {

@@ -1,5 +1,16 @@
 <?php
 $current_page = basename($_SERVER['PHP_SELF']);
+
+// BUG-02: Đếm số tin nhắn hỗ trợ chưa đọc để hiển thị badge trên menu admin
+$admin_unread_support = 0;
+if (isset($conn)) {
+    try {
+        $stmtSb = $conn->query("SELECT COUNT(*) FROM support_messages WHERE sender_type = 'user' AND is_read = 0");
+        $admin_unread_support = (int)$stmtSb->fetchColumn();
+    } catch (Exception $e) {
+        $admin_unread_support = 0;
+    }
+}
 ?>
 <!-- Mobile Toggle Button -->
 <div class="d-md-none mb-3">
@@ -9,7 +20,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </div>
 
 <!-- Sidebar / Offcanvas -->
-<div class="offcanvas-md offcanvas-start" tabindex="-1" id="adminSidebar" aria-labelledby="adminSidebarLabel">
+<div class="offcanvas-md offcanvas-start sticky-md-top" style="top: 85px; z-index: 1000;" tabindex="-1" id="adminSidebar" aria-labelledby="adminSidebarLabel">
     <div class="offcanvas-header border-bottom">
         <h5 class="offcanvas-title fw-bold" id="adminSidebarLabel">Menu Quản trị</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar" aria-label="Close"></button>
@@ -37,8 +48,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['contact-messages.php', 'contact-message-view.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
                 <i class="bi bi-envelope me-2"></i>Hộp thư liên hệ
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/support-chats.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['support-chats.php', 'support-chat-view.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
-                <i class="bi bi-chat-dots me-2"></i>Hỗ trợ trực tuyến
+            <a href="<?php echo BASE_URL; ?>/admin/support-chats.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?php echo in_array($current_page, ['support-chats.php', 'support-chat-view.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
+                <span><i class="bi bi-chat-dots me-2"></i>Hỗ trợ trực tuyến</span>
+                <span id="adminSidebarSupportBadgeContainer">
+                <?php if ($admin_unread_support > 0): ?>
+                    <span class="badge bg-danger rounded-pill"><?php echo $admin_unread_support; ?></span>
+                <?php endif; ?>
+                </span>
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="list-group-item list-group-item-action <?php echo in_array($current_page, ['meal-plans.php', 'meal-plan-edit.php', 'meal-plan-builder.php']) ? 'active bg-dark border-dark' : 'text-dark'; ?>">
                 <i class="bi bi-journal-check me-2"></i>Thực đơn mẫu

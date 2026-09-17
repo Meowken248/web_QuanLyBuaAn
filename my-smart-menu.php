@@ -8,11 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['user_id'])) {
-    redirect('/login.php'); // Assuming there's a login redirect helper or just handle it
+    redirect('/auth/login.php');
 }
-
-$page_title = "Thực Đơn Của Tôi";
-require_once __DIR__ . '/includes/header.php';
 
 $db = new Database();
 $conn = $db->getConnection();
@@ -20,6 +17,18 @@ $conn = $db->getConnection();
 $stmt = $conn->prepare("SELECT * FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' LIMIT 1");
 $stmt->execute([':user_id' => $_SESSION['user_id']]);
 $activeMenu = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Xử lý Hủy thực đơn trước khi xuất header (BUG-13)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel') {
+    if ($activeMenu) {
+        $stmtCancel = $conn->prepare("UPDATE user_smart_menus SET status = 'cancelled' WHERE id = :id");
+        $stmtCancel->execute([':id' => $activeMenu['id']]);
+    }
+    redirect('/my-smart-menu.php');
+}
+
+$page_title = "Thực Đơn Của Tôi";
+require_once __DIR__ . '/includes/header.php';
 
 if (!$activeMenu) {
     echo '<div class="container py-5 text-center">';
@@ -32,14 +41,6 @@ if (!$activeMenu) {
 
 $ketQua = json_decode($activeMenu['menu_data'], true);
 $completedDays = json_decode($activeMenu['completed_days'] ?? '[]', true);
-
-// Xử lý Hủy thực đơn
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel') {
-    $stmtCancel = $conn->prepare("UPDATE user_smart_menus SET status = 'cancelled' WHERE id = :id");
-    $stmtCancel->execute([':id' => $activeMenu['id']]);
-    redirect('/my-smart-menu.php');
-}
-
 ?>
 
 <style>
@@ -65,12 +66,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 .custom-day-pills .nav-link.is-completed {
     background: linear-gradient(135deg, #81c784 0%, #a5d6a7 100%);
-    color: #1b5e20 !important;
+    color: #1b5e20;
     box-shadow: 0 4px 10px rgba(129, 199, 132, 0.2);
 }
 .custom-day-pills .nav-link.is-completed:hover {
     background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
-    color: #1b5e20 !important;
+    color: #1b5e20;
+}
+.custom-day-pills .nav-link.is-completed.active {
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.35);
 }
 .day-completed {
     opacity: 0.7;

@@ -17,6 +17,17 @@ require_once __DIR__ . '/../includes/header.php';
 $target_user_id = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
 $target_user = null;
 if ($target_user_id) {
+    // BUG-04: Đánh dấu tin nhắn của user này là đã đọc NGAY LẬP TỨC trước khi truy vấn danh sách $chats
+    try {
+        $stmtMarkRead = $conn->prepare("
+            UPDATE support_messages sm
+            JOIN support_chats sc ON sm.chat_id = sc.id
+            SET sm.is_read = 1
+            WHERE sc.user_id = :uid AND sm.sender_type = 'user' AND sm.is_read = 0
+        ");
+        $stmtMarkRead->execute([':uid' => $target_user_id]);
+    } catch (Exception $e) {}
+
     $stmt = $conn->prepare("SELECT full_name, email FROM users WHERE id = :id");
     $stmt->execute([':id' => $target_user_id]);
     $target_user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -62,7 +73,7 @@ function getInitials($name) {
                     </div>
 
                     <!-- Chat List -->
-                    <div class="flex-grow-1 overflow-auto">
+                    <div class="flex-grow-1 overflow-auto" id="admin-chat-list">
                         <?php if (empty($chats)): ?>
                             <div class="text-center py-5 text-muted small">
                                 <i class="bi bi-chat-dots d-block mb-2" style="font-size: 2rem; opacity: 0.3;"></i>
@@ -76,6 +87,8 @@ function getInitials($name) {
                                     $timeStr = $chat['last_time'] ? 'Hôm nay, ' . date('H:i', strtotime($chat['last_time'])) . ' - ' . date('d/m', strtotime($chat['last_time'])) : '';
                                 ?>
                                 <a href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $chat['user_id']; ?>"
+                                   id="chat-user-<?php echo $chat['user_id']; ?>"
+                                   data-user-id="<?php echo $chat['user_id']; ?>"
                                    class="chat-list-item d-flex align-items-start px-3 py-3 text-decoration-none <?php echo $isActive ? 'active' : ''; ?>"
                                    style="border-bottom: 1px solid #f0f0f0; <?php echo $isActive ? 'border-left: 4px solid #198754; background: #f0faf5;' : 'border-left: 4px solid transparent;'; ?>">
                                     <!-- Avatar -->
@@ -85,14 +98,14 @@ function getInitials($name) {
                                     </div>
                                     <!-- Info -->
                                     <div class="flex-grow-1 overflow-hidden">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1 chat-name-header">
                                             <span class="fw-bold text-dark text-truncate" style="font-size: 0.9rem; max-width: 130px;"><?php echo htmlspecialchars($chat['full_name']); ?></span>
-                                            <?php if ($chat['unread_count'] > 0): ?>
-                                                <span class="badge bg-success rounded-pill ms-1" style="font-size: 0.65rem;"><?php echo $chat['unread_count']; ?></span>
+                                            <?php if ($chat['unread_count'] > 0 && !$isActive): ?>
+                                                <span class="badge bg-success rounded-pill ms-1 chat-badge-count" style="font-size: 0.65rem;"><?php echo $chat['unread_count']; ?></span>
                                             <?php endif; ?>
                                         </div>
                                         <div class="text-muted text-truncate" style="font-size: 0.75rem;">
-                                            <?php echo $timeStr; ?> · <?php echo htmlspecialchars(mb_strimwidth($chat['last_message'] ?: 'Chưa có tin nhắn', 0, 30, '...', 'UTF-8')); ?>
+                                            <span class="chat-preview-time"><?php echo $timeStr ? $timeStr . ' · ' : ''; ?></span><span class="chat-preview-text"><?php echo htmlspecialchars(mb_strimwidth($chat['last_message'] ?: 'Chưa có tin nhắn', 0, 30, '...', 'UTF-8')); ?></span>
                                         </div>
                                     </div>
                                 </a>
@@ -188,9 +201,62 @@ function getInitials($name) {
 }
 </style>
 
-<?php if ($target_user): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // BUG-03: Realtime cập nhật danh sách hội thoại bên trái
+    function fetchChatList() {
+        fetch('<?php echo BASE_URL; ?>/api/support_get_chats.php')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.chats)) {
+                    data.chats.forEach(chat => {
+                        const item = document.getElementById('chat-user-' + chat.user_id);
+                        if (item) {
+                            // Cập nhật text preview
+                            const previewEl = item.querySelector('.chat-preview-text');
+                            if (previewEl) {
+                                const msgText = chat.last_message ? chat.last_message.substring(0, 30) : 'Chưa có tin nhắn';
+                                previewEl.textContent = msgText;
+                            }
+                            // Cập nhật thời gian
+                            const timeEl = item.querySelector('.chat-preview-time');
+                            if (timeEl && chat.last_time) {
+                                const d = new Date(chat.last_time);
+                                const h = String(d.getHours()).padStart(2, '0');
+                                const m = String(d.getMinutes()).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                const mo = String(d.getMonth() + 1).padStart(2, '0');
+                                timeEl.textContent = 'Hôm nay, ' + h + ':' + m + ' - ' + day + '/' + mo + ' · ';
+                            }
+                            // Cập nhật badge unread (BUG-04)
+                            let badgeEl = item.querySelector('.chat-badge-count');
+                            const isCurrent = (typeof targetUserId !== 'undefined' && targetUserId == chat.user_id);
+                            const unread = isCurrent ? 0 : parseInt(chat.unread_count || 0);
+                            if (unread > 0) {
+                                if (!badgeEl) {
+                                    const header = item.querySelector('.chat-name-header');
+                                    if (header) {
+                                        badgeEl = document.createElement('span');
+                                        badgeEl.className = 'badge bg-success rounded-pill ms-1 chat-badge-count';
+                                        badgeEl.style.fontSize = '0.65rem';
+                                        header.appendChild(badgeEl);
+                                    }
+                                }
+                                if (badgeEl) badgeEl.textContent = unread;
+                            } else if (badgeEl) {
+                                badgeEl.remove();
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    // Polling danh sách hội thoại mỗi 3 giây
+    setInterval(fetchChatList, 3000);
+
+    <?php if ($target_user): ?>
     const chatBox = document.getElementById('support-chat-box');
     const chatForm = document.getElementById('support-chat-form');
     const chatInput = document.getElementById('support-chat-input');
@@ -200,13 +266,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const targetUserId = <?php echo $target_user_id; ?>;
     const userInitials = '<?php echo $userInitials; ?>';
 
+    // BUG-04: Xóa badge của cuộc hội thoại đang mở ngay trên giao diện
+    const currentBadge = document.querySelector('#chat-user-' + targetUserId + ' .chat-badge-count');
+    if (currentBadge) currentBadge.remove();
+
     function renderMessage(msg) {
         const isSelf = msg.sender_type === 'admin';
         const time = new Date(msg.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
         const safeMessage = msg.message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         
         if (isSelf) {
-            // Admin message — right side, green bubble
             return `
                 <div class="d-flex mb-3 justify-content-end" id="msg-${msg.id}">
                     <div class="text-end me-2" style="max-width: 75%;">
@@ -217,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         } else {
-            // User message — left side, light green bubble
             return `
                 <div class="d-flex mb-3" id="msg-${msg.id}">
                     <div class="chat-avatar me-2" style="background: #6c757d;">${userInitials}</div>
@@ -247,6 +315,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (shouldScroll || lastId === 0) {
                         chatBox.scrollTop = chatBox.scrollHeight;
                     }
+                    // Cập nhật lại danh sách bên trái ngay khi có tin nhắn mới trong box
+                    fetchChatList();
                 } else if (lastId === 0) {
                     chatBox.innerHTML = '<div class="text-center text-muted py-4" style="font-size: 0.85rem;">Bắt đầu cuộc trò chuyện.</div>';
                 }
@@ -289,8 +359,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Poll every 3 seconds
     setInterval(fetchMessages, 3000);
+    <?php endif; ?>
 });
 </script>
-<?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

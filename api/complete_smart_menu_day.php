@@ -12,6 +12,7 @@ if (!isset($_SESSION['user_id'])) {
 $data = json_decode(file_get_contents('php://input'), true);
 $day = $data['day'] ?? '';
 $menuId = $data['menu_id'] ?? '';
+$menuData = $data['menu_data'] ?? null;
 
 if (empty($day)) {
     echo json_encode(['status' => 'error', 'message' => 'invalid_data']);
@@ -22,12 +23,32 @@ try {
     $db = new Database();
     $conn = $db->getConnection();
     
-    if (!empty($menuId)) {
+    // Nếu chưa có menuId, tìm menu active của user
+    if (empty($menuId)) {
+        $stmtFind = $conn->prepare("SELECT id FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1");
+        $stmtFind->execute([':user_id' => $_SESSION['user_id']]);
+        $menuId = $stmtFind->fetchColumn();
+    }
+    
+    // Nếu vẫn chưa có menuId mà client gửi menu_data lên, tự động lưu menu mới thành active kèm ngày đã hoàn thành
+    if (empty($menuId) && !empty($menuData)) {
+        $stmtCancel = $conn->prepare("UPDATE user_smart_menus SET status = 'cancelled' WHERE user_id = :user_id AND status = 'active'");
+        $stmtCancel->execute([':user_id' => $_SESSION['user_id']]);
+
+        $stmtInsert = $conn->prepare("INSERT INTO user_smart_menus (user_id, menu_data, completed_days, status) VALUES (:user_id, :menu_data, :completed_days, 'active')");
+        $stmtInsert->execute([
+            ':user_id' => $_SESSION['user_id'],
+            ':menu_data' => is_string($menuData) ? $menuData : json_encode($menuData),
+            ':completed_days' => json_encode([(int)$day])
+        ]);
+        $menuId = $conn->lastInsertId();
+    } elseif (!empty($menuId)) {
         $stmtMenu = $conn->prepare("SELECT completed_days FROM user_smart_menus WHERE id = :id AND user_id = :user_id");
         $stmtMenu->execute([':id' => $menuId, ':user_id' => $_SESSION['user_id']]);
         if ($menuRow = $stmtMenu->fetch(PDO::FETCH_ASSOC)) {
             $completed = json_decode($menuRow['completed_days'] ?? '[]', true);
-            if (!in_array($day, $completed)) {
+            if (!is_array($completed)) $completed = [];
+            if (!in_array((int)$day, $completed)) {
                 $completed[] = (int)$day;
                 $stmtUpdate = $conn->prepare("UPDATE user_smart_menus SET completed_days = :completed_days WHERE id = :id");
                 $stmtUpdate->execute([

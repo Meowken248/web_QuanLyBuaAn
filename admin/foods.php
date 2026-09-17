@@ -8,6 +8,126 @@ $conn = $database->getConnection();
 
 require_once __DIR__ . '/../includes/functions.php';
 
+// Tải file mẫu Excel món ăn (BUG-19)
+if (isset($_GET['action']) && $_GET['action'] === 'sample_excel') {
+    require_once __DIR__ . '/../includes/SimpleXLSXGen.php';
+    $data = [
+        ['STT', 'Tên Món Ăn', 'Tên Danh Mục', 'Khẩu Phần', 'Đơn Vị', 'Calories', 'Protein (g)', 'Carbs (g)', 'Fat (g)', 'Chất Xơ (g)', 'Mô Tả'],
+        [1, 'Phở bò Hà Nội', 'Món Nước & Canh', 1, 'bát', 450, 25, 60, 12, 3, 'Phở bò tái nạm truyền thống nước dùng thanh ngọt'],
+        [2, 'Cơm gà nướng mật ong', 'Món Cơm', 1, 'đĩa', 580, 35, 70, 15, 2, 'Cơm gạo tám thơm kèm ức gà ướp sốt mật ong'],
+        [3, 'Salad ức gà sốt mè rang', 'Món Salad & Healthy', 1, 'đĩa', 320, 32, 14, 8, 4, 'Salad xà lách, cà chua bi, dưa chuột và mè rang']
+    ];
+    $xlsx = Shuchkin\SimpleXLSXGen::fromArray($data);
+    $xlsx->downloadAs("Mau_DanhSach_MonAn.xlsx");
+    exit;
+}
+
+// Xử lý Import Excel món ăn (BUG-19)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'import_excel') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Yêu cầu không hợp lệ.');
+        redirect('/admin/foods.php');
+    }
+
+    if (isset($_FILES['excel_file']) && $_FILES['excel_file']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['excel_file'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if ($ext === 'xlsx') {
+            require_once __DIR__ . '/../includes/SimpleXLSX.php';
+            if ($xlsx = Shuchkin\SimpleXLSX::parse($file['tmp_name'])) {
+                $successCount = 0;
+                $skipCount = 0;
+
+                // Lấy danh sách danh mục để tra cứu
+                $catStmt = $conn->query("SELECT id, name FROM food_categories");
+                $catMap = [];
+                while ($row = $catStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $catMap[mb_strtolower(trim($row['name']), 'UTF-8')] = (int)$row['id'];
+                }
+
+                $defaultCatId = !empty($catMap) ? reset($catMap) : null;
+
+                $checkDupStmt = $conn->prepare("SELECT id FROM foods WHERE category_id = :category_id AND LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1");
+                $insertStmt = $conn->prepare("
+                    INSERT INTO foods (name, slug, category_id, serving_size, serving_unit, calories, protein, carbs, fat, fiber, description, status, created_by)
+                    VALUES (:name, :slug, :category_id, :serving_size, :serving_unit, :calories, :protein, :carbs, :fat, :fiber, :description, 'active', :created_by)
+                ");
+
+                /** @var array<int, array<int, mixed>> $excelRows */
+                $excelRows = (array)$xlsx->rows();
+                foreach ($excelRows as $i => $row) {
+                    /** @var array<int, mixed> $row */
+                    if ($i === 0) continue; // Tiêu đề
+                    $name = trim($row[1] ?? '');
+                    if (empty($name)) continue;
+
+                    $catName = trim($row[2] ?? '');
+                    $catKey = mb_strtolower($catName, 'UTF-8');
+                    $categoryId = $catMap[$catKey] ?? null;
+
+                    // Nếu danh mục chưa tồn tại, tự động tạo mới
+                    if (!$categoryId && !empty($catName)) {
+                        $catSlug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $catName) ?: $catName), '-'));
+                        if (empty($catSlug)) $catSlug = 'cat-' . time() . '-' . rand(10, 99);
+                        $conn->prepare("INSERT INTO food_categories (name, slug, status) VALUES (:name, :slug, 'active')")
+                             ->execute([':name' => $catName, ':slug' => $catSlug]);
+                        $categoryId = (int)$conn->lastInsertId();
+                        $catMap[$catKey] = $categoryId;
+                    } elseif (!$categoryId) {
+                        $categoryId = $defaultCatId;
+                    }
+
+                    // Kiểm tra trùng tên món trong cùng danh mục (BUG-19)
+                    if ($categoryId) {
+                        $checkDupStmt->execute([':category_id' => $categoryId, ':name' => $name]);
+                        if ($checkDupStmt->fetch()) {
+                            $skipCount++;
+                            continue;
+                        }
+                    }
+
+                    $servingSize = !empty($row[3]) && (float)$row[3] > 0 ? (float)$row[3] : 1;
+                    $servingUnit = !empty(trim($row[4] ?? '')) ? trim($row[4]) : 'phần';
+                    $calories = !empty($row[5]) ? (float)$row[5] : 0;
+                    $protein = !empty($row[6]) ? (float)$row[6] : 0;
+                    $carbs = !empty($row[7]) ? (float)$row[7] : 0;
+                    $fat = !empty($row[8]) ? (float)$row[8] : 0;
+                    $fiber = !empty($row[9]) ? (float)$row[9] : 0;
+                    $description = trim($row[10] ?? '');
+
+                    $slugBase = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-'));
+                    $slug = $slugBase . '-' . time() . '-' . rand(100, 999);
+
+                    $insertStmt->execute([
+                        ':name' => $name,
+                        ':slug' => $slug,
+                        ':category_id' => $categoryId,
+                        ':serving_size' => $servingSize,
+                        ':serving_unit' => $servingUnit,
+                        ':calories' => $calories,
+                        ':protein' => $protein,
+                        ':carbs' => $carbs,
+                        ':fat' => $fat,
+                        ':fiber' => $fiber,
+                        ':description' => $description,
+                        ':created_by' => (int)($_SESSION['user_id'] ?? 1)
+                    ]);
+                    $successCount++;
+                }
+
+                set_flash_message('success', "Đã nhập thành công $successCount món ăn." . ($skipCount > 0 ? " (Đã bỏ qua $skipCount món do trùng tên trong cùng danh mục)" : ""));
+            } else {
+                set_flash_message('danger', 'Lỗi đọc file Excel: ' . Shuchkin\SimpleXLSX::parseError());
+            }
+        } else {
+            set_flash_message('danger', 'Vui lòng upload file đúng định dạng .xlsx');
+        }
+    } else {
+        set_flash_message('danger', 'Lỗi khi upload file.');
+    }
+    redirect('/admin/foods.php');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_food') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         set_flash_message('danger', 'Yêu cầu không hợp lệ.');
@@ -103,9 +223,22 @@ require_once __DIR__ . '/../includes/header.php';
             <?php require __DIR__ . '/includes/sidebar.php'; ?>
         </div>
         <div class="col-md-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="fw-bold mb-0">Quản lý Món ăn</h3>
-                <a href="<?php echo BASE_URL; ?>/admin/food-edit.php" class="btn btn-success"><i class="bi bi-plus-circle me-2"></i>Thêm món mới</a>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                <div>
+                    <h3 class="fw-bold mb-0">Quản lý Món ăn</h3>
+                    <p class="text-muted small mb-0">Tổng cộng: <?php echo $total_foods; ?> món ăn (10 món/trang)</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="<?php echo BASE_URL; ?>/admin/foods.php?action=sample_excel" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-arrow-down me-1"></i>Tải file mẫu Excel
+                    </a>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importFoodsModal">
+                        <i class="bi bi-file-earmark-arrow-up me-1"></i>Nhập từ Excel
+                    </button>
+                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm món mới
+                    </a>
+                </div>
             </div>
             <?php display_flash_message(); ?>
             
@@ -274,4 +407,44 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
+<!-- Modal Import Excel Món Ăn (BUG-19) -->
+<div class="modal fade" id="importFoodsModal" tabindex="-1" aria-labelledby="importFoodsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                <input type="hidden" name="action" value="import_excel">
+
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="importFoodsModalLabel">
+                        <i class="bi bi-file-earmark-excel text-success me-2"></i>Nhập Món Ăn từ File Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Tải lên danh sách món ăn từ file Excel (<code>.xlsx</code>). Hệ thống tự động khớp danh mục theo tên hoặc tạo mới danh mục nếu chưa có. Món ăn trùng tên trong cùng một danh mục sẽ tự động được bỏ qua để tránh trùng lặp.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chọn file Excel (.xlsx) <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control rounded-3" name="excel_file" accept=".xlsx" required>
+                    </div>
+                    <div class="text-end">
+                        <a href="<?php echo BASE_URL; ?>/admin/foods.php?action=sample_excel" class="text-success small fw-bold text-decoration-none">
+                            <i class="bi bi-download me-1"></i>Tải file mẫu tại đây
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="bi bi-upload me-1"></i>Tiến hành Nhập
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

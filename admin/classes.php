@@ -175,12 +175,12 @@ require_once '../includes/header.php';
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Mã Lớp</label>
-                        <input type="text" class="form-control" name="class_code" required>
+                        <label class="form-label fw-bold">Mã Lớp <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="class_code" required placeholder="VD: D21_TH01">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tên Lớp</label>
-                        <input type="text" class="form-control" name="class_name" required>
+                        <label class="form-label fw-bold">Tên Lớp <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="class_name" required placeholder="VD: Công nghệ Thông tin 1">
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">

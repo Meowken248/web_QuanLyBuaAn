@@ -439,3 +439,21 @@ h1, h2, h3, h4, h5, h6 {
         height: 55px !important;
     }
 }
+
+/* Hide Microsoft Edge / IE default password reveal and clear buttons */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+
+/* Custom styling for active dropdown menu items (BUG-05) */
+.dropdown-menu .dropdown-item.active,
+.dropdown-menu .dropdown-item:active {
+    background: #1f8f5f !important;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+.dropdown-menu .dropdown-item.active i,
+.dropdown-menu .dropdown-item:active i {
+    color: #ffffff !important;
+}

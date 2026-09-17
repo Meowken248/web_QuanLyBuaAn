@@ -98,20 +98,51 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                         // 2. Đếm số thông báo chưa đọc
                         $stmtNotif = $conn->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :user_id AND is_read = 0");
                         $stmtNotif->execute([':user_id' => $_SESSION['user_id']]);
-                        $unread_count = $stmtNotif->fetchColumn();
+                        $unread_notif_count = (int)$stmtNotif->fetchColumn();
+
+                        // 2b. Đếm số tin nhắn hỗ trợ chưa đọc (BUG-02)
+                        $unread_support_count = 0;
+                        try {
+                            if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+                                $stmtSup = $conn->query("SELECT COUNT(*) FROM support_messages WHERE sender_type = 'user' AND is_read = 0");
+                                $unread_support_count = (int)$stmtSup->fetchColumn();
+                            } else {
+                                $stmtSup = $conn->prepare("SELECT COUNT(sm.id) FROM support_messages sm JOIN support_chats sc ON sm.chat_id = sc.id WHERE sc.user_id = :user_id AND sm.sender_type = 'admin' AND sm.is_read = 0");
+                                $stmtSup->execute([':user_id' => $_SESSION['user_id']]);
+                                $unread_support_count = (int)$stmtSup->fetchColumn();
+                            }
+                        } catch (Exception $e) {
+                            $unread_support_count = 0;
+                        }
+                        $total_bell_count = $unread_notif_count + $unread_support_count;
                     ?>
                     
                     <div class="dropdown me-3">
                         <a href="#" class="text-dark position-relative text-decoration-none" id="dropdownNotification" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-bell fs-4"></i>
-                            <?php if ($unread_count > 0): ?>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                                    <?php echo $unread_count > 99 ? '99+' : $unread_count; ?>
-                                </span>
-                            <?php endif; ?>
+                            <span id="headerBellBadgeContainer">
+                                <?php if ($total_bell_count > 0): ?>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                        <?php echo $total_bell_count > 99 ? '99+' : $total_bell_count; ?>
+                                    </span>
+                                <?php endif; ?>
+                            </span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 300px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownNotification" style="min-width: 320px;">
                             <li><h6 class="dropdown-header fw-bold">Thông báo mới</h6></li>
+                            <?php if ($unread_support_count > 0): ?>
+                                <li>
+                                    <a class="dropdown-item py-2 border-bottom bg-light" href="<?php echo (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') ? BASE_URL . '/admin/support-chats.php' : '#'; ?>" <?php echo (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') ? 'onclick="var btn=document.getElementById(\'chatbot-toggle-btn\'); if(btn){btn.click(); var at=document.getElementById(\'admin-tab\'); if(at){setTimeout(function(){at.click();}, 200);}} return false;"' : ''; ?>>
+                                        <div class="d-flex w-100 justify-content-between align-items-center">
+                                            <h6 class="mb-1 text-primary fw-bold text-truncate"><i class="bi bi-chat-dots-fill me-1"></i>Hỗ trợ trực tuyến</h6>
+                                            <span class="badge bg-danger rounded-pill"><?php echo $unread_support_count; ?> mới</span>
+                                        </div>
+                                        <p class="mb-0 text-muted" style="font-size: 0.8rem;">
+                                            <?php echo (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') ? 'Có ' . $unread_support_count . ' tin nhắn mới từ người dùng.' : 'Bạn có tin nhắn phản hồi mới từ ban quản trị.'; ?>
+                                        </p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <?php
                                 $stmtList = $conn->prepare("SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT 5");
                                 $stmtList->execute([':user_id' => $_SESSION['user_id']]);
@@ -128,7 +159,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                         echo '<p class="mb-0 text-muted text-truncate" style="font-size: 0.8rem; max-width: 250px;">' . htmlspecialchars($n['message']) . '</p>';
                                         echo '</a></li>';
                                     }
-                                } else {
+                                } elseif ($unread_support_count === 0) {
                                     echo '<li><span class="dropdown-item text-muted text-center py-3">Không có thông báo mới</span></li>';
                                 }
                             ?>
@@ -136,6 +167,11 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                         </ul>
                     </div>
 
+                    <?php
+                        // BUG-05: Kiểm tra trang hiện tại để gán class active cho dropdownUser
+                        $current_file = basename($_SERVER['PHP_SELF']);
+                        $is_admin_current = str_contains($request_path, '/admin/');
+                    ?>
                     <div class="dropdown">
                         <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="bg-health text-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 38px; height: 38px; font-weight: bold;">
@@ -144,17 +180,17 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                             <strong class="d-none d-md-block"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Tài khoản'); ?></strong>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end text-small shadow border-0 mt-2" aria-labelledby="dropdownUser">
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển</a></li>
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/profile.php"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/reminders.php"><i class="bi bi-alarm me-2"></i>Nhắc nhở của tôi</a></li>
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/weight-logs.php"><i class="bi bi-graph-up me-2"></i>Theo dõi Cân nặng</a></li>
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/personal-notes.php"><i class="bi bi-journal-text me-2"></i>Nhật ký cá nhân</a></li>
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/user/meal-plans.php"><i class="bi bi-book-half me-2"></i>Thực đơn Gợi ý</a></li>
-                            <li><a class="dropdown-item py-2" href="<?php echo BASE_URL; ?>/my-smart-menu.php"><i class="bi bi-stars me-2"></i>Thực đơn Của tôi</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'dashboard.php' && $is_user_area) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Bảng điều khiển</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'profile.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/profile.php"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'reminders.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/reminders.php"><i class="bi bi-alarm me-2"></i>Nhắc nhở của tôi</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'weight-logs.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/weight-logs.php"><i class="bi bi-graph-up me-2"></i>Theo dõi Cân nặng</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'personal-notes.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/personal-notes.php"><i class="bi bi-journal-text me-2"></i>Nhật ký cá nhân</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo (in_array($current_file, ['meal-plans.php', 'meal-plan-view.php']) && $is_user_area) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/meal-plans.php"><i class="bi bi-book-half me-2"></i>Thực đơn Gợi ý</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'my-smart-menu.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/my-smart-menu.php"><i class="bi bi-stars me-2"></i>Thực đơn Của tôi</a></li>
 
                             <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item py-2 text-danger fw-bold" href="<?php echo BASE_URL; ?>/admin/index.php"><i class="bi bi-shield-lock me-2"></i>Trang Quản trị</a></li>
+                                <li><a class="dropdown-item py-2 <?php echo $is_admin_current ? 'active bg-danger text-white' : 'text-danger fw-bold'; ?>" href="<?php echo BASE_URL; ?>/admin/index.php"><i class="bi bi-shield-lock me-2"></i>Trang Quản trị</a></li>
                             <?php endif; ?>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item py-2 text-danger" href="<?php echo BASE_URL; ?>/auth/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>

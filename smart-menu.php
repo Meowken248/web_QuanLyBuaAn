@@ -14,15 +14,21 @@ $ketQua = null;
 $loaiKetQua = null;
 
 $hasActiveMenu = false;
+$activeMenuId = null;
+$activeMenuCompletedDays = [];
 if (isset($_SESSION['user_id'])) {
     $db = new Database();
     $conn = $db->getConnection();
-    $stmt = $conn->prepare("SELECT id FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' LIMIT 1");
+    $stmt = $conn->prepare("SELECT id, completed_days FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' LIMIT 1");
     $stmt->execute([':user_id' => $_SESSION['user_id']]);
-    if ($stmt->fetch()) {
+    if ($rowActive = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $hasActiveMenu = true;
+        $activeMenuId = $rowActive['id'];
+        $activeMenuCompletedDays = json_decode($rowActive['completed_days'] ?? '[]', true) ?: [];
     }
 }
+
+$error_smart_menu = null;
 
 if (isset($_GET['che_do'])) {
     switch ($che_do) {
@@ -33,9 +39,15 @@ if (isset($_GET['che_do'])) {
             break;
 
         case 'theo_muc_tieu':
+            $soNgayRaw = trim($_GET['so_ngay'] ?? '');
+            if ($soNgayRaw === '' || !is_numeric($soNgayRaw) || (int)$soNgayRaw < 1 || (int)$soNgayRaw > 30) {
+                $error_smart_menu = "Vui lòng nhập Số ngày áp dụng hợp lệ (từ 1 đến 30 ngày).";
+                $ketQua = null;
+                $loaiKetQua = null;
+                break;
+            }
             $mucTieu = $_GET['muc_tieu'] ?? '';
-            $soNgay = (int) ($_GET['so_ngay'] ?? 3);
-            $soNgay = max(1, min(30, $soNgay));
+            $soNgay = (int)$soNgayRaw;
             $soBua = (int) ($_GET['so_bua'] ?? 4);
             $soBua = max(1, min(6, $soBua));
             $ketQua = taoThucDonTheoMucTieu($mucTieu, $soNgay, $soBua);
@@ -174,6 +186,20 @@ if (isset($_GET['che_do'])) {
     color: white;
     box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
 }
+.custom-day-pills .nav-link.is-completed {
+    background: linear-gradient(135deg, #81c784 0%, #a5d6a7 100%);
+    color: #1b5e20;
+    box-shadow: 0 4px 10px rgba(129, 199, 132, 0.2);
+}
+.custom-day-pills .nav-link.is-completed:hover {
+    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+    color: #1b5e20;
+}
+.custom-day-pills .nav-link.is-completed.active {
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.35);
+}
 .border-dashed {
     border-style: dashed !important;
 }
@@ -189,6 +215,15 @@ if (isset($_GET['che_do'])) {
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
+            <?php if (!empty($error_smart_menu)): ?>
+                <div class="alert alert-danger shadow-sm rounded-4 mb-4 d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+                    <div>
+                        <strong>Lỗi nhập liệu:</strong> <?= htmlspecialchars($error_smart_menu) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <?php if ($hasActiveMenu): ?>
                 <div class="alert alert-info shadow-sm rounded-4 mb-4 d-flex flex-column flex-md-row align-items-center" role="alert">
                     <i class="bi bi-info-circle-fill fs-3 me-md-3 mb-2 mb-md-0 text-info"></i>
@@ -255,9 +290,9 @@ if (isset($_GET['che_do'])) {
                                     <div class="mt-2 text-muted small" id="mo_ta_muc_tieu"><i class="bi bi-info-circle me-1"></i> <span></span></div>
                                 </div>
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Số ngày áp dụng:</label>
+                                    <label class="form-label fw-bold">Số ngày áp dụng <span class="text-danger">*</span>:</label>
                                     <div class="input-group">
-                                        <input type="number" name="so_ngay" class="form-control form-control-custom" min="1" max="30" value="<?= (int) ($_GET['so_ngay'] ?? 3) ?>">
+                                        <input type="number" name="so_ngay" id="input_so_ngay" class="form-control form-control-custom" min="1" max="30" value="<?= isset($_GET['so_ngay']) && $_GET['so_ngay'] !== '' ? htmlspecialchars($_GET['so_ngay']) : '3' ?>" required placeholder="Từ 1 đến 30 ngày">
                                         <span class="input-group-text bg-white border-start-0">ngày</span>
                                     </div>
                                 </div>
@@ -404,8 +439,12 @@ if (isset($_GET['che_do'])) {
                             <div class="collapse d-md-block" id="dayListCollapse">
                                 <div class="nav flex-column flex-nowrap nav-pills custom-day-pills shadow-sm rounded-4 bg-white p-2" id="v-pills-tab" role="tablist" aria-orientation="vertical" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                                     <?php foreach ($ketQua as $index => $ngay): ?>
-                                        <button class="nav-link <?= $index === 0 ? 'active' : '' ?> fw-bold mb-2 text-start" id="v-pills-day<?= $ngay['ngay'] ?>-tab" data-bs-toggle="pill" data-bs-target="#v-pills-day<?= $ngay['ngay'] ?>" type="button" role="tab" aria-controls="v-pills-day<?= $ngay['ngay'] ?>" aria-selected="<?= $index === 0 ? 'true' : 'false' ?>">
-                                            <i class="bi bi-calendar-event me-2"></i>Ngày <?= $ngay['ngay'] ?>
+                                        <?php $isDone = in_array((int)$ngay['ngay'], $activeMenuCompletedDays); ?>
+                                        <button class="nav-link <?= $index === 0 ? 'active' : '' ?> <?= $isDone ? 'is-completed' : '' ?> fw-bold mb-2 text-start position-relative" id="v-pills-day<?= $ngay['ngay'] ?>-tab" data-bs-toggle="pill" data-bs-target="#v-pills-day<?= $ngay['ngay'] ?>" type="button" role="tab" aria-controls="v-pills-day<?= $ngay['ngay'] ?>" aria-selected="<?= $index === 0 ? 'true' : 'false' ?>">
+                                            <i class="bi <?= $isDone ? 'bi-check-circle-fill' : 'bi-calendar-event' ?> me-2"></i>Ngày <?= $ngay['ngay'] ?>
+                                            <?php if ($isDone): ?>
+                                                <span class="badge bg-success text-white ms-auto float-end">Xong</span>
+                                            <?php endif; ?>
                                         </button>
                                     <?php endforeach; ?>
                                 </div>
@@ -416,10 +455,11 @@ if (isset($_GET['che_do'])) {
                         <div class="col-md-9">
                             <div class="tab-content" id="v-pills-tabContent">
                                 <?php foreach ($ketQua as $index => $ngay): ?>
+                                    <?php $isDone = in_array((int)$ngay['ngay'], $activeMenuCompletedDays); ?>
                                     <div class="tab-pane fade <?= $index === 0 ? 'show active' : '' ?>" id="v-pills-day<?= $ngay['ngay'] ?>" role="tabpanel" aria-labelledby="v-pills-day<?= $ngay['ngay'] ?>-tab" tabindex="0">
                                         <div class="card result-card p-4 h-100 border-0 shadow-sm rounded-4 bg-white">
                                             <div class="day-header d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom">
-                                                <h4 class="mb-0 fw-bold text-success"><i class="bi bi-calendar-check me-2"></i>Thực đơn Ngày <?= $ngay['ngay'] ?></h4>
+                                                <h4 class="mb-0 fw-bold <?= $isDone ? 'text-secondary' : 'text-success' ?>"><i class="bi bi-calendar-check me-2"></i>Thực đơn Ngày <?= $ngay['ngay'] ?></h4>
                                                 <div class="mt-2 mt-sm-0">
                                                     <span class="badge bg-warning text-dark fs-6 rounded-pill me-2"><i class="bi bi-fire me-1"></i> <?= $ngay['tong_calo'] ?> kcal</span>
                                                     <span class="badge bg-info text-dark fs-6 rounded-pill"><i class="bi bi-egg-fried me-1"></i> <?= $ngay['tong_protein'] ?>g Protein</span>
@@ -448,9 +488,15 @@ if (isset($_GET['che_do'])) {
                                             </div>
                                             
                                             <div class="text-end mt-auto pt-3 border-top">
-                                                <button class="btn btn-success btn-lg px-4 fw-bold shadow-sm complete-day-btn rounded-pill" data-day="<?= $ngay['ngay'] ?>">
-                                                    <i class="bi bi-check2-all me-2"></i>Đánh dấu Hoàn thành Ngày <?= $ngay['ngay'] ?>
-                                                </button>
+                                                <?php if (!$isDone): ?>
+                                                    <button class="btn btn-success btn-lg px-4 fw-bold shadow-sm complete-day-btn rounded-pill" data-day="<?= $ngay['ngay'] ?>">
+                                                        <i class="bi bi-check2-all me-2"></i>Đánh dấu Hoàn thành Ngày <?= $ngay['ngay'] ?>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button class="btn btn-secondary btn-lg px-4 fw-bold shadow-sm rounded-pill" disabled>
+                                                        <i class="bi bi-check-circle-fill me-2"></i>Ngày Này Đã Hoàn Thành
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -482,6 +528,24 @@ function hienThiMoTaMucTieu() {
 document.addEventListener("DOMContentLoaded", function() {
     hienThiMoTaMucTieu();
     
+    // Validate form thuc don (BUG-10)
+    const formThucDon = document.getElementById('form-thuc-don');
+    if (formThucDon) {
+        formThucDon.addEventListener('submit', function(e) {
+            const cheDo = document.getElementById('input_che_do').value;
+            if (cheDo === 'theo_muc_tieu') {
+                const soNgayInput = document.getElementById('input_so_ngay');
+                const val = soNgayInput ? soNgayInput.value.trim() : '';
+                if (!val || isNaN(val) || parseInt(val) < 1 || parseInt(val) > 30) {
+                    e.preventDefault();
+                    alert('Vui lòng nhập Số ngày áp dụng hợp lệ (từ 1 đến 30 ngày).');
+                    if (soNgayInput) soNgayInput.focus();
+                    return false;
+                }
+            }
+        });
+    }
+
     // Auto-close sidebar on mobile when a day is selected
     const dayTabs = document.querySelectorAll('#dayListCollapse .nav-link');
     const dayListCollapse = document.getElementById('dayListCollapse');
@@ -498,7 +562,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Complete Day Logic
+    // Complete Day Logic (BUG-11, BUG-12)
     const completeBtns = document.querySelectorAll('.complete-day-btn');
     completeBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -509,26 +573,45 @@ document.addEventListener("DOMContentLoaded", function() {
             this.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang xử lý...`;
             this.disabled = true;
 
+            const payload = {
+                day: day,
+                menu_id: <?= json_encode($activeMenuId) ?>,
+                menu_data: <?= json_encode($ketQua) ?>
+            };
+
             fetch('<?= BASE_URL ?>/api/complete_smart_menu_day.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ day: day })
+                body: JSON.stringify(payload)
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
                     this.classList.remove('btn-success');
                     this.classList.add('btn-secondary');
-                    this.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>Đã Hoàn Thành (Lưu thành công)`;
+                    this.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>Ngày Này Đã Hoàn Thành`;
                     
+                    // BUG-11: Cập nhật ngay lập tức giao diện tab bên trái
+                    const dayTab = document.getElementById('v-pills-day' + day + '-tab');
+                    if (dayTab) {
+                        dayTab.classList.add('is-completed');
+                        const icon = dayTab.querySelector('i');
+                        if (icon) {
+                            icon.className = 'bi bi-check-circle-fill me-2';
+                        }
+                        if (!dayTab.querySelector('.badge')) {
+                            dayTab.insertAdjacentHTML('beforeend', '<span class="badge bg-success text-white ms-auto float-end">Xong</span>');
+                        }
+                    }
+
                     // Show a quick success alert
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-4 shadow';
                     alertDiv.style.zIndex = 9999;
                     alertDiv.innerHTML = `
-                        <strong>Tuyệt vời!</strong> Bạn đã hoàn thành xuất sắc ngày ${day}. Thông báo đã được gửi.
+                        <strong>Tuyệt vời!</strong> Bạn đã hoàn thành xuất sắc ngày ${day}. Tiến độ đã được lưu vào Thực đơn của tôi.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     `;
                     document.body.appendChild(alertDiv);

@@ -33,6 +33,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) $error = 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.';
     if ($name === '') $field_errors['name'] = 'Vui lòng nhập tên món.';
     if (!$category_id) $field_errors['category_id'] = 'Vui lòng chọn danh mục.';
+
+    // Kiểm tra trùng tên món trong cùng danh mục (BUG-19)
+    if ($name !== '' && $category_id) {
+        $checkDuplicateSql = "SELECT id FROM foods WHERE category_id = :category_id AND LOWER(TRIM(name)) = LOWER(TRIM(:name))";
+        $checkDuplicateParams = [':category_id' => $category_id, ':name' => $name];
+        if ($id) {
+            $checkDuplicateSql .= " AND id != :id";
+            $checkDuplicateParams[':id'] = $id;
+        }
+        $checkStmt = $conn->prepare($checkDuplicateSql);
+        $checkStmt->execute($checkDuplicateParams);
+        if ($checkStmt->fetch()) {
+            $field_errors['name'] = 'Tên món ăn đã tồn tại trong danh mục này.';
+        }
+    }
+
     if ($serving_size === false || $serving_size === null || $serving_size <= 0) $field_errors['serving_size'] = 'Khẩu phần phải lớn hơn 0.';
     if ($serving_unit === '') $field_errors['serving_unit'] = 'Vui lòng nhập đơn vị.';
     foreach ($nutrients as $field => $value) {
@@ -98,7 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-function food_form_value($key, $food, $default = '') {
+/**
+ * @param string $key
+ * @param array|null $food
+ * @param string $default
+ * @return string
+ */
+function food_form_value(string $key, ?array $food = null, string $default = ''): string {
     if (array_key_exists($key, $_POST)) return htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8');
     return htmlspecialchars((string)($food[$key] ?? $default), ENT_QUOTES, 'UTF-8');
 }
