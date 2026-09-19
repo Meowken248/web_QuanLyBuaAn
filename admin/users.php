@@ -7,20 +7,43 @@ require_once __DIR__ . '/../includes/functions.php';
 $database = new Database();
 $conn = $database->getConnection();
 
-// Tải file mẫu Excel
+// Đảm bảo tài khoản Root luôn tồn tại trong DB
+$chkRoot = $conn->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+$chkRoot->execute([':email' => ROOT_ADMIN_EMAIL]);
+if (!$chkRoot->fetchColumn()) {
+    $stmtRoot = $conn->prepare("
+        INSERT INTO users (full_name, email, password, role, status) 
+        VALUES ('Root Admin', :email, :password, 'admin', 'active')
+    ");
+    $stmtRoot->execute([
+        ':email' => ROOT_ADMIN_EMAIL,
+        ':password' => password_hash(ROOT_ADMIN_EMAIL, PASSWORD_DEFAULT)
+    ]);
+}
+
+$current_user_email = $_SESSION['user_email'] ?? '';
+if (empty($current_user_email) && isset($_SESSION['user_id'])) {
+    $stmtMe = $conn->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
+    $stmtMe->execute([':id' => $_SESSION['user_id']]);
+    $current_user_email = (string)$stmtMe->fetchColumn();
+    $_SESSION['user_email'] = $current_user_email;
+}
+$is_root_admin = (strtolower(trim($current_user_email)) === strtolower(ROOT_ADMIN_EMAIL));
+
+// Tải file mẫu Excel (mẫu Quản trị viên)
 if (isset($_GET['action']) && $_GET['action'] === 'sample_excel') {
     require_once __DIR__ . '/../includes/SimpleXLSXGen.php';
     $data = [
-        ['STT', 'Họ Và Tên', 'Email', 'Mật Khẩu', 'Vai Trò (user/admin)'],
-        [1, 'Nguyễn Văn A', 'nguyenvana@gmail.com', '12345678', 'user'],
-        [2, 'Trần Thị B', 'tranthib@gmail.com', '12345678', 'user']
+        ['STT', 'Họ Và Tên', 'Email', 'Mật Khẩu', 'Vai Trò'],
+        [1, 'Quản Trị Viên A', 'admin_a@example.com', '12345678', 'admin'],
+        [2, 'Quản Trị Viên B', 'admin_b@example.com', '12345678', 'admin']
     ];
     $xlsx = Shuchkin\SimpleXLSXGen::fromArray($data);
-    $xlsx->downloadAs("Mau_DanhSach_NguoiDung.xlsx");
+    $xlsx->downloadAs("Mau_DanhSach_Admin.xlsx");
     exit;
 }
 
-// Xử lý Import Excel người dùng
+// Xử lý Import Excel người dùng (tất cả tài khoản import tự động có quyền admin)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'import_excel') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         set_flash_message('danger', 'Yêu cầu không hợp lệ.');
@@ -53,17 +76,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
                         $full_name = trim((string)$row[1]);
                         $email = strtolower(trim((string)$row[2]));
                         $password_raw = isset($row[3]) ? trim((string)$row[3]) : '12345678';
-                        $role = (isset($row[4]) && strtolower(trim((string)$row[4])) === 'admin') ? 'admin' : 'user';
                     } else {
                         $full_name = trim((string)$row[0]);
                         $email = strtolower(trim((string)$row[1]));
                         $password_raw = isset($row[2]) ? trim((string)$row[2]) : '12345678';
-                        $role = (isset($row[3]) && strtolower(trim((string)$row[3])) === 'admin') ? 'admin' : 'user';
                     }
+
+                    // Quy tắc: Khi import từ file Excel vô thì là quyền admin luôn!
+                    $role = 'admin';
 
                     if (empty($full_name) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                         $errorCount++;
                         $errorLog[] = "Dòng " . ($i + 1) . ": Họ tên hoặc Email không hợp lệ ($email).";
+                        continue;
+                    }
+
+                    // Không cho phép ghi đè email root
+                    if (strtolower($email) === strtolower(ROOT_ADMIN_EMAIL)) {
+                        $errorCount++;
+                        $errorLog[] = "Dòng " . ($i + 1) . ": Không thể thêm trùng email với tài khoản Root Admin (" . ROOT_ADMIN_EMAIL . ").";
                         continue;
                     }
 
@@ -89,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
                     $successCount++;
                 }
 
-                $msg = "Đã nhập thành công {$successCount} người dùng từ file Excel.";
+                $msg = "Đã nhập thành công {$successCount} tài khoản Quản trị viên (Admin) từ file Excel.";
                 if ($errorCount > 0) {
                     $msg .= " Có {$errorCount} dòng bị bỏ qua hoặc lỗi: " . implode('; ', array_slice($errorLog, 0, 4));
                     if (count($errorLog) > 4) $msg .= "...";
@@ -125,10 +156,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_
 
         if (!empty($clean_ids)) {
             $placeholders = implode(',', array_fill(0, count($clean_ids), '?'));
-            $stmt = $conn->prepare("DELETE FROM users WHERE id IN ($placeholders) AND role <> 'admin'");
-            $stmt->execute($clean_ids);
+            if ($is_root_admin) {
+                // Root có toàn quyền xóa cả tài khoản Admin khác và User (chỉ trừ chính tài khoản Root)
+                $stmt = $conn->prepare("DELETE FROM users WHERE id IN ($placeholders) AND email <> ?");
+                $execParams = array_merge($clean_ids, [ROOT_ADMIN_EMAIL]);
+            } else {
+                // Admin cùng cấp KHÔNG ĐƯỢC PHÉP xóa Admin khác hoặc Root, chỉ xóa được User thường
+                $stmt = $conn->prepare("DELETE FROM users WHERE id IN ($placeholders) AND role <> 'admin' AND email <> ?");
+                $execParams = array_merge($clean_ids, [ROOT_ADMIN_EMAIL]);
+            }
+            $stmt->execute($execParams);
             $deleted = $stmt->rowCount();
-            set_flash_message('success', "Đã xóa thành công {$deleted} người dùng.");
+            if ($deleted > 0) {
+                set_flash_message('success', "Đã xóa thành công {$deleted} người dùng.");
+            } else {
+                set_flash_message('warning', 'Không có người dùng nào được xóa (Quản trị viên cùng cấp không được phép xóa tài khoản Admin).');
+            }
         } else {
             set_flash_message('warning', 'Vui lòng chọn ít nhất một người dùng hợp lệ để xóa.');
         }
@@ -143,9 +186,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     } else {
         $target_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
         if ($target_id && $target_id !== (int)$_SESSION['user_id']) {
-            $stmt = $conn->prepare("UPDATE users SET status = IF(status = 'active', 'locked', 'active') WHERE id = :id AND role <> 'admin'");
-            $stmt->execute([':id' => $target_id]);
-            set_flash_message($stmt->rowCount() ? 'success' : 'warning', $stmt->rowCount() ? 'Đã cập nhật trạng thái tài khoản.' : 'Không thể thay đổi tài khoản này.');
+            $stmtTarget = $conn->prepare("SELECT id, email, role FROM users WHERE id = :id LIMIT 1");
+            $stmtTarget->execute([':id' => $target_id]);
+            $targetUser = $stmtTarget->fetch(PDO::FETCH_ASSOC);
+
+            if (!$targetUser) {
+                set_flash_message('danger', 'Không tìm thấy người dùng.');
+            } elseif (strtolower($targetUser['email']) === strtolower(ROOT_ADMIN_EMAIL)) {
+                set_flash_message('danger', 'Tài khoản Root Admin tối cao không thể bị khóa!');
+            } elseif ($targetUser['role'] === 'admin' && !$is_root_admin) {
+                set_flash_message('danger', 'Quản trị viên cùng cấp không thể thay đổi trạng thái tài khoản của nhau! Chỉ Root mới có toàn quyền.');
+            } else {
+                $stmt = $conn->prepare("UPDATE users SET status = IF(status = 'active', 'locked', 'active') WHERE id = :id");
+                $stmt->execute([':id' => $target_id]);
+                set_flash_message('success', 'Đã cập nhật trạng thái tài khoản thành công.');
+            }
+        } else {
+            set_flash_message('danger', 'Không thể tự khóa tài khoản của chính mình.');
         }
     }
     redirect('/admin/users.php');
@@ -155,15 +212,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     } else {
         $target_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
         if ($target_id && $target_id !== (int)$_SESSION['user_id']) {
-            $stmt = $conn->prepare("DELETE FROM users WHERE id = :id AND role <> 'admin'");
-            $stmt->execute([':id' => $target_id]);
-            set_flash_message($stmt->rowCount() ? 'success' : 'warning', $stmt->rowCount() ? 'Đã xóa người dùng.' : 'Không thể xóa người dùng này (có thể là Admin).');
+            $stmtTarget = $conn->prepare("SELECT id, email, role, full_name FROM users WHERE id = :id LIMIT 1");
+            $stmtTarget->execute([':id' => $target_id]);
+            $targetUser = $stmtTarget->fetch(PDO::FETCH_ASSOC);
+
+            if (!$targetUser) {
+                set_flash_message('danger', 'Không tìm thấy người dùng.');
+            } elseif (strtolower($targetUser['email']) === strtolower(ROOT_ADMIN_EMAIL)) {
+                set_flash_message('danger', 'Tài khoản Root Admin tối cao (' . ROOT_ADMIN_EMAIL . ') không thể bị xóa!');
+            } elseif ($targetUser['role'] === 'admin' && !$is_root_admin) {
+                set_flash_message('danger', 'Quản trị viên cùng cấp không được phép xóa nhau! Chỉ có Root mới có toàn quyền.');
+            } else {
+                $stmt = $conn->prepare("DELETE FROM users WHERE id = :id");
+                $stmt->execute([':id' => $target_id]);
+                set_flash_message('success', 'Đã xóa người dùng "' . htmlspecialchars($targetUser['full_name']) . '" thành công.');
+            }
         } else {
             set_flash_message('danger', 'Không thể xóa tài khoản của chính mình.');
         }
     }
     redirect('/admin/users.php');
 }
+
 
 // Phân trang danh sách người dùng (loại trừ sinh viên thuộc lớp học)
 $limit = 10;
@@ -256,28 +326,85 @@ require_once __DIR__ . '/../includes/header.php';
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($users as $u): 
-                                            $can_delete = ($u['id'] != $_SESSION['user_id'] && $u['role'] !== 'admin');
+                                            $is_this_root = (strtolower($u['email']) === strtolower(ROOT_ADMIN_EMAIL));
+                                            $is_self = ($u['id'] == $_SESSION['user_id']);
+
+                                            // Xác định quyền Xóa
+                                            if ($is_this_root) {
+                                                $can_delete = false;
+                                                $delete_disabled_title = 'Tài khoản Root Admin tối cao không thể bị xóa';
+                                            } elseif ($is_self) {
+                                                $can_delete = false;
+                                                $delete_disabled_title = 'Không thể xóa tài khoản của chính mình';
+                                            } elseif ($u['role'] === 'admin') {
+                                                if ($is_root_admin) {
+                                                    $can_delete = true;
+                                                    $delete_disabled_title = '';
+                                                } else {
+                                                    $can_delete = false;
+                                                    $delete_disabled_title = 'Quản trị viên cùng cấp không được phép xóa nhau (Chỉ Root mới có toàn quyền)';
+                                                }
+                                            } else {
+                                                $can_delete = true;
+                                                $delete_disabled_title = '';
+                                            }
+
+                                            // Xác định quyền Khóa / Mở khóa
+                                            if ($is_this_root) {
+                                                $can_toggle = false;
+                                                $toggle_disabled_title = 'Tài khoản Root Admin tối cao không thể bị khóa';
+                                            } elseif ($is_self) {
+                                                $can_toggle = false;
+                                                $toggle_disabled_title = 'Không thể tự khóa tài khoản của chính mình';
+                                            } elseif ($u['role'] === 'admin') {
+                                                if ($is_root_admin) {
+                                                    $can_toggle = true;
+                                                    $toggle_disabled_title = '';
+                                                } else {
+                                                    $can_toggle = false;
+                                                    $toggle_disabled_title = 'Quản trị viên cùng cấp không thể khóa tài khoản của nhau';
+                                                }
+                                            } else {
+                                                $can_toggle = true;
+                                                $toggle_disabled_title = '';
+                                            }
+
+                                            // Xác định quyền Sửa
+                                            if ($is_this_root && !$is_root_admin) {
+                                                $can_edit = false;
+                                                $edit_disabled_title = 'Chỉ tài khoản Root mới có quyền chỉnh sửa tài khoản Root Admin';
+                                            } else {
+                                                $can_edit = true;
+                                                $edit_disabled_title = '';
+                                            }
                                         ?>
                                         <tr>
                                             <td class="text-center">
                                                 <?php if ($can_delete): ?>
                                                     <input type="checkbox" name="user_ids[]" value="<?php echo $u['id']; ?>" class="form-check-input user-select-cb">
                                                 <?php else: ?>
-                                                    <input type="checkbox" class="form-check-input" disabled title="Không thể xóa tài khoản Quản trị viên">
+                                                    <input type="checkbox" class="form-check-input" disabled title="<?php echo htmlspecialchars($delete_disabled_title); ?>">
                                                 <?php endif; ?>
                                             </td>
                                             <td>#<?php echo $u['id']; ?></td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar-circle-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px; font-weight: bold;">
+                                                    <div class="avatar-circle-sm <?php echo $is_this_root ? 'bg-dark text-warning border border-warning' : ($u['role'] === 'admin' ? 'bg-danger text-white' : 'bg-primary text-white'); ?> rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px; font-weight: bold;">
                                                         <?php echo strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8')); ?>
                                                     </div>
-                                                    <span class="fw-bold"><?php echo htmlspecialchars($u['full_name']); ?></span>
+                                                    <div>
+                                                        <span class="fw-bold"><?php echo htmlspecialchars($u['full_name']); ?></span>
+                                                        <?php if ($is_self): ?>
+                                                            <span class="badge bg-secondary ms-1" style="font-size: 10px;">Bạn</span>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td><?php echo htmlspecialchars($u['email']); ?></td>
                                             <td>
-                                                <?php if ($u['role'] === 'admin'): ?>
+                                                <?php if ($is_this_root): ?>
+                                                    <span class="badge bg-dark border border-warning text-warning"><i class="bi bi-shield-shaded me-1"></i>Root Admin</span>
+                                                <?php elseif ($u['role'] === 'admin'): ?>
                                                     <span class="badge bg-danger"><i class="bi bi-shield-lock me-1"></i>Admin</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary"><i class="bi bi-person me-1"></i>User</span>
@@ -292,16 +419,34 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <button type="button" class="btn btn-sm btn-outline-info" title="Xem chi tiết" data-bs-toggle="modal" data-bs-target="#userModal<?php echo $u['id']; ?>">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
-                                                    <a href="<?php echo BASE_URL; ?>/admin/user-edit.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-outline-primary" title="Sửa">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                    <?php if ($can_delete): ?>
+                                                    <?php if ($can_edit): ?>
+                                                        <a href="<?php echo BASE_URL; ?>/admin/user-edit.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-outline-primary" title="Sửa">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary opacity-50" disabled title="<?php echo htmlspecialchars($edit_disabled_title); ?>">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($can_toggle): ?>
                                                         <button type="button" class="btn btn-sm <?php echo $u['status'] === 'active' ? 'btn-outline-warning' : 'btn-outline-success'; ?>" 
                                                                 title="<?php echo $u['status'] === 'active' ? 'Khóa' : 'Mở khóa'; ?>"
                                                                 onclick="submitSingleAction('toggle_status', <?php echo $u['id']; ?>)">
                                                             <i class="bi <?php echo $u['status'] === 'active' ? 'bi-lock' : 'bi-unlock'; ?>"></i>
                                                         </button>
+                                                    <?php else: ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary opacity-50" disabled title="<?php echo htmlspecialchars($toggle_disabled_title); ?>">
+                                                            <i class="bi bi-lock"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($can_delete): ?>
                                                         <button type="button" class="btn btn-sm btn-outline-danger" title="Xóa" onclick="submitSingleAction('delete_user', <?php echo $u['id']; ?>)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary opacity-50" disabled title="<?php echo htmlspecialchars($delete_disabled_title); ?>">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -342,18 +487,20 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </form>
 
-            <?php foreach ($users as $u): ?>
+            <?php foreach ($users as $u): 
+                $is_this_root = (strtolower($u['email']) === strtolower(ROOT_ADMIN_EMAIL));
+            ?>
                 <!-- Modal Chi Tiết Người Dùng -->
                 <div class="modal fade" id="userModal<?php echo $u['id']; ?>" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title fw-bold">Chi tiết người dùng</h5>
+                                <h5 class="modal-title fw-bold">Chi tiết tài khoản</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 20px;">
+                                    <div class="<?php echo $is_this_root ? 'bg-dark text-warning border border-warning' : ($u['role'] === 'admin' ? 'bg-danger text-white' : 'bg-primary text-white'); ?> rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 20px;">
                                         <?php echo strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8')); ?>
                                     </div>
                                     <div>
@@ -364,7 +511,17 @@ require_once __DIR__ . '/../includes/header.php';
                                 <ul class="list-group list-group-flush">
                                     <li class="list-group-item px-0 d-flex justify-content-between">
                                         <span>Vai trò</span>
-                                        <strong><?php echo $u['role'] === 'admin' ? 'Quản trị viên' : 'Khách hàng'; ?></strong>
+                                        <strong>
+                                            <?php 
+                                            if ($is_this_root) {
+                                                echo '<span class="text-warning fw-bold"><i class="bi bi-shield-shaded me-1"></i>Root Admin (Toàn quyền)</span>';
+                                            } elseif ($u['role'] === 'admin') {
+                                                echo '<span class="text-danger fw-bold"><i class="bi bi-shield-lock me-1"></i>Quản trị viên (Admin)</span>';
+                                            } else {
+                                                echo '<span>Khách hàng (User)</span>';
+                                            }
+                                            ?>
+                                        </strong>
                                     </li>
                                     <li class="list-group-item px-0 d-flex justify-content-between">
                                         <span>Quyền sử dụng</span>
@@ -399,21 +556,25 @@ require_once __DIR__ . '/../includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                 <input type="hidden" name="action" value="import_excel">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-excel me-2"></i>Thêm người dùng bằng Excel</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-excel me-2"></i>Nhập Quản trị viên từ Excel</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <p class="text-muted small mb-3">
-                        Tải lên file Excel (<code>.xlsx</code>) chứa danh sách người dùng để thêm vào hệ thống nhanh chóng.
+                        Tải lên file Excel (<code>.xlsx</code>) chứa danh sách tài khoản để thêm nhanh vào hệ thống với vai trò <strong>Quản trị viên (Admin)</strong>.
                     </p>
                     
+                    <div class="alert alert-warning border small mb-3">
+                        <div class="fw-bold mb-1"><i class="bi bi-shield-exclamation me-1"></i>Lưu ý về phân quyền:</div>
+                        <div>Tất cả tài khoản được nhập từ file Excel sẽ tự động được gán quyền <strong>Quản trị viên (Admin)</strong>. Các Admin cùng cấp không được phép xóa nhau; chỉ có tài khoản <strong>Root (<?php echo ROOT_ADMIN_EMAIL; ?>)</strong> mới có toàn quyền quản lý và xóa.</div>
+                    </div>
+
                     <div class="alert alert-light border small mb-3">
                         <div class="fw-bold mb-1"><i class="bi bi-info-circle text-primary me-1"></i>Cấu trúc các cột trong file:</div>
                         <ul class="mb-2 ps-3">
                             <li>Cột 1 (hoặc 2 nếu có STT): <strong>Họ Và Tên</strong> (bắt buộc)</li>
                             <li>Cột 2 (hoặc 3): <strong>Email</strong> (bắt buộc, không trùng lặp)</li>
-                            <li>Cột 3 (hoặc 4): <strong>Mật khẩu</strong> (mặc định: 12345678)</li>
-                            <li>Cột 4 (hoặc 5): <strong>Vai trò</strong> (user hoặc admin, mặc định user)</li>
+                            <li>Cột 3 (hoặc 4): <strong>Mật khẩu</strong> (mặc định: 12345678 nếu để trống)</li>
                         </ul>
                         <div class="text-end">
                             <a href="?action=sample_excel" class="btn btn-sm btn-outline-primary">
@@ -435,6 +596,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
 
 <!-- Form phụ cho thao tác đơn lẻ -->
 <form id="singleActionForm" method="POST" style="display: none;">

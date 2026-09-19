@@ -14,3 +14,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: " . BASE_URL . "/index.php");
     exit();
 }
+
+if (!isset($_SESSION['user_email']) && isset($_SESSION['user_id'])) {
+    require_once __DIR__ . '/../config/database.php';
+    $chkConn = (new Database())->getConnection();
+    $stmtMe = $chkConn->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
+    $stmtMe->execute([':id' => $_SESSION['user_id']]);
+    $_SESSION['user_email'] = (string)$stmtMe->fetchColumn();
+}

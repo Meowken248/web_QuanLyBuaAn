@@ -13,6 +13,24 @@ if ($id && !$edit_user) {
     redirect('/admin/users.php');
 }
 
+$current_user_email = $_SESSION['user_email'] ?? '';
+if (empty($current_user_email) && isset($_SESSION['user_id'])) {
+    $stmtMe = $conn->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
+    $stmtMe->execute([':id' => $_SESSION['user_id']]);
+    $current_user_email = (string)$stmtMe->fetchColumn();
+    $_SESSION['user_email'] = $current_user_email;
+}
+$is_root_admin = (strtolower(trim($current_user_email)) === strtolower(ROOT_ADMIN_EMAIL));
+
+$is_target_root = $id && (strtolower($edit_user['email']) === strtolower(ROOT_ADMIN_EMAIL));
+$is_target_peer_admin = $id && ($edit_user['role'] === 'admin') && ($id !== (int)$_SESSION['user_id']) && !$is_root_admin;
+
+// Bảo vệ tài khoản Root: Quản trị viên thường không được phép vào chỉnh sửa tài khoản Root
+if ($is_target_root && !$is_root_admin) {
+    set_flash_message('danger', 'Chỉ tài khoản Root Admin (' . ROOT_ADMIN_EMAIL . ') mới có quyền chỉnh sửa tài khoản Root.');
+    redirect('/admin/users.php');
+}
+
 $error = '';
 $field_errors = [];
 
@@ -23,11 +41,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = in_array($_POST['status'] ?? '', ['active', 'inactive', 'locked'], true) ? $_POST['status'] : 'active';
     $password = $_POST['password'] ?? '';
 
+    // Nếu sửa tài khoản Root Admin:
+    if ($is_target_root) {
+        $email = strtolower(ROOT_ADMIN_EMAIL);
+        $role = 'admin';
+        $status = 'active';
+    }
+
+    // Nếu sửa tài khoản Quản trị viên cùng cấp:
+    if ($is_target_peer_admin) {
+        $role = 'admin'; // Không cho phép hạ quyền
+        $status = $edit_user['status']; // Không cho phép đổi trạng thái
+    }
+
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.';
     }
     if ($full_name === '') $field_errors['full_name'] = 'Vui lòng nhập họ tên.';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $field_errors['email'] = 'Vui lòng nhập email hợp lệ.';
+
+    // Không cho phép đặt trùng email của Root cho tài khoản khác
+    if (!$is_target_root && $email === strtolower(ROOT_ADMIN_EMAIL)) {
+        $field_errors['email'] = 'Email này được bảo lưu cho tài khoản Root Admin (' . ROOT_ADMIN_EMAIL . ').';
+    }
+
     if (!$id && trim($password) === '') $field_errors['password'] = 'Vui lòng nhập mật khẩu.';
     if ($password !== '' && trim($password) === '') $field_errors['password'] = 'Mật khẩu không được chỉ chứa khoảng trắng.';
     if (trim($password) !== '' && strlen($password) < 8) $field_errors['password'] = 'Mật khẩu phải có ít nhất 8 ký tự.';
@@ -58,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id === (int)$_SESSION['user_id']) {
                 $_SESSION['user_name'] = $full_name;
                 $_SESSION['full_name'] = $full_name;
+                $_SESSION['user_email'] = $email;
             }
             set_flash_message('success', $id ? 'Đã cập nhật đầy đủ thông tin người dùng.' : 'Đã thêm người dùng mới.');
             redirect('/admin/users.php');
@@ -86,8 +124,14 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 <div class="mb-3">
 <label class="form-label fw-bold" for="email">Email <span class="text-danger">*</span></label>
-<input id="email" type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" name="email" maxlength="190" value="<?php echo old('email', $edit_user['email'] ?? ''); ?>" required autocomplete="off">
-<div class="invalid-feedback" id="email_error"><?php echo htmlspecialchars($field_errors['email'] ?? 'Vui lòng nhập email hợp lệ.'); ?></div>
+<?php if ($is_target_root): ?>
+    <input id="email" type="email" class="form-control" value="<?php echo htmlspecialchars(ROOT_ADMIN_EMAIL); ?>" readonly>
+    <input type="hidden" name="email" value="<?php echo htmlspecialchars(ROOT_ADMIN_EMAIL); ?>">
+    <small class="text-muted"><i class="bi bi-shield-check me-1"></i>Email tài khoản Root Admin được bảo vệ và cố định.</small>
+<?php else: ?>
+    <input id="email" type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" name="email" maxlength="190" value="<?php echo old('email', $edit_user['email'] ?? ''); ?>" required autocomplete="off">
+    <div class="invalid-feedback" id="email_error"><?php echo htmlspecialchars($field_errors['email'] ?? 'Vui lòng nhập email hợp lệ.'); ?></div>
+<?php endif; ?>
 </div>
 <div class="mb-3">
 <label class="form-label fw-bold" for="password">Mật khẩu <?php echo $id ? '<span class="text-muted small fw-normal">(Để trống nếu không muốn đổi)</span>' : '<span class="text-danger">*</span>'; ?></label>
@@ -99,20 +143,41 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 <div class="row g-3 mb-4">
 <div class="col-md-6"><label class="form-label fw-bold">Vai trò</label>
-<select class="form-select <?php echo isset($field_errors['role']) ? 'is-invalid' : ''; ?>" name="role">
-<option value="user" <?php echo ($_POST['role'] ?? $edit_user['role'] ?? 'user') === 'user' ? 'selected' : ''; ?>>Người dùng (User)</option>
-<option value="admin" <?php echo ($_POST['role'] ?? $edit_user['role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Quản trị viên (Admin)</option>
-</select><div class="invalid-feedback" id="role_error"><?php echo htmlspecialchars($field_errors['role'] ?? ''); ?></div></div>
+<?php if ($is_target_root): ?>
+    <input type="text" class="form-control bg-light" value="Root Admin (Toàn quyền hệ thống)" readonly>
+    <input type="hidden" name="role" value="admin">
+<?php elseif ($is_target_peer_admin): ?>
+    <input type="text" class="form-control bg-light" value="Quản trị viên (Admin - Được bảo vệ)" readonly>
+    <input type="hidden" name="role" value="admin">
+    <small class="text-muted">Chỉ tài khoản Root mới có quyền thay đổi vai trò Admin này.</small>
+<?php else: ?>
+    <select class="form-select <?php echo isset($field_errors['role']) ? 'is-invalid' : ''; ?>" name="role">
+    <option value="user" <?php echo ($_POST['role'] ?? $edit_user['role'] ?? 'user') === 'user' ? 'selected' : ''; ?>>Người dùng (User)</option>
+    <option value="admin" <?php echo ($_POST['role'] ?? $edit_user['role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Quản trị viên (Admin)</option>
+    </select><div class="invalid-feedback" id="role_error"><?php echo htmlspecialchars($field_errors['role'] ?? ''); ?></div>
+<?php endif; ?>
+</div>
 <div class="col-md-6"><label class="form-label fw-bold">Trạng thái</label>
-<select class="form-select" name="status">
-<option value="active" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Hoạt động</option>
-<option value="inactive" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Không hoạt động</option>
-<option value="locked" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? '') === 'locked' ? 'selected' : ''; ?>>Đã khóa</option>
-</select></div>
+<?php if ($is_target_root): ?>
+    <input type="text" class="form-control bg-light" value="Hoạt động" readonly>
+    <input type="hidden" name="status" value="active">
+<?php elseif ($is_target_peer_admin): ?>
+    <input type="text" class="form-control bg-light" value="<?php echo ($edit_user['status'] ?? 'active') === 'active' ? 'Hoạt động' : 'Đã khóa'; ?>" readonly>
+    <input type="hidden" name="status" value="<?php echo htmlspecialchars($edit_user['status'] ?? 'active'); ?>">
+    <small class="text-muted">Chỉ tài khoản Root mới có quyền khóa/mở khóa Admin này.</small>
+<?php else: ?>
+    <select class="form-select" name="status">
+    <option value="active" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Hoạt động</option>
+    <option value="inactive" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Không hoạt động</option>
+    <option value="locked" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? '') === 'locked' ? 'selected' : ''; ?>>Đã khóa</option>
+    </select>
+<?php endif; ?>
+</div>
 </div>
 <div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/users.php">Hủy</a><button class="btn btn-outline-primary rounded-pill px-4 shadow-sm"><?php echo $id ? 'Cập nhật' : 'Thêm mới'; ?></button></div>
 </form>
 </div></div></div></div></div></div></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Password toggle

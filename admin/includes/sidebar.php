@@ -15,7 +15,7 @@ if (isset($conn)) {
 <!-- Mobile Toggle Button -->
 <div class="d-md-none mb-3">
     <button class="btn btn-primary w-100 fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar" aria-controls="adminSidebar">
-        <i class="bi bi-list me-2"></i>Menu Quản trị
+        <i class="bi bi-list me-2"></i>Menu Quản trị    
     </button>
 </div>
 
@@ -36,9 +36,11 @@ if (isset($conn)) {
             <a href="<?php echo BASE_URL; ?>/admin/users.php" class="admin-sidebar-item <?php echo in_array($current_page, ['users.php', 'user-edit.php']) ? 'active' : ''; ?>">
                 <i class="bi bi-people me-2"></i>Quản lý người dùng
             </a>
+            <!-- Ẩn chức năng Quản lý Lớp & Sinh viên
             <a href="<?php echo BASE_URL; ?>/admin/classes.php" class="admin-sidebar-item <?php echo in_array($current_page, ['classes.php', 'class-detail.php']) ? 'active' : ''; ?>">
                 <i class="bi bi-mortarboard me-2"></i>Quản lý Lớp & Sinh viên
             </a>
+            -->
             <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="admin-sidebar-item <?php echo in_array($current_page, ['foods.php', 'food-edit.php']) ? 'active' : ''; ?>">
                 <i class="bi bi-egg-fried me-2"></i>Thư viện món ăn
             </a>

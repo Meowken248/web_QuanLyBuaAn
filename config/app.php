@@ -13,6 +13,7 @@ define('BASE_URL', 'http://localhost/web_QuanLyBuaAn');
 // Application Constants
 define('APP_NAME', 'Meal & Health Manager');
 define('APP_VERSION', '1.0.0');
+define('ROOT_ADMIN_EMAIL', 'kimthuyen@gmail.com');
 
 // Basic timezone
 date_default_timezone_set('Asia/Ho_Chi_Minh');
