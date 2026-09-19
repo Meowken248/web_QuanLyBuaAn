@@ -150,12 +150,12 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Chi tiết cuộc trò chuyện</h5>
+            <div class="modal-header bg-health text-white">
+                <h5 class="modal-title"><i class="bi bi-chat-dots me-2"></i>Chi tiết cuộc trò chuyện</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body bg-light" id="chatContent">
-                <div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>
+                <div class="text-center"><div class="spinner-border text-success" role="status"></div></div>
             </div>
         </div>
     </div>

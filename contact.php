@@ -46,6 +46,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn = (new Database())->getConnection();
             $stmt = $conn->prepare("INSERT INTO contact_messages (full_name, email, subject, message, status) VALUES (:name, :email, :subject, :message, 'new')");
             $stmt->execute([':name' => $name, ':email' => $email, ':subject' => $subject, ':message' => $message]);
+            $contact_id = (int)$conn->lastInsertId();
+
+            // Tạo thông báo cho toàn bộ Admin về thư liên hệ mới
+            try {
+                $stmtAdmins = $conn->query("SELECT id FROM users WHERE role = 'admin' AND status = 'active'");
+                $admins = $stmtAdmins->fetchAll(PDO::FETCH_COLUMN);
+
+                if (!empty($admins)) {
+                    $notif_title = '📩 Thư liên hệ mới: ' . mb_substr($subject, 0, 80, 'UTF-8');
+                    $notif_message = '[MID:' . $contact_id . '] [Từ ' . $name . ' (' . $email . ')]: ' . mb_substr($message, 0, 200, 'UTF-8');
+
+                    $stmtInsertNotif = $conn->prepare("INSERT INTO notifications (user_id, title, message, type, is_read) VALUES (:uid, :title, :message, 'info', 0)");
+                    foreach ($admins as $admin_id) {
+                        $stmtInsertNotif->execute([
+                            ':uid' => $admin_id,
+                            ':title' => $notif_title,
+                            ':message' => $notif_message
+                        ]);
+                    }
+                }
+            } catch (Exception $notifEx) {
+                // Tránh lỗi thông báo làm gián đoạn gửi liên hệ
+            }
+
             $success_msg = 'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.';
             $_POST = [];
         } else {

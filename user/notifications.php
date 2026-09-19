@@ -151,12 +151,17 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="list-group list-group-flush">
                     <?php foreach ($notifications as $n): ?>
                         <?php 
-                            $clean_msg = preg_replace('/^\[UID:\d+\]\s*/', '', $n['message']);
+                            $clean_msg = preg_replace('/^(\[UID:\d+\]|\[MID:\d+\])\s*/', '', $n['message']);
                             $chat_user_id = null;
                             if (preg_match('/\[UID:(\d+)\]/', $n['message'], $matches)) {
                                 $chat_user_id = (int)$matches[1];
                             }
+                            $contact_msg_id = null;
+                            if (preg_match('/\[MID:(\d+)\]/', $n['message'], $mMatches)) {
+                                $contact_msg_id = (int)$mMatches[1];
+                            }
                             $is_chat_notif = str_starts_with($n['title'], '💬 Tin nhắn') || str_starts_with($n['title'], '💬 Phản hồi');
+                            $is_contact_notif = str_starts_with($n['title'], '📩 Thư liên hệ') || str_contains($n['title'], 'liên hệ');
                         ?>
                         <div id="notif-<?php echo $n['id']; ?>" class="list-group-item py-3 <?php echo $n['is_read'] ? '' : 'notif-unread-glass'; ?>" style="border-bottom: 1px solid rgba(0,0,0,0.05);">
                             <div class="d-flex w-100 justify-content-between align-items-start mb-1">
@@ -167,6 +172,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         if ($n['type'] == 'warning') $icon = 'bi-exclamation-triangle text-warning';
                                         if ($n['type'] == 'danger') $icon = 'bi-x-circle text-danger';
                                         if ($is_chat_notif) $icon = 'bi-chat-dots-fill text-success';
+                                        if ($is_contact_notif) $icon = 'bi-envelope-fill text-primary';
                                     ?>
                                     <i class="bi <?php echo $icon; ?> me-2"></i>
                                     <?php echo htmlspecialchars($n['title']); ?>
@@ -178,6 +184,10 @@ require_once __DIR__ . '/../includes/header.php';
                                 <?php if ($is_admin && $chat_user_id): ?>
                                     <a href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $chat_user_id; ?>" class="btn btn-sm btn-success">
                                         <i class="bi bi-chat-dots me-1"></i>Mở hội thoại
+                                    </a>
+                                <?php elseif ($is_admin && $contact_msg_id): ?>
+                                    <a href="<?php echo BASE_URL; ?>/admin/contact-message-view.php?id=<?php echo $contact_msg_id; ?>" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-envelope-open me-1"></i>Xem thư liên hệ
                                     </a>
                                 <?php elseif (!$is_admin && str_starts_with($n['title'], '💬 Phản hồi')): ?>
                                     <button type="button" class="btn btn-sm btn-success" onclick="var w=document.getElementById('chatbot-window'); if(w){w.classList.remove('d-none');} var at=document.getElementById('admin-tab'); if(at){at.click();}">

@@ -190,6 +190,35 @@ h1, h2, h3, h4, h5, h6 {
     color: white;
 }
 
+/* Modal Glassmorphism & Emerald Blur Theme */
+.modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.modal-header.bg-health,
+.modal-header.bg-success {
+    background: var(--gradient-health) !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-header.bg-health .modal-title,
+.modal-header.bg-success .modal-title {
+    color: #ffffff !important;
+}
+
+.modal-backdrop.show {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    background-color: rgba(6, 78, 59, 0.25);
+}
+
 /* Inputs & Forms */
 .form-control, .form-select {
     border-radius: var(--radius-sm);

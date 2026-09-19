@@ -41,7 +41,7 @@ require __DIR__ . '/../includes/header.php';
                 <h3 class="fw-bold mb-0">Chi tiết Món ăn: <?php echo htmlspecialchars($food['name']); ?></h3>
                 <div>
                     <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="btn btn-sm btn-outline-secondary rounded-pill me-2"><i class="bi bi-arrow-left me-2"></i>Quay lại</a>
-                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $food['id']; ?>" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-pencil me-2"></i>Sửa món ăn</a>
+                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $food['id']; ?>" class="btn btn-sm btn-outline-success rounded-pill"><i class="bi bi-pencil me-2"></i>Sửa món ăn</a>
                 </div>
             </div>
 
@@ -59,9 +59,26 @@ require __DIR__ . '/../includes/header.php';
                         <div class="card-body">
                             <h5 class="fw-bold"><?php echo htmlspecialchars($food['name']); ?></h5>
                             <p class="text-muted mb-2">Danh mục: <span class="badge bg-success"><?php echo htmlspecialchars($category ?: 'Không xác định'); ?></span></p>
+                            <p class="text-muted mb-2">Mùa phù hợp: 
+                                <?php 
+                                $fSeasons = !empty($food['season']) ? explode(',', $food['season']) : ['xuan','he','thu','dong'];
+                                $isAll = (count($fSeasons) >= 4 || in_array('all', $fSeasons) || in_array('bon_mua', $fSeasons));
+                                if ($isAll) {
+                                    echo '<span class="badge bg-success-subtle text-success border border-success-subtle">Bốn mùa (Quanh năm)</span>';
+                                } else {
+                                    $sMap = ['xuan' => '🌸 Xuân', 'he' => '☀️ Hè', 'thu' => '🍂 Thu', 'dong' => '❄️ Đông'];
+                                    foreach ($fSeasons as $s) {
+                                        $s = trim($s);
+                                        if (isset($sMap[$s])) {
+                                            echo '<span class="badge bg-light text-dark border me-1">' . $sMap[$s] . '</span>';
+                                        }
+                                    }
+                                }
+                                ?>
+                            </p>
                             <p class="text-muted mb-3">Trạng thái: 
                                 <?php if (isset($food['status']) && $food['status'] === 'active'): ?>
-                                    <span class="badge bg-primary">Hoạt động</span>
+                                    <span class="badge bg-success">Hoạt động</span>
                                 <?php else: ?>
                                     <span class="badge bg-secondary">Ẩn</span>
                                 <?php endif; ?>

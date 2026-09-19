@@ -96,6 +96,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
     redirect('/admin/food-categories.php');
 }
 
+// Xử lý Thêm / Sửa danh mục bằng Modal trên trang (In-page CRUD)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_category') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = 'Phiên làm việc không hợp lệ.';
+        redirect('/admin/food-categories.php');
+    }
+
+    $cat_id = filter_var($_POST['cat_id'] ?? null, FILTER_VALIDATE_INT) ?: 0;
+    $name = trim($_POST['name'] ?? '');
+    $slug = trim($_POST['slug'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $status = in_array($_POST['status'] ?? '', ['active', 'inactive'], true) ? $_POST['status'] : 'active';
+
+    if (empty($name)) {
+        $_SESSION['error'] = 'Vui lòng nhập tên danh mục.';
+        redirect('/admin/food-categories.php');
+    }
+
+    // Kiểm tra trùng tên danh mục
+    $checkNameSql = "SELECT id FROM food_categories WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name))";
+    $checkNameParams = [':name' => $name];
+    if ($cat_id) {
+        $checkNameSql .= " AND id != :id";
+        $checkNameParams[':id'] = $cat_id;
+    }
+    $chkNameStmt = $conn->prepare($checkNameSql);
+    $chkNameStmt->execute($checkNameParams);
+    if ($chkNameStmt->fetch()) {
+        $_SESSION['error'] = 'Tên danh mục này đã tồn tại, vui lòng chọn tên khác.';
+        redirect('/admin/food-categories.php');
+    }
+
+    // Tự động tạo slug nếu để trống
+    if (empty($slug)) {
+        $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-'));
+    }
+    if (empty($slug)) $slug = 'danh-muc-' . time();
+
+    // Đảm bảo slug là duy nhất
+    $orig_slug = $slug;
+    $counter = 1;
+    while (true) {
+        $checkSlugSql = "SELECT id FROM food_categories WHERE slug = :slug";
+        $slugParams = [':slug' => $slug];
+        if ($cat_id) {
+            $checkSlugSql .= " AND id != :id";
+            $slugParams[':id'] = $cat_id;
+        }
+        $chkSlugStmt = $conn->prepare($checkSlugSql);
+        $chkSlugStmt->execute($slugParams);
+        if (!$chkSlugStmt->fetch()) {
+            break;
+        }
+        $slug = $orig_slug . '-' . $counter++;
+    }
+
+    if ($cat_id) {
+        $stmt = $conn->prepare("UPDATE food_categories SET name = :name, slug = :slug, description = :description, status = :status WHERE id = :id");
+        $stmt->execute([
+            ':name' => $name,
+            ':slug' => $slug,
+            ':description' => $description,
+            ':status' => $status,
+            ':id' => $cat_id
+        ]);
+        $_SESSION['success'] = 'Cập nhật danh mục “' . htmlspecialchars($name) . '” thành công.';
+    } else {
+        $stmt = $conn->prepare("INSERT INTO food_categories (name, slug, description, status) VALUES (:name, :slug, :description, :status)");
+        $stmt->execute([
+            ':name' => $name,
+            ':slug' => $slug,
+            ':description' => $description,
+            ':status' => $status
+        ]);
+        $_SESSION['success'] = 'Thêm danh mục mới “' . htmlspecialchars($name) . '” thành công.';
+    }
+    redirect('/admin/food-categories.php');
+}
+
 // Xử lý xóa danh mục
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_category') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
@@ -185,9 +264,9 @@ require_once __DIR__ . '/../includes/header.php';
                     <button type="button" class="btn btn-sm btn-outline-success rounded-pill" data-bs-toggle="modal" data-bs-target="#importExcelModal">
                         <i class="bi bi-file-earmark-arrow-up me-1"></i>Nhập từ Excel
                     </button>
-                    <a href="<?php echo BASE_URL; ?>/admin/food-category-edit.php" class="btn btn-sm btn-outline-primary rounded-pill">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill" onclick="openCategoryModal(null)">
                         <i class="bi bi-plus-circle me-1"></i>Thêm Danh mục
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -235,9 +314,9 @@ require_once __DIR__ . '/../includes/header.php';
                                         <span class="badge bg-info text-dark rounded-pill px-3"><?php echo $cat['total_foods']; ?> món</span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="<?php echo BASE_URL; ?>/admin/food-category-edit.php?id=<?php echo $cat['id']; ?>" class="btn btn-sm btn-outline-primary rounded-pill me-1" title="Sửa">
+                                        <button type="button" class="btn btn-sm btn-outline-success rounded-pill me-1" title="Sửa" onclick='openCategoryModal(<?php echo htmlspecialchars(json_encode($cat, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE), ENT_QUOTES, "UTF-8"); ?>)'>
                                             <i class="bi bi-pencil"></i>
-                                        </a>
+                                        </button>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Xóa danh mục này? Các món bên trong sẽ được giữ lại và chuyển sang chưa phân loại.');">
                                             <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete_category">
@@ -323,8 +402,92 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </form>
         </div>
+</div>
     </div>
 </div>
+
+<!-- Modal Thêm / Sửa Danh Mục (In-Page CRUD) -->
+<div class="modal fade" id="categoryFormModal" tabindex="-1" aria-labelledby="categoryFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" id="categoryForm">
+                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                <input type="hidden" name="action" value="save_category">
+                <input type="hidden" name="cat_id" id="cat_modal_id" value="0">
+
+                <div class="modal-header border-0 pb-0 bg-health text-white p-4">
+                    <h5 class="modal-title fw-bold" id="categoryFormModalLabel">
+                        <i class="bi bi-tag-fill me-2"></i><span id="cat_modal_title">Thêm Danh Mục Mới</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="cat_modal_name" class="form-label fw-bold">Tên danh mục <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="cat_modal_name" name="name" required placeholder="Ví dụ: Món Cơm, Món Nước..." maxlength="100" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="cat_modal_slug" class="form-label fw-bold">Đường dẫn (Slug)</label>
+                        <input type="text" class="form-control rounded-3" id="cat_modal_slug" name="slug" placeholder="Tự động tạo từ tên nếu để trống" maxlength="150" autocomplete="off">
+                        <div class="form-text small">Đường dẫn tĩnh thân thiện (URL). Có thể để trống hệ thống sẽ tự sinh.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cat_modal_desc" class="form-label fw-bold">Mô tả danh mục</label>
+                        <textarea class="form-control rounded-3" id="cat_modal_desc" name="description" rows="3" placeholder="Mô tả ngắn về nhóm món ăn trong danh mục này..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cat_modal_status" class="form-label fw-bold">Trạng thái</label>
+                        <select class="form-select rounded-3" id="cat_modal_status" name="status">
+                            <option value="active">Hoạt động (Hiển thị công khai)</option>
+                            <option value="inactive">Tạm ẩn (Không hiển thị)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" id="cat_modal_submit_btn">
+                        <i class="bi bi-check-circle me-1"></i>Lưu Danh Mục
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openCategoryModal(cat) {
+    const modalEl = document.getElementById('categoryFormModal');
+    const modalTitle = document.getElementById('cat_modal_title');
+    const catIdInput = document.getElementById('cat_modal_id');
+    const nameInput = document.getElementById('cat_modal_name');
+    const slugInput = document.getElementById('cat_modal_slug');
+    const descInput = document.getElementById('cat_modal_desc');
+    const statusSelect = document.getElementById('cat_modal_status');
+    const submitBtn = document.getElementById('cat_modal_submit_btn');
+
+    if (!cat) {
+        modalTitle.textContent = 'Thêm Danh Mục Mới';
+        catIdInput.value = '0';
+        nameInput.value = '';
+        slugInput.value = '';
+        descInput.value = '';
+        statusSelect.value = 'active';
+        submitBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Thêm Mới';
+    } else {
+        modalTitle.textContent = 'Chỉnh Sửa Danh Mục: ' + cat.name;
+        catIdInput.value = cat.id || 0;
+        nameInput.value = cat.name || '';
+        slugInput.value = cat.slug || '';
+        descInput.value = cat.description || '';
+        statusSelect.value = cat.status || 'active';
+        submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Cập Nhật';
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+    setTimeout(() => { nameInput.focus(); }, 400);
+}
+</script>
 
 <?php 
 require_once __DIR__ . '/../includes/footer.php'; 

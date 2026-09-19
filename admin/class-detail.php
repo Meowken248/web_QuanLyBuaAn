@@ -382,7 +382,7 @@ require_once '../includes/header.php';
                 <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2"></i>Danh sách Sinh viên trong lớp</h5>
                         <div>
-                            <button type="button" id="btnAddStudent" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                            <button type="button" id="btnAddStudent" class="btn btn-sm btn-outline-success rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
                                 <i class="bi bi-person-plus-fill me-1"></i>Thêm Sinh Viên
                             </button>
                             <button type="submit" form="bulkDeleteForm" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm" id="btnBulkDelete" disabled onclick="return confirm('Bạn có chắc chắn muốn xóa những sinh viên đã chọn?');">
@@ -484,7 +484,7 @@ require_once '../includes/header.php';
         <div class="modal-content rounded-4 border-0 shadow">
             <form method="post" id="addStudentForm" novalidate>
                 <div class="modal-header border-bottom-0">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill text-primary me-2"></i>Thêm Sinh Viên Bằng Tay</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill text-success me-2"></i>Thêm Sinh Viên Bằng Tay</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -532,7 +532,7 @@ require_once '../includes/header.php';
                 </div>
                 <div class="modal-footer border-top-0">
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-4 shadow-sm">Thêm Sinh Viên</button>
+                    <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-4 shadow-sm">Thêm Sinh Viên</button>
                 </div>
             </form>
         </div>

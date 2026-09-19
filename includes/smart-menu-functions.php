@@ -1,39 +1,104 @@
 <?php
 // includes/smart-menu-functions.php
 
-// 1. XỬ LÝ THEO NGUYÊN LIỆU CÓ SẴN
+// Helper: Bỏ dấu tiếng Việt phục vụ tìm kiếm mềm dẻo
+if (!function_exists('boDauTiengViet')) {
+    function boDauTiengViet(string $str): string {
+        $str = preg_replace('/[áàảãạăắằẳẵặâấầẩẫậ]/u', 'a', $str);
+        $str = preg_replace('/[éèẻẽẹêếềểễệ]/u', 'e', $str);
+        $str = preg_replace('/[íìỉĩị]/u', 'i', $str);
+        $str = preg_replace('/[óòỏõọôốồổỗộơớờởỡợ]/u', 'o', $str);
+        $str = preg_replace('/[úùủũụưứừửữự]/u', 'u', $str);
+        $str = preg_replace('/[ýỳỷỹỵ]/u', 'y', $str);
+        $str = preg_replace('/[đ]/u', 'd', $str);
+        return mb_strtolower($str, 'UTF-8');
+    }
+}
+
+// 1. XỬ LÝ THEO NGUYÊN LIỆU CÓ SẴN (TỪ TỦ LẠNH)
 function locMonAnTheoNguyenLieu(array $thuVien, array $nguyenLieuNhap): array
 {
     $nguyenLieuNhap = array_filter(array_map(fn($nl) => mb_strtolower(trim($nl), 'UTF-8'), $nguyenLieuNhap));
     if (empty($nguyenLieuNhap)) return [];
 
+    $numNhap = count($nguyenLieuNhap);
     $ketQua = [];
+
     foreach ($thuVien as $mon) {
         $ingredientsStr = $mon['ingredients'] ?? '';
         $nlMon = array_map('trim', explode(',', mb_strtolower($ingredientsStr, 'UTF-8')));
-        $nlMon = array_filter($nlMon); // Xóa rỗng
-        
-        if (empty($nlMon)) continue;
+        $nlMon = array_filter($nlMon);
 
-        $soTrung = 0;
-        $matchedNl = []; // Đánh dấu nguyên liệu món đã khớp để không đếm trùng
+        $dishName = mb_strtolower($mon['name'] ?? '', 'UTF-8');
+        $dishDesc = mb_strtolower($mon['description'] ?? '', 'UTF-8');
+        $dishNameNoSign = boDauTiengViet($dishName);
+        $dishDescNoSign = boDauTiengViet($dishDesc);
+
+        $matchedInputCount = 0;
+        $matchedRecipeCount = 0;
+        $nameMatched = false;
+        $matchedRecipeIndexes = [];
+
         foreach ($nguyenLieuNhap as $nlNhap) {
+            $nlNhapNoSign = boDauTiengViet($nlNhap);
+            $inputFound = false;
+
+            // 1. Kiểm tra trong danh sách nguyên liệu
             foreach ($nlMon as $idx => $nl) {
-                if (!isset($matchedNl[$idx]) && str_contains($nl, $nlNhap)) {
-                    $soTrung++;
-                    $matchedNl[$idx] = true;
-                    break; // Chuyển sang nguyên liệu nhập tiếp theo
+                $nlNoSign = boDauTiengViet($nl);
+                if (str_contains($nl, $nlNhap) || str_contains($nlNoSign, $nlNhapNoSign)) {
+                    $inputFound = true;
+                    if (!isset($matchedRecipeIndexes[$idx])) {
+                        $matchedRecipeIndexes[$idx] = true;
+                        $matchedRecipeCount++;
+                    }
                 }
             }
+
+            // 2. Kiểm tra trong tên món ăn (ví dụ "Đậu phụ sốt cà chua" có cà chua)
+            if (str_contains($dishName, $nlNhap) || str_contains($dishNameNoSign, $nlNhapNoSign)) {
+                $inputFound = true;
+                $nameMatched = true;
+            }
+
+            // 3. Kiểm tra trong mô tả
+            if (!$inputFound && (str_contains($dishDesc, $nlNhap) || str_contains($dishDescNoSign, $nlNhapNoSign))) {
+                $inputFound = true;
+            }
+
+            if ($inputFound) {
+                $matchedInputCount++;
+            }
         }
-        
-        if ($soTrung > 0) {
-            $mon['do_phu_hop'] = round($soTrung / count($nlMon) * 100); // % nguyên liệu có sẵn khớp
+
+        if ($matchedInputCount > 0) {
+            $countRecipe = max(1, count($nlMon));
+            $userCoverage = $matchedInputCount / $numNhap;
+            $recipeCoverage = min(1.0, $matchedRecipeCount / $countRecipe);
+
+            // Điểm số thông minh:
+            // - userCoverage * 55: Tận dụng được bao nhiêu nguyên liệu trong tủ lạnh của người dùng
+            // - recipeCoverage * 25: Món ăn này cần bao nhiêu nguyên liệu mà người dùng đã có
+            // - nameMatched: Tên món ăn trực tiếp nhắc đến nguyên liệu -> điểm cộng 20
+            $score = round(($userCoverage * 55) + ($recipeCoverage * 25));
+            if ($nameMatched) {
+                $score += 20;
+            }
+            $score = max(15, min(100, (int)$score));
+
+            $mon['do_phu_hop'] = $score;
             $ketQua[] = $mon;
         }
     }
+
     // Sắp xếp món phù hợp nhất lên đầu
-    usort($ketQua, fn($a, $b) => $b['do_phu_hop'] <=> $a['do_phu_hop']);
+    usort($ketQua, function($a, $b) {
+        if ($b['do_phu_hop'] !== $a['do_phu_hop']) {
+            return $b['do_phu_hop'] <=> $a['do_phu_hop'];
+        }
+        return strcmp($a['name'], $b['name']);
+    });
+
     return $ketQua;
 }
 

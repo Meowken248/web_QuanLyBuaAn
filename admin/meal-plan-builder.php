@@ -245,7 +245,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <div class="fw-bold text-dark">Tổng cộng bữa này: <span class="text-success ms-2 fs-5"><?php echo round($meal_cal); ?> kcal</span></div>
                                                     
                                                     <!-- Nút mở form thêm món -->
-                                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addItemModal<?php echo $m['id']; ?>">
+                                                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill" data-bs-toggle="modal" data-bs-target="#addItemModal<?php echo $m['id']; ?>">
                                                         <i class="bi bi-plus"></i> Thêm món ăn
                                                     </button>
                                                 </div>
@@ -261,7 +261,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <form method="POST" class="form-add-item" novalidate>
-                                        <div class="modal-header bg-primary text-white">
+                                        <div class="modal-header bg-health text-white">
                                             <h5 class="modal-title">Thêm món vào <?php echo htmlspecialchars($m['title']); ?></h5>
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
@@ -289,7 +289,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                            <button type="submit" class="btn btn-primary">Lưu món ăn</button>
+                                            <button type="submit" class="btn btn-success">Lưu món ăn</button>
                                         </div>
                                     </form>
                                 </div>

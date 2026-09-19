@@ -63,6 +63,17 @@ try {
                 $latest_msg_id = (int)$support_items[0]['msg_id'];
             }
         }
+
+        // Đếm số thư liên hệ mới chưa đọc & ID thư liên hệ mới nhất
+        $unread_contact_count = 0;
+        $latest_contact_id = 0;
+        try {
+            $stmtCtCount = $conn->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'");
+            $unread_contact_count = (int)$stmtCtCount->fetchColumn();
+
+            $stmtLastCt = $conn->query("SELECT id FROM contact_messages ORDER BY id DESC LIMIT 1");
+            $latest_contact_id = (int)($stmtLastCt ? $stmtLastCt->fetchColumn() : 0);
+        } catch (Exception $ctEx) {}
     } else {
         $stmtSupCount = $conn->prepare("SELECT COUNT(sm.id) FROM support_messages sm 
                                    JOIN support_chats sc ON sm.chat_id = sc.id 
@@ -106,9 +117,11 @@ try {
         'logged_in' => true,
         'is_admin' => $is_admin,
         'unread_support' => $unread_support_count,
+        'unread_contacts' => $unread_contact_count ?? 0,
         'unread_notif' => $unread_notif_count,
         'total' => $total_bell,
         'latest_msg_id' => $latest_msg_id,
+        'latest_contact_id' => $latest_contact_id ?? 0,
         'support_items' => $support_items,
         'recent_notifications' => $recent_notifications
     ]);
@@ -117,11 +130,13 @@ try {
         'logged_in' => true,
         'is_admin' => $is_admin ?? false,
         'unread_support' => 0,
+        'unread_contacts' => 0,
         'unread_notif' => 0,
         'total' => 0,
         'support_items' => [],
         'recent_notifications' => [],
         'latest_msg_id' => 0,
+        'latest_contact_id' => 0,
         'error' => $e->getMessage()
     ]);
 }

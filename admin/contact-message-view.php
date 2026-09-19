@@ -24,6 +24,16 @@ if ($msg['status'] === 'new') {
     $updateStmt = $conn->prepare("UPDATE contact_messages SET status = 'read' WHERE id = :id");
     $updateStmt->execute([':id' => $id]);
     $msg['status'] = 'read';
+
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $notifStmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = :admin_id AND message LIKE :pat");
+            $notifStmt->execute([
+                ':admin_id' => (int)$_SESSION['user_id'],
+                ':pat' => '%[MID:' . $id . ']%'
+            ]);
+        } catch (Exception $e) {}
+    }
 }
 
 $page_title = 'Chi tiết Liên hệ';

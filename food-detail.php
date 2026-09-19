@@ -69,8 +69,24 @@ $img_src = food_image_url($food['image'] ?? null);
         <!-- Chi tiết dinh dưỡng -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body p-4">
-                    <span class="badge bg-success-subtle text-success fs-6 mb-3 px-3 py-2 rounded-pill"><?php echo htmlspecialchars($food['category_name'] ?? 'Chưa phân loại'); ?></span>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 rounded-pill"><?php echo htmlspecialchars($food['category_name'] ?? 'Chưa phân loại'); ?></span>
+                        <?php 
+                        $uSeasons = !empty($food['season']) ? explode(',', $food['season']) : ['xuan','he','thu','dong'];
+                        $uIsAll = (count($uSeasons) >= 4 || in_array('all', $uSeasons) || in_array('bon_mua', $uSeasons));
+                        if ($uIsAll) {
+                            echo '<span class="badge bg-light text-secondary border fs-6 px-3 py-2 rounded-pill"><i class="bi bi-calendar4-week text-success me-1"></i>Bốn mùa (Quanh năm)</span>';
+                        } else {
+                            $uMap = ['xuan' => '🌸 Mùa Xuân', 'he' => '☀️ Mùa Hè', 'thu' => '🍂 Mùa Thu', 'dong' => '❄️ Mùa Đông'];
+                            foreach ($uSeasons as $us) {
+                                $us = trim($us);
+                                if (isset($uMap[$us])) {
+                                    echo '<span class="badge bg-light text-dark border fs-6 px-3 py-2 rounded-pill">' . $uMap[$us] . '</span>';
+                                }
+                            }
+                        }
+                        ?>
+                    </div>
                     <h1 class="fw-bold mb-3"><?php echo htmlspecialchars($food['name']); ?></h1>
                     
                     <p class="text-muted fs-5 mb-4"><?php echo nl2br(htmlspecialchars($food['description'] ?? 'Món ăn giàu dinh dưỡng, phù hợp cho mọi chế độ ăn uống lành mạnh.')); ?></p>

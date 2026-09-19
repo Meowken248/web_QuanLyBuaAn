@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Realtime notification and support chat polling
     var lastKnownMsgId = null;
+    var lastKnownContactId = null;
 
     function pollUnreadCounts() {
         var basePath = window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '';
@@ -178,6 +179,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         adminBadgeContainer.innerHTML = '<span class="badge bg-danger rounded-pill">' + data.unread_support + '</span>';
                     } else {
                         adminBadgeContainer.innerHTML = '';
+                    }
+                }
+
+                // 2b. Cập nhật menu Hộp thư liên hệ trong Admin Sidebar
+                var adminContactBadgeContainer = document.getElementById('adminSidebarContactBadgeContainer');
+                if (adminContactBadgeContainer) {
+                    if (data.unread_contacts > 0) {
+                        adminContactBadgeContainer.innerHTML = '<span class="badge bg-danger rounded-pill">' + data.unread_contacts + '</span>';
+                    } else {
+                        adminContactBadgeContainer.innerHTML = '';
                     }
                 }
 
@@ -244,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             var isUnread = !n.is_read;
                             var itemClass = isUnread ? 'notif-item notif-unread' : 'notif-item';
                             var unreadDot = isUnread ? '<span class="notif-unread-dot"></span>' : '';
-                            var displayMsg = (n.message || '').replace(/^\[UID:\d+\]\s*/, '');
+                            var displayMsg = (n.message || '').replace(/^(\[UID:\d+\]|\[MID:\d+\])\s*/, '');
                             var targetLink = basePath + '/user/notifications.php?read=' + n.id + '#notif-' + n.id;
 
                             if (data.is_admin && n.title.indexOf('💬 Tin nhắn') !== -1) {
@@ -253,6 +264,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     targetLink = basePath + '/admin/support-chats.php?user_id=' + uidMatch[1];
                                 } else {
                                     targetLink = basePath + '/admin/support-chats.php';
+                                }
+                            } else if (data.is_admin && (n.title.indexOf('Thư liên hệ') !== -1 || n.title.indexOf('liên hệ') !== -1)) {
+                                var midMatch = (n.message || '').match(/\[MID:(\d+)\]/);
+                                if (midMatch && midMatch[1]) {
+                                    targetLink = basePath + '/admin/contact-message-view.php?id=' + midMatch[1];
+                                } else {
+                                    targetLink = basePath + '/admin/contact-messages.php';
                                 }
                             }
 
@@ -310,6 +328,22 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (at) at.click();
                             },
                             'bi bi-shield-check text-primary'
+                        );
+                    }
+                }
+
+                // 5b. Hiển thị Toast khi có thư liên hệ mới gửi đến
+                var currentLatestContactId = parseInt(data.latest_contact_id, 10) || 0;
+                if (lastKnownContactId === null) {
+                    lastKnownContactId = currentLatestContactId;
+                } else if (currentLatestContactId > lastKnownContactId) {
+                    lastKnownContactId = currentLatestContactId;
+                    if (data.is_admin) {
+                        showGlobalToast(
+                            'Thư liên hệ mới!',
+                            'Bạn có một thư liên hệ mới trong Hộp thư.',
+                            basePath + '/admin/contact-messages.php',
+                            'bi bi-envelope-fill text-success'
                         );
                     }
                 }

@@ -2,6 +2,7 @@
 // smart-menu.php
 require_once __DIR__ . '/config/app.php';
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/models/FoodModel.php';
 require_once __DIR__ . '/includes/smart-menu-functions.php';
 
@@ -203,6 +204,30 @@ if (isset($_GET['che_do'])) {
 .border-dashed {
     border-style: dashed !important;
 }
+.pagination .page-link {
+    color: #2e7d32;
+    border-color: #e0e0e0;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.pagination .page-link:hover {
+    background-color: #e8f5e9;
+    border-color: #a5d6a7;
+    color: #1b5e20;
+}
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+    border-color: #2e7d32;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.25);
+}
+.pagination .page-item.disabled .page-link {
+    color: #adb5bd;
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+}
 </style>
 
 <div class="hero-smart-menu text-center">
@@ -389,12 +414,40 @@ if (isset($_GET['che_do'])) {
                     </div>
 
                 <?php elseif ($loaiKetQua === 'thu_vien'): ?>
+                    <?php
+                        $perPage = 6;
+                        $totalItems = count($ketQua);
+                        $totalPages = (int)ceil($totalItems / $perPage);
+                        $currentPage = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
+                        $offset = ($currentPage - 1) * $perPage;
+                        $pagedKetQua = array_slice($ketQua, $offset, $perPage);
+
+                        $makePageUrl = function($p) {
+                            $params = $_GET;
+                            $params['page'] = $p;
+                            return 'smart-menu.php?' . http_build_query($params) . '#results';
+                        };
+                    ?>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <div class="text-muted small">
+                            <i class="bi bi-funnel me-1 text-success"></i>Hiển thị <strong><?= count($pagedKetQua) ?></strong> / <strong><?= $totalItems ?></strong> món ăn phù hợp
+                        </div>
+                        <?php if ($totalPages > 1): ?>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                Trang <?= $currentPage ?> / <?= $totalPages ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
                     <div class="row g-4">
-                        <?php foreach ($ketQua as $mon): ?>
+                        <?php foreach ($pagedKetQua as $mon): ?>
                             <div class="col-md-6 col-lg-4">
                                 <div class="card result-card h-100">
-                                    <?php if (!empty($mon['image']) && file_exists(__DIR__ . '/uploads/foods/' . $mon['image'])): ?>
-                                        <img src="<?= BASE_URL . '/uploads/foods/' . $mon['image'] ?>" class="card-img-top" alt="<?= htmlspecialchars($mon['name']) ?>" style="height: 200px; object-fit: cover;">
+                                    <?php 
+                                    $imgUrl = food_image_url($mon['image'] ?? '');
+                                    if ($imgUrl && !str_ends_with($imgUrl, 'bg1.jpg')): ?>
+                                        <img src="<?= htmlspecialchars($imgUrl) ?>" class="card-img-top" alt="<?= htmlspecialchars($mon['name']) ?>" style="height: 200px; object-fit: cover;">
                                     <?php else: ?>
                                         <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                             <i class="bi bi-image text-muted fs-1"></i>
@@ -402,6 +455,23 @@ if (isset($_GET['che_do'])) {
                                     <?php endif; ?>
                                     
                                     <div class="card-body">
+                                        <div class="mb-2">
+                                            <?php 
+                                            $sList = !empty($mon['season']) ? explode(',', $mon['season']) : [];
+                                            $sMap = ['xuan' => '🌸 Mùa Xuân', 'he' => '☀️ Mùa Hè', 'thu' => '🍂 Mùa Thu', 'dong' => '❄️ Mùa Đông'];
+                                            if (count($sList) >= 4 || in_array('all', $sList) || in_array('bon_mua', $sList)) {
+                                                echo '<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-calendar4-week me-1"></i>Bốn mùa (Quanh năm)</span>';
+                                            } else {
+                                                foreach ($sList as $s) {
+                                                    $s = trim($s);
+                                                    if (isset($sMap[$s])) {
+                                                        echo '<span class="badge bg-light text-dark border small me-1">' . $sMap[$s] . '</span>';
+                                                    }
+                                                }
+                                            }
+                                            ?>
+                                        </div>
+
                                         <h5 class="card-title fw-bold text-dark mb-3">
                                             <a href="<?= BASE_URL ?>/food-detail.php?id=<?= $mon['id'] ?>" class="text-decoration-none text-dark stretched-link">
                                                 <?= htmlspecialchars($mon['name']) ?>
@@ -426,6 +496,58 @@ if (isset($_GET['che_do'])) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+
+                    <?php if ($totalPages > 1): ?>
+                        <nav aria-label="Phân trang món ăn" class="mt-5">
+                            <ul class="pagination justify-content-center flex-wrap gap-1">
+                                <li class="page-item <?= ($currentPage <= 1) ? 'disabled' : '' ?>">
+                                    <a class="page-link shadow-sm rounded-pill px-3" href="<?= $makePageUrl($currentPage - 1) ?>" aria-label="Trang trước">
+                                        <i class="bi bi-chevron-left me-1"></i>Trước
+                                    </a>
+                                </li>
+                                
+                                <?php
+                                $startPage = max(1, $currentPage - 2);
+                                $endPage = min($totalPages, $currentPage + 2);
+                                if ($currentPage <= 3) {
+                                    $endPage = min($totalPages, 5);
+                                }
+                                if ($currentPage >= $totalPages - 2) {
+                                    $startPage = max(1, $totalPages - 4);
+                                }
+
+                                if ($startPage > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" href="<?= $makePageUrl(1) ?>">1</a>
+                                    </li>
+                                    <?php if ($startPage > 2): ?>
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <li class="page-item <?= ($currentPage == $i) ? 'active' : '' ?>">
+                                        <a class="page-link shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" href="<?= $makePageUrl($i) ?>"><?= $i ?></a>
+                                    </li>
+                                <?php endfor; ?>
+
+                                <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" href="<?= $makePageUrl($totalPages) ?>"><?= $totalPages ?></a>
+                                    </li>
+                                <?php endif; ?>
+
+                                <li class="page-item <?= ($currentPage >= $totalPages) ? 'disabled' : '' ?>">
+                                    <a class="page-link shadow-sm rounded-pill px-3" href="<?= $makePageUrl($currentPage + 1) ?>" aria-label="Trang sau">
+                                        Sau<i class="bi bi-chevron-right ms-1"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    <?php endif; ?>
 
                 <?php elseif ($loaiKetQua === 'ai_thuc_don'): ?>
                     <div class="row g-4">

@@ -202,15 +202,23 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                     if (count($notifs) > 0) {
                                         foreach ($notifs as $n) {
                                             $item_class = $n['is_read'] ? 'notif-item' : 'notif-item notif-unread';
-                                            $display_msg = preg_replace('/^\[UID:\d+\]\s*/', '', $n['message']);
+                                            $display_msg = preg_replace('/^(\[UID:\d+\]|\[MID:\d+\])\s*/', '', $n['message']);
                                             
                                             // Điều hướng thông minh
                                             $target_link = BASE_URL . '/user/notifications.php?read=' . $n['id'] . '#notif-' . $n['id'];
-                                            if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin' && str_starts_with($n['title'], '💬 Tin nhắn')) {
-                                                if (preg_match('/\[UID:(\d+)\]/', $n['message'], $m)) {
-                                                    $target_link = BASE_URL . '/admin/support-chats.php?user_id=' . $m[1];
-                                                } else {
-                                                    $target_link = BASE_URL . '/admin/support-chats.php';
+                                            if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+                                                if (str_starts_with($n['title'], '💬 Tin nhắn')) {
+                                                    if (preg_match('/\[UID:(\d+)\]/', $n['message'], $m)) {
+                                                        $target_link = BASE_URL . '/admin/support-chats.php?user_id=' . $m[1];
+                                                    } else {
+                                                        $target_link = BASE_URL . '/admin/support-chats.php';
+                                                    }
+                                                } elseif (str_starts_with($n['title'], '📩 Thư liên hệ') || str_contains($n['title'], 'liên hệ')) {
+                                                    if (preg_match('/\[MID:(\d+)\]/', $n['message'], $m)) {
+                                                        $target_link = BASE_URL . '/admin/contact-message-view.php?id=' . $m[1];
+                                                    } else {
+                                                        $target_link = BASE_URL . '/admin/contact-messages.php';
+                                                    }
                                                 }
                                             }
 

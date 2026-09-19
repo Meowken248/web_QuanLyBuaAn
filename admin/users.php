@@ -232,6 +232,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
         }
     }
     redirect('/admin/users.php');
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_user') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('danger', 'Yêu cầu không hợp lệ.');
+        redirect('/admin/users.php');
+    }
+
+    $target_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT) ?: 0;
+    $full_name = trim($_POST['full_name'] ?? '');
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $role = ($_POST['role'] ?? '') === 'admin' ? 'admin' : 'user';
+    $status = in_array($_POST['status'] ?? '', ['active', 'inactive', 'locked'], true) ? $_POST['status'] : 'active';
+    $password = $_POST['password'] ?? '';
+
+    $edit_user = null;
+    if ($target_id) {
+        $stmtU = $conn->prepare("SELECT * FROM users WHERE id = :id LIMIT 1");
+        $stmtU->execute([':id' => $target_id]);
+        $edit_user = $stmtU->fetch(PDO::FETCH_ASSOC);
+        if (!$edit_user) {
+            set_flash_message('danger', 'Không tìm thấy người dùng cần chỉnh sửa.');
+            redirect('/admin/users.php');
+        }
+    }
+
+    $is_target_root = $target_id && (strtolower($edit_user['email']) === strtolower(ROOT_ADMIN_EMAIL));
+    $is_target_peer_admin = $target_id && ($edit_user['role'] === 'admin') && ($target_id !== (int)$_SESSION['user_id']) && !$is_root_admin;
+
+    // Bảo vệ tài khoản Root Admin
+    if ($is_target_root && !$is_root_admin) {
+        set_flash_message('danger', 'Chỉ tài khoản Root Admin (' . ROOT_ADMIN_EMAIL . ') mới có quyền chỉnh sửa tài khoản Root.');
+        redirect('/admin/users.php');
+    }
+
+    if ($is_target_root) {
+        $email = strtolower(ROOT_ADMIN_EMAIL);
+        $role = 'admin';
+        $status = 'active';
+    }
+
+    if ($is_target_peer_admin) {
+        $role = 'admin';
+        $status = $edit_user['status'];
+    }
+
+    $errors = [];
+    if ($full_name === '') $errors[] = 'Vui lòng nhập họ tên.';
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Vui lòng nhập email hợp lệ.';
+
+    if (!$is_target_root && $email === strtolower(ROOT_ADMIN_EMAIL)) {
+        $errors[] = 'Email này được bảo lưu cho tài khoản Root Admin (' . ROOT_ADMIN_EMAIL . ').';
+    }
+
+    if (!$target_id && trim($password) === '') $errors[] = 'Vui lòng nhập mật khẩu cho tài khoản mới.';
+    if ($password !== '' && trim($password) === '') $errors[] = 'Mật khẩu không được chỉ chứa khoảng trắng.';
+    if (trim($password) !== '' && strlen($password) < 8) $errors[] = 'Mật khẩu phải có ít nhất 8 ký tự.';
+    if ($target_id === (int)$_SESSION['user_id'] && ($role !== 'admin' || $status !== 'active')) {
+        $errors[] = 'Không thể tự hạ quyền hoặc khóa tài khoản quản trị đang đăng nhập của chính mình.';
+    }
+
+    if (!empty($errors)) {
+        set_flash_message('danger', implode(' ', $errors));
+        redirect('/admin/users.php');
+    }
+
+    // Kiểm tra trùng lặp email
+    $checkEmail = $conn->prepare('SELECT id FROM users WHERE email = :email AND id <> :id LIMIT 1');
+    $checkEmail->execute([':email' => $email, ':id' => $target_id]);
+    if ($checkEmail->fetchColumn()) {
+        set_flash_message('danger', 'Email này đã được sử dụng bởi một tài khoản khác.');
+        redirect('/admin/users.php');
+    }
+
+    $params = [':full_name' => $full_name, ':email' => $email, ':role' => $role, ':status' => $status];
+    if ($target_id) {
+        $params[':id'] = $target_id;
+        if (trim($password) !== '') {
+            $params[':password'] = password_hash($password, PASSWORD_DEFAULT);
+            $sql = 'UPDATE users SET full_name=:full_name, email=:email, role=:role, status=:status, password=:password WHERE id=:id';
+        } else {
+            $sql = 'UPDATE users SET full_name=:full_name, email=:email, role=:role, status=:status WHERE id=:id';
+        }
+    } else {
+        $params[':password'] = password_hash($password, PASSWORD_DEFAULT);
+        $sql = 'INSERT INTO users (full_name, email, password, role, status) VALUES (:full_name, :email, :password, :role, :status)';
+    }
+
+    $conn->prepare($sql)->execute($params);
+    if ($target_id === (int)$_SESSION['user_id']) {
+        $_SESSION['user_name'] = $full_name;
+        $_SESSION['full_name'] = $full_name;
+        $_SESSION['user_email'] = $email;
+    }
+    set_flash_message('success', $target_id ? 'Đã cập nhật thông tin người dùng “' . htmlspecialchars($full_name) . '” thành công.' : 'Đã thêm người dùng mới “' . htmlspecialchars($full_name) . '” thành công.');
+    redirect('/admin/users.php');
 }
 
 
@@ -286,9 +380,9 @@ require_once __DIR__ . '/../includes/header.php';
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#importExcelModal">
                         <i class="bi bi-file-earmark-excel me-1"></i>Nhập từ Excel
                     </button>
-                    <a href="<?php echo BASE_URL; ?>/admin/user-edit.php" class="btn btn-sm btn-outline-success rounded-pill">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill" onclick="openUserModal(null)">
                         <i class="bi bi-person-plus me-1"></i>Thêm người dùng
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -420,9 +514,9 @@ require_once __DIR__ . '/../includes/header.php';
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <?php if ($can_edit): ?>
-                                                        <a href="<?php echo BASE_URL; ?>/admin/user-edit.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-outline-primary" title="Sửa">
+                                                        <button type="button" class="btn btn-sm btn-outline-success" title="Sửa" onclick='openUserModal(<?php echo htmlspecialchars(json_encode($u, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE), ENT_QUOTES, "UTF-8"); ?>)'>
                                                             <i class="bi bi-pencil"></i>
-                                                        </a>
+                                                        </button>
                                                     <?php else: ?>
                                                         <button type="button" class="btn btn-sm btn-outline-secondary opacity-50" disabled title="<?php echo htmlspecialchars($edit_disabled_title); ?>">
                                                             <i class="bi bi-pencil"></i>
@@ -494,13 +588,13 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="modal fade" id="userModal<?php echo $u['id']; ?>" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title fw-bold">Chi tiết tài khoản</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <div class="modal-header bg-health text-white">
+                                <h5 class="modal-title fw-bold text-white"><i class="bi bi-person-badge me-2"></i>Chi tiết tài khoản</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="<?php echo $is_this_root ? 'bg-dark text-warning border border-warning' : ($u['role'] === 'admin' ? 'bg-danger text-white' : 'bg-primary text-white'); ?> rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 20px;">
+                                    <div class="<?php echo $is_this_root ? 'bg-dark text-warning border border-warning' : ($u['role'] === 'admin' ? 'bg-danger text-white' : 'bg-success text-white'); ?> rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 20px;">
                                         <?php echo strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8')); ?>
                                     </div>
                                     <div>
@@ -555,7 +649,7 @@ require_once __DIR__ . '/../includes/header.php';
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                 <input type="hidden" name="action" value="import_excel">
-                <div class="modal-header bg-success text-white">
+                <div class="modal-header bg-health text-white">
                     <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-excel me-2"></i>Nhập Quản trị viên từ Excel</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -570,14 +664,14 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
 
                     <div class="alert alert-light border small mb-3">
-                        <div class="fw-bold mb-1"><i class="bi bi-info-circle text-primary me-1"></i>Cấu trúc các cột trong file:</div>
+                        <div class="fw-bold mb-1"><i class="bi bi-info-circle text-success me-1"></i>Cấu trúc các cột trong file:</div>
                         <ul class="mb-2 ps-3">
                             <li>Cột 1 (hoặc 2 nếu có STT): <strong>Họ Và Tên</strong> (bắt buộc)</li>
                             <li>Cột 2 (hoặc 3): <strong>Email</strong> (bắt buộc, không trùng lặp)</li>
                             <li>Cột 3 (hoặc 4): <strong>Mật khẩu</strong> (mặc định: 12345678 nếu để trống)</li>
                         </ul>
                         <div class="text-end">
-                            <a href="?action=sample_excel" class="btn btn-sm btn-outline-primary">
+                            <a href="?action=sample_excel" class="btn btn-sm btn-outline-success">
                                 <i class="bi bi-download me-1"></i>Tải file Excel mẫu (.xlsx)
                             </a>
                         </div>
@@ -682,6 +776,149 @@ function submitSingleAction(action, userId) {
     document.getElementById('singleActionType').value = action;
     document.getElementById('singleActionUserId').value = userId;
     document.getElementById('singleActionForm').submit();
+}
+</script>
+
+<!-- Modal Thêm / Sửa Người Dùng (In-Page CRUD) -->
+<div class="modal fade" id="userFormModal" tabindex="-1" aria-labelledby="userFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" id="userForm">
+                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                <input type="hidden" name="action" value="save_user">
+                <input type="hidden" name="user_id" id="usr_modal_id" value="0">
+
+                <div class="modal-header border-0 pb-0 bg-health text-white p-4">
+                    <h5 class="modal-title fw-bold" id="userFormModalLabel">
+                        <i class="bi bi-person-fill-gear me-2"></i><span id="usr_modal_title">Thêm Người Dùng Mới</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="usr_modal_alert" class="alert alert-warning small d-none mb-3"></div>
+
+                    <div class="mb-3">
+                        <label for="usr_modal_name" class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="usr_modal_name" name="full_name" required placeholder="Ví dụ: Nguyễn Văn A..." maxlength="100" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="usr_modal_email" class="form-label fw-bold">Địa chỉ Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control rounded-3" id="usr_modal_email" name="email" required placeholder="name@example.com" maxlength="150" autocomplete="off">
+                        <div id="usr_modal_email_note" class="form-text small d-none text-muted">Email Root Admin được bảo vệ cố định.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="usr_modal_password" class="form-label fw-bold">
+                            Mật khẩu <span id="usr_modal_pwd_req" class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control rounded-3" id="usr_modal_password" name="password" placeholder="Tối thiểu 8 ký tự" minlength="8" autocomplete="new-password">
+                        <div id="usr_modal_pwd_help" class="form-text small text-muted">Bắt buộc tối thiểu 8 ký tự khi tạo mới.</div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="usr_modal_role" class="form-label fw-bold">Vai trò</label>
+                            <select class="form-select rounded-3" id="usr_modal_role" name="role">
+                                <option value="user">Khách hàng (User)</option>
+                                <option value="admin">Quản trị viên (Admin)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="usr_modal_status" class="form-label fw-bold">Trạng thái</label>
+                            <select class="form-select rounded-3" id="usr_modal_status" name="status">
+                                <option value="active">Đang hoạt động</option>
+                                <option value="locked">Đã khóa</option>
+                                <option value="inactive">Tạm ngưng</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" id="usr_modal_submit_btn">
+                        <i class="bi bi-check-circle me-1"></i>Lưu Người Dùng
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const ROOT_EMAIL = '<?php echo strtolower(ROOT_ADMIN_EMAIL); ?>';
+const IS_ROOT_ADMIN = <?php echo $is_root_admin ? 'true' : 'false'; ?>;
+const CURRENT_USER_ID = <?php echo (int)($_SESSION['user_id'] ?? 0); ?>;
+
+function openUserModal(u) {
+    const modalEl = document.getElementById('userFormModal');
+    const modalTitle = document.getElementById('usr_modal_title');
+    const idInput = document.getElementById('usr_modal_id');
+    const nameInput = document.getElementById('usr_modal_name');
+    const emailInput = document.getElementById('usr_modal_email');
+    const pwdInput = document.getElementById('usr_modal_password');
+    const pwdReq = document.getElementById('usr_modal_pwd_req');
+    const pwdHelp = document.getElementById('usr_modal_pwd_help');
+    const roleSelect = document.getElementById('usr_modal_role');
+    const statusSelect = document.getElementById('usr_modal_status');
+    const submitBtn = document.getElementById('usr_modal_submit_btn');
+    const alertBox = document.getElementById('usr_modal_alert');
+    const emailNote = document.getElementById('usr_modal_email_note');
+
+    alertBox.classList.add('d-none');
+    emailNote.classList.add('d-none');
+    emailInput.readOnly = false;
+    roleSelect.disabled = false;
+    statusSelect.disabled = false;
+    pwdInput.value = '';
+
+    if (!u) {
+        modalTitle.textContent = 'Thêm Người Dùng Mới';
+        idInput.value = '0';
+        nameInput.value = '';
+        emailInput.value = '';
+        roleSelect.value = 'user';
+        statusSelect.value = 'active';
+        pwdInput.required = true;
+        pwdReq.classList.remove('d-none');
+        pwdHelp.textContent = 'Bắt buộc tối thiểu 8 ký tự cho tài khoản mới.';
+        submitBtn.innerHTML = '<i class="bi bi-person-plus me-1"></i>Thêm Mới';
+    } else {
+        modalTitle.textContent = 'Chỉnh Sửa Người Dùng: ' + u.full_name;
+        idInput.value = u.id || 0;
+        nameInput.value = u.full_name || '';
+        emailInput.value = u.email || '';
+        roleSelect.value = u.role || 'user';
+        statusSelect.value = u.status || 'active';
+        pwdInput.required = false;
+        pwdReq.classList.add('d-none');
+        pwdHelp.textContent = 'Để trống nếu không muốn đổi mật khẩu hiện tại.';
+        submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Cập Nhật';
+
+        const isTargetRoot = (u.email || '').toLowerCase() === ROOT_EMAIL;
+        const isTargetPeerAdmin = (u.role === 'admin') && (u.id !== CURRENT_USER_ID) && !IS_ROOT_ADMIN;
+        const isSelf = (u.id === CURRENT_USER_ID);
+
+        if (isTargetRoot) {
+            emailInput.readOnly = true;
+            roleSelect.disabled = true;
+            statusSelect.disabled = true;
+            emailNote.classList.remove('d-none');
+            alertBox.innerHTML = '<i class="bi bi-shield-shaded me-1"></i> <strong>Tài khoản Root Admin tối cao.</strong> Email, quyền quản trị và trạng thái được bảo vệ vĩnh viễn.';
+            alertBox.classList.remove('d-none');
+        } else if (isTargetPeerAdmin) {
+            roleSelect.disabled = true;
+            statusSelect.disabled = true;
+            alertBox.innerHTML = '<i class="bi bi-shield-lock me-1"></i> <strong>Quản trị viên cùng cấp.</strong> Bạn chỉ có thể cập nhật thông tin họ tên/mật khẩu, không thể hạ quyền hoặc khóa tài khoản của nhau.';
+            alertBox.classList.remove('d-none');
+        } else if (isSelf) {
+            roleSelect.disabled = true;
+            statusSelect.disabled = true;
+            alertBox.innerHTML = '<i class="bi bi-info-circle me-1"></i> Đây là tài khoản của bạn. Không thể tự hạ quyền hoặc tự khóa tài khoản.';
+            alertBox.classList.remove('d-none');
+        }
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+    setTimeout(() => { nameInput.focus(); }, 400);
 }
 </script>
 

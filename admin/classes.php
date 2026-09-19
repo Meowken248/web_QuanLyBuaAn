@@ -87,7 +87,7 @@ require_once '../includes/header.php';
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold"><i class="bi bi-mortarboard text-primary me-2"></i>Quản lý Lớp học & Sinh viên</h2>
-                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill" data-bs-toggle="modal" data-bs-target="#addClassModal">
                     <i class="bi bi-plus-circle me-1"></i>Thêm Lớp Mới
                 </button>
             </div>
@@ -169,7 +169,7 @@ require_once '../includes/header.php';
         <div class="modal-content rounded-4 border-0 shadow">
             <form method="post" id="addClassForm" novalidate>
                 <div class="modal-header border-bottom-0">
-                    <h5 class="modal-title fw-bold" id="addClassModalLabel"><i class="bi bi-plus-circle text-primary me-2"></i>Thêm Lớp Học Mới</h5>
+                    <h5 class="modal-title fw-bold" id="addClassModalLabel"><i class="bi bi-plus-circle text-success me-2"></i>Thêm Lớp Học Mới</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -187,7 +187,7 @@ require_once '../includes/header.php';
                 </div>
                 <div class="modal-footer border-top-0">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">Lưu Lớp Học</button>
+                    <button type="submit" class="btn btn-outline-success rounded-pill px-4 shadow-sm">Lưu Lớp Học</button>
                 </div>
             </form>
         </div>

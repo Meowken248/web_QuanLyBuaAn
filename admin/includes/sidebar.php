@@ -3,18 +3,23 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 // BUG-02: Đếm số tin nhắn hỗ trợ chưa đọc để hiển thị badge trên menu admin
 $admin_unread_support = 0;
+$admin_unread_contacts = 0;
 if (isset($conn)) {
     try {
         $stmtSb = $conn->query("SELECT COUNT(*) FROM support_messages WHERE sender_type = 'user' AND is_read = 0");
         $admin_unread_support = (int)$stmtSb->fetchColumn();
+
+        $stmtCt = $conn->query("SELECT COUNT(*) FROM contact_messages WHERE status = 'new'");
+        $admin_unread_contacts = (int)$stmtCt->fetchColumn();
     } catch (Exception $e) {
         $admin_unread_support = 0;
+        $admin_unread_contacts = 0;
     }
 }
 ?>
 <!-- Mobile Toggle Button -->
 <div class="d-md-none mb-3">
-    <button class="btn btn-primary w-100 fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar" aria-controls="adminSidebar">
+    <button class="btn btn-success w-100 fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar" aria-controls="adminSidebar">
         <i class="bi bi-list me-2"></i>Menu Quản trị    
     </button>
 </div>
@@ -47,8 +52,13 @@ if (isset($conn)) {
             <a href="<?php echo BASE_URL; ?>/admin/food-categories.php" class="admin-sidebar-item <?php echo in_array($current_page, ['food-categories.php', 'food-category-edit.php']) ? 'active' : ''; ?>">
                 <i class="bi bi-tags me-2"></i>Danh mục món ăn
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="admin-sidebar-item <?php echo in_array($current_page, ['contact-messages.php', 'contact-message-view.php']) ? 'active' : ''; ?>">
-                <i class="bi bi-envelope me-2"></i>Hộp thư liên hệ
+            <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="admin-sidebar-item d-flex justify-content-between align-items-center <?php echo in_array($current_page, ['contact-messages.php', 'contact-message-view.php']) ? 'active' : ''; ?>">
+                <span><i class="bi bi-envelope me-2"></i>Hộp thư liên hệ</span>
+                <span id="adminSidebarContactBadgeContainer">
+                <?php if ($admin_unread_contacts > 0): ?>
+                    <span class="badge bg-danger rounded-pill"><?php echo $admin_unread_contacts; ?></span>
+                <?php endif; ?>
+                </span>
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/support-chats.php" class="admin-sidebar-item d-flex justify-content-between align-items-center <?php echo in_array($current_page, ['support-chats.php', 'support-chat-view.php']) ? 'active' : ''; ?>">
                 <span><i class="bi bi-chat-dots me-2"></i>Hỗ trợ trực tuyến</span>

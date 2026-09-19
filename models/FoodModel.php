@@ -100,7 +100,12 @@ class FoodModel {
         $query = "SELECT f.*, c.name as category_name 
                   FROM " . $this->table_name . " f
                   LEFT JOIN food_categories c ON f.category_id = c.id
-                  WHERE f.status = 'active' AND FIND_IN_SET(:season, f.season) > 0";
+                  WHERE f.status = 'active' AND (
+                      FIND_IN_SET(:season, f.season) > 0
+                      OR f.season = 'all'
+                      OR f.season = 'bon_mua'
+                      OR FIND_IN_SET('all', f.season) > 0
+                  )";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':season', $season);
         $stmt->execute();

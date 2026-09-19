@@ -93,6 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$error && !$field_errors) {
+        $seasons = $_POST['season'] ?? [];
+        if (is_array($seasons)) {
+            $validSeasons = ['xuan', 'he', 'thu', 'dong'];
+            $cleanSeasons = array_values(array_intersect($validSeasons, $seasons));
+            $seasonStr = !empty($cleanSeasons) ? implode(',', $cleanSeasons) : 'xuan,he,thu,dong';
+        } else {
+            $seasonStr = 'xuan,he,thu,dong';
+        }
+
         $slug_base = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: $name), '-'));
         $params = [
             ':category_id' => $category_id, ':name' => $name, ':slug' => $slug_base . '-' . ($id ?: time()),
@@ -100,13 +109,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':ingredients' => trim($_POST['ingredients'] ?? ''), ':instructions' => trim($_POST['instructions'] ?? ''),
             ':serving_size' => $serving_size, ':serving_unit' => $serving_unit, ':calories' => $nutrients['calories'],
             ':protein' => $nutrients['protein'], ':carbs' => $nutrients['carbs'], ':fat' => $nutrients['fat'],
-            ':fiber' => $nutrients['fiber'], ':status' => ($_POST['status'] ?? '') === 'inactive' ? 'inactive' : 'active'
+            ':fiber' => $nutrients['fiber'], ':season' => $seasonStr, ':status' => ($_POST['status'] ?? '') === 'inactive' ? 'inactive' : 'active'
         ];
         if ($id) {
             $params[':id'] = $id;
-            $sql = 'UPDATE foods SET category_id=:category_id,name=:name,slug=:slug,image=:image,description=:description,ingredients=:ingredients,instructions=:instructions,serving_size=:serving_size,serving_unit=:serving_unit,calories=:calories,protein=:protein,carbs=:carbs,fat=:fat,fiber=:fiber,status=:status WHERE id=:id';
+            $sql = 'UPDATE foods SET category_id=:category_id,name=:name,slug=:slug,image=:image,description=:description,ingredients=:ingredients,instructions=:instructions,serving_size=:serving_size,serving_unit=:serving_unit,calories=:calories,protein=:protein,carbs=:carbs,fat=:fat,fiber=:fiber,season=:season,status=:status WHERE id=:id';
         } else {
-            $sql = 'INSERT INTO foods (category_id,name,slug,image,description,ingredients,instructions,serving_size,serving_unit,calories,protein,carbs,fat,fiber,status,created_by) VALUES (:category_id,:name,:slug,:image,:description,:ingredients,:instructions,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,:status,' . (int)$_SESSION['user_id'] . ')';
+            $sql = 'INSERT INTO foods (category_id,name,slug,image,description,ingredients,instructions,serving_size,serving_unit,calories,protein,carbs,fat,fiber,season,status,created_by) VALUES (:category_id,:name,:slug,:image,:description,:ingredients,:instructions,:serving_size,:serving_unit,:calories,:protein,:carbs,:fat,:fiber,:season,:status,' . (int)$_SESSION['user_id'] . ')';
         }
         $conn->prepare($sql)->execute($params);
         set_flash_message('success', $id ? 'Đã cập nhật món ăn.' : 'Đã thêm món ăn mới.');
@@ -143,12 +152,49 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="col-md-4"><label class="form-label fw-bold">Khẩu phần <span class="text-danger">*</span></label><input id="serving_size" type="number" step="0.01" min="0.01" class="form-control <?php echo isset($field_errors['serving_size']) ? 'is-invalid' : ''; ?>" name="serving_size" value="<?php echo food_form_value('serving_size', $food, '100'); ?>" required><div class="invalid-feedback" id="serving_size_error"><?php echo htmlspecialchars($field_errors['serving_size'] ?? 'Khẩu phần phải lớn hơn 0.'); ?></div></div>
 <div class="col-md-4"><label class="form-label fw-bold">Đơn vị <span class="text-danger">*</span></label><input id="serving_unit" class="form-control <?php echo isset($field_errors['serving_unit']) ? 'is-invalid' : ''; ?>" name="serving_unit" value="<?php echo food_form_value('serving_unit', $food, 'gram'); ?>" required autocomplete="off"><div class="invalid-feedback" id="serving_unit_error"><?php echo htmlspecialchars($field_errors['serving_unit'] ?? 'Vui lòng nhập đơn vị.'); ?></div></div>
 <div class="col-md-4"><label class="form-label fw-bold">Trạng thái</label><select class="form-select" name="status"><option value="active">Hoạt động</option><option value="inactive" <?php echo ($_POST['status'] ?? $food['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Ẩn</option></select></div>
+<?php
+$currentSeasons = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $currentSeasons = (array)($_POST['season'] ?? []);
+} elseif ($food && !empty($food['season'])) {
+    $currentSeasons = explode(',', $food['season']);
+} else {
+    $currentSeasons = ['xuan', 'he', 'thu', 'dong'];
+}
+?>
+<div class="col-12">
+    <label class="form-label fw-bold d-flex justify-content-between align-items-center mb-1">
+        <span><i class="bi bi-cloud-sun me-1 text-success"></i> Mùa / Thời tiết phù hợp <span class="text-muted fw-normal small">(Dùng cho Gợi ý Thực đơn Thông minh AI theo mùa)</span></span>
+        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-success fw-bold" onclick="toggleAllSeasons()">
+            <i class="bi bi-check2-all me-1"></i>Chọn cả 4 mùa (Quanh năm)
+        </button>
+    </label>
+    <div class="p-3 bg-light rounded-3 border d-flex flex-wrap gap-4 align-items-center">
+        <div class="form-check form-check-inline m-0">
+            <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_xuan" value="xuan" <?php echo in_array('xuan', $currentSeasons) || in_array('all', $currentSeasons) ? 'checked' : ''; ?>>
+            <label class="form-check-label fw-semibold" for="season_xuan">🌸 Mùa Xuân (Ấm áp)</label>
+        </div>
+        <div class="form-check form-check-inline m-0">
+            <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_he" value="he" <?php echo in_array('he', $currentSeasons) || in_array('all', $currentSeasons) ? 'checked' : ''; ?>>
+            <label class="form-check-label fw-semibold" for="season_he">☀️ Mùa Hè (Thanh nhiệt)</label>
+        </div>
+        <div class="form-check form-check-inline m-0">
+            <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_thu" value="thu" <?php echo in_array('thu', $currentSeasons) || in_array('all', $currentSeasons) ? 'checked' : ''; ?>>
+            <label class="form-check-label fw-semibold" for="season_thu">🍂 Mùa Thu (Mát mẻ)</label>
+        </div>
+        <div class="form-check form-check-inline m-0">
+            <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_dong" value="dong" <?php echo in_array('dong', $currentSeasons) || in_array('all', $currentSeasons) ? 'checked' : ''; ?>>
+            <label class="form-check-label fw-semibold" for="season_dong">❄️ Mùa Đông (Ấm bụng)</label>
+        </div>
+    </div>
+    <div class="form-text small text-muted">Nếu chọn cả 4 mùa hoặc để trống, món ăn sẽ tự động được xếp vào thực đơn quanh năm.</div>
+</div>
 <?php foreach (['calories'=>'Calories','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $key=>$label): ?>
 <div class="col-md"><label class="form-label fw-bold"><?php echo $label; ?> <?php if($key !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label><input type="number" min="0" step="0.01" data-clear-zero class="form-control <?php echo isset($field_errors[$key]) ? 'is-invalid' : ''; ?> <?php echo $key === 'calories' ? 'bg-light text-muted fw-bold' : ''; ?>" name="<?php echo $key; ?>" placeholder="0.00" value="<?php echo food_form_value($key, $food, ''); ?>" <?php echo $key === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors[$key] ?? 'Giá trị phải lớn hơn hoặc bằng 0.'); ?></div></div>
 <?php endforeach; ?>
 <div class="col-12"><div class="form-text">Calories tham khảo = Protein × 4 + Carbs × 4 + Fat × 9. Nếu đơn vị là gram, tổng macros và chất xơ không được vượt khẩu phần.</div></div>
 </div>
-<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/foods.php">Hủy</a><button class="btn btn-outline-primary rounded-pill px-4 shadow-sm">Lưu món ăn</button></div>
+<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/foods.php">Hủy</a><button class="btn btn-outline-success rounded-pill px-4 shadow-sm">Lưu món ăn</button></div>
 </form></div></div></div></div></div>
 <script>
 document.querySelectorAll('[data-clear-zero]').forEach(input => {
@@ -166,6 +212,12 @@ if (calInput && macros.length > 0) {
         calInput.value = (p * 4 + c * 4 + f * 9).toFixed(2);
     };
     macros.forEach(el => el.addEventListener('input', calcCals));
+}
+
+function toggleAllSeasons() {
+    const seasonCheckboxes = document.querySelectorAll('.season-checkbox');
+    const allChecked = Array.from(seasonCheckboxes).every(cb => cb.checked);
+    seasonCheckboxes.forEach(cb => { cb.checked = !allChecked; });
 }
 
 // Client-side validation for Food Form
