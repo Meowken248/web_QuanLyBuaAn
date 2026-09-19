@@ -129,26 +129,26 @@ require_once __DIR__ . '/../includes/header.php';
     <!-- Tabs Bộ lọc -->
     <ul class="nav nav-pills mb-3 border-bottom pb-2">
         <li class="nav-item">
-            <a class="nav-link rounded-pill <?php echo $filter === 'all' ? 'active bg-primary' : 'text-dark'; ?>" href="?filter=all">
-                Tất cả <span class="badge bg-secondary ms-1"><?php echo $count_all; ?></span>
+            <a class="nav-link rounded-pill <?php echo $filter === 'all' ? 'active bg-success text-white' : 'text-dark'; ?>" href="?filter=all">
+                Tất cả <span class="badge <?php echo $filter === 'all' ? 'bg-light text-success' : 'bg-secondary'; ?> ms-1"><?php echo $count_all; ?></span>
             </a>
         </li>
         <li class="nav-item ms-2">
-            <a class="nav-link rounded-pill <?php echo $filter === 'unread' ? 'active bg-primary' : 'text-dark'; ?>" href="?filter=unread">
+            <a class="nav-link rounded-pill <?php echo $filter === 'unread' ? 'active bg-success text-white' : 'text-dark'; ?>" href="?filter=unread">
                 Chưa đọc <?php if ($count_unread > 0): ?><span class="badge bg-danger ms-1"><?php echo $count_unread; ?></span><?php endif; ?>
             </a>
         </li>
         <li class="nav-item ms-2">
-            <a class="nav-link rounded-pill <?php echo $filter === 'read' ? 'active bg-primary' : 'text-dark'; ?>" href="?filter=read">
+            <a class="nav-link rounded-pill <?php echo $filter === 'read' ? 'active bg-success text-white' : 'text-dark'; ?>" href="?filter=read">
                 Đã đọc <span class="badge bg-light text-dark border ms-1"><?php echo $count_read; ?></span>
             </a>
         </li>
     </ul>
 
-    <div class="card shadow-sm border-0 rounded-3">
+    <div class="card glass-card shadow-sm border-0 rounded-4 overflow-hidden">
         <div class="card-body p-0">
             <?php if (count($notifications) > 0): ?>
-                <div class="list-group list-group-flush rounded-3">
+                <div class="list-group list-group-flush">
                     <?php foreach ($notifications as $n): ?>
                         <?php 
                             $clean_msg = preg_replace('/^\[UID:\d+\]\s*/', '', $n['message']);
@@ -158,15 +158,15 @@ require_once __DIR__ . '/../includes/header.php';
                             }
                             $is_chat_notif = str_starts_with($n['title'], '💬 Tin nhắn') || str_starts_with($n['title'], '💬 Phản hồi');
                         ?>
-                        <div id="notif-<?php echo $n['id']; ?>" class="list-group-item py-3 <?php echo $n['is_read'] ? '' : 'bg-light border-start border-primary border-4'; ?>">
+                        <div id="notif-<?php echo $n['id']; ?>" class="list-group-item py-3 <?php echo $n['is_read'] ? '' : 'notif-unread-glass'; ?>" style="border-bottom: 1px solid rgba(0,0,0,0.05);">
                             <div class="d-flex w-100 justify-content-between align-items-start mb-1">
-                                <h5 class="mb-1 fw-bold <?php echo $n['is_read'] ? 'text-dark' : 'text-primary'; ?>">
+                                <h5 class="mb-1 fw-bold text-dark">
                                     <?php 
                                         $icon = 'bi-info-circle text-info';
                                         if ($n['type'] == 'success') $icon = 'bi-check-circle text-success';
                                         if ($n['type'] == 'warning') $icon = 'bi-exclamation-triangle text-warning';
                                         if ($n['type'] == 'danger') $icon = 'bi-x-circle text-danger';
-                                        if ($is_chat_notif) $icon = 'bi-chat-dots-fill text-primary';
+                                        if ($is_chat_notif) $icon = 'bi-chat-dots-fill text-success';
                                     ?>
                                     <i class="bi <?php echo $icon; ?> me-2"></i>
                                     <?php echo htmlspecialchars($n['title']); ?>
@@ -176,7 +176,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <p class="mb-2 ms-4 text-secondary" style="font-size: 0.95rem;"><?php echo nl2br(htmlspecialchars($clean_msg)); ?></p>
                             <div class="d-flex justify-content-end align-items-center gap-2 mt-2">
                                 <?php if ($is_admin && $chat_user_id): ?>
-                                    <a href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $chat_user_id; ?>" class="btn btn-sm btn-primary">
+                                    <a href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $chat_user_id; ?>" class="btn btn-sm btn-success">
                                         <i class="bi bi-chat-dots me-1"></i>Mở hội thoại
                                     </a>
                                 <?php elseif (!$is_admin && str_starts_with($n['title'], '💬 Phản hồi')): ?>
@@ -186,7 +186,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 <?php endif; ?>
 
                                 <?php if (!$n['is_read']): ?>
-                                    <a href="?read=<?php echo $n['id']; ?>&filter=<?php echo $filter; ?>" class="btn btn-sm btn-outline-primary">
+                                    <a href="?read=<?php echo $n['id']; ?>&filter=<?php echo $filter; ?>" class="btn btn-sm btn-outline-success">
                                         <i class="bi bi-check2 me-1"></i>Đánh dấu đã đọc
                                     </a>
                                 <?php endif; ?>

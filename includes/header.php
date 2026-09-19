@@ -149,38 +149,44 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                 <?php endif; ?>
                             </span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" aria-labelledby="dropdownNotification" style="min-width: 330px; max-width: 380px; overflow: hidden;">
-                            <li class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
-                                <h6 class="dropdown-header fw-bold text-dark p-0 m-0"><i class="bi bi-bell me-1 text-primary"></i>Thông báo mới</h6>
-                                <a href="#" id="headerMarkAllReadBtn" class="small text-primary text-decoration-none fw-semibold" style="font-size: 0.75rem;">Đã đọc tất cả</a>
+                        <ul class="dropdown-menu dropdown-menu-end notif-dropdown-menu mt-2" aria-labelledby="dropdownNotification">
+                            <li class="d-flex justify-content-between align-items-center notif-dropdown-header">
+                                <h6 class="fw-bold text-dark p-0 m-0" style="font-size: 0.9rem;"><i class="bi bi-bell-fill me-2 text-success"></i>Thông báo mới</h6>
+                                <a href="#" id="headerMarkAllReadBtn" class="small text-success text-decoration-none fw-semibold" style="font-size: 0.75rem;">Đã đọc tất cả</a>
                             </li>
                             <div id="headerNotificationDropdownItems" style="max-height: 360px; overflow-y: auto;">
                                 <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin' && !empty($unread_support_chats)): ?>
                                     <?php foreach ($unread_support_chats as $usc): ?>
                                         <li>
-                                            <a class="dropdown-item py-2 border-bottom bg-light" href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $usc['user_id']; ?>">
+                                            <a class="notif-item notif-unread" href="<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=<?php echo $usc['user_id']; ?>">
                                                 <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                                                    <h6 class="mb-0 text-primary fw-bold text-truncate" style="max-width: 190px;">
-                                                        <i class="bi bi-chat-dots-fill me-1 text-success"></i><?php echo htmlspecialchars($usc['full_name']); ?>
-                                                    </h6>
-                                                    <span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;"><?php echo $usc['unread_user_msgs']; ?> tin mới</span>
+                                                    <div class="d-flex align-items-center me-2 flex-grow-1" style="min-width: 0;">
+                                                        <span class="notif-unread-dot"></span>
+                                                        <h6 class="mb-0 notif-item-title text-truncate">
+                                                            <i class="bi bi-chat-dots-fill me-1 text-success"></i><?php echo htmlspecialchars($usc['full_name']); ?>
+                                                        </h6>
+                                                    </div>
+                                                    <span class="badge bg-success rounded-pill text-nowrap flex-shrink-0" style="font-size: 0.65rem; font-weight: 600;"><?php echo $usc['unread_user_msgs']; ?> tin mới</span>
                                                 </div>
-                                                <p class="mb-1 text-muted text-truncate" style="font-size: 0.8rem; max-width: 250px;">
+                                                <p class="mb-1 notif-item-preview text-truncate">
                                                     <?php echo htmlspecialchars($usc['message']); ?>
                                                 </p>
-                                                <small class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-clock me-1"></i><?php echo date('H:i d/m', strtotime($usc['created_at'])); ?></small>
+                                                <small class="notif-item-time"><i class="bi bi-clock me-1"></i><?php echo date('H:i d/m', strtotime($usc['created_at'])); ?></small>
                                             </a>
                                         </li>
                                     <?php endforeach; ?>
                                 <?php elseif (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin'): ?>
                                     <?php if ($unread_support_count > 0): ?>
                                         <li>
-                                            <a class="dropdown-item py-2 border-bottom bg-light" href="#" onclick="var w=document.getElementById('chatbot-window'); if(w){w.classList.remove('d-none');} var at=document.getElementById('admin-tab'); if(at){at.click();} return false;">
+                                            <a class="notif-item notif-unread" href="#" onclick="var w=document.getElementById('chatbot-window'); if(w){w.classList.remove('d-none');} var at=document.getElementById('admin-tab'); if(at){at.click();} return false;">
                                                 <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                                                    <h6 class="mb-0 text-primary fw-bold text-truncate"><i class="bi bi-chat-dots-fill me-1 text-success"></i>Hỗ trợ trực tuyến</h6>
-                                                    <span class="badge bg-danger rounded-pill"><?php echo $unread_support_count; ?> mới</span>
+                                                    <div class="d-flex align-items-center me-2 flex-grow-1" style="min-width: 0;">
+                                                        <span class="notif-unread-dot"></span>
+                                                        <h6 class="mb-0 notif-item-title text-truncate"><i class="bi bi-chat-dots-fill me-1 text-success"></i>Hỗ trợ trực tuyến</h6>
+                                                    </div>
+                                                    <span class="badge bg-success rounded-pill text-nowrap flex-shrink-0" style="font-size: 0.65rem;"><?php echo $unread_support_count; ?> mới</span>
                                                 </div>
-                                                <p class="mb-0 text-muted" style="font-size: 0.8rem;">
+                                                <p class="mb-0 notif-item-preview">
                                                     Bạn có phản hồi mới từ ban quản trị.
                                                 </p>
                                             </a>
@@ -195,7 +201,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                     
                                     if (count($notifs) > 0) {
                                         foreach ($notifs as $n) {
-                                            $bg = $n['is_read'] ? '' : 'bg-light border-start border-primary border-3';
+                                            $item_class = $n['is_read'] ? 'notif-item' : 'notif-item notif-unread';
                                             $display_msg = preg_replace('/^\[UID:\d+\]\s*/', '', $n['message']);
                                             
                                             // Điều hướng thông minh
@@ -208,20 +214,25 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                                                 }
                                             }
 
-                                            echo '<li><a class="dropdown-item py-2 border-bottom ' . $bg . '" href="' . $target_link . '">';
-                                            echo '<div class="d-flex w-100 justify-content-between align-items-start">';
-                                            echo '<h6 class="mb-1 text-truncate fw-semibold ' . ($n['is_read'] ? 'text-dark' : 'text-primary') . '" style="max-width: 210px;">' . htmlspecialchars($n['title']) . '</h6>';
-                                            echo '<small class="text-muted" style="font-size: 0.7rem;">' . date('d/m H:i', strtotime($n['created_at'])) . '</small>';
+                                            echo '<li><a class="' . $item_class . '" href="' . $target_link . '">';
+                                            echo '<div class="d-flex w-100 justify-content-between align-items-center mb-1">';
+                                            echo '<div class="d-flex align-items-center me-2 flex-grow-1" style="min-width: 0;">';
+                                            if (!$n['is_read']) {
+                                                echo '<span class="notif-unread-dot"></span>';
+                                            }
+                                            echo '<h6 class="mb-0 notif-item-title text-truncate">' . htmlspecialchars($n['title']) . '</h6>';
                                             echo '</div>';
-                                            echo '<p class="mb-0 text-muted text-truncate" style="font-size: 0.8rem; max-width: 270px;">' . htmlspecialchars($display_msg) . '</p>';
+                                            echo '<small class="notif-item-time text-nowrap flex-shrink-0">' . date('d/m H:i', strtotime($n['created_at'])) . '</small>';
+                                            echo '</div>';
+                                            echo '<p class="mb-0 notif-item-preview text-truncate">' . htmlspecialchars($display_msg) . '</p>';
                                             echo '</a></li>';
                                         }
                                     } elseif (empty($unread_support_chats) && $unread_support_count === 0) {
-                                        echo '<li><div class="text-muted text-center py-4 small"><i class="bi bi-bell-slash d-block mb-1 fs-4 text-secondary"></i>Không có thông báo mới</div></li>';
+                                        echo '<li><div class="text-muted text-center py-4 small"><i class="bi bi-bell-slash d-block mb-1 fs-4 text-secondary opacity-50"></i>Không có thông báo mới</div></li>';
                                     }
                                 ?>
                             </div>
-                            <li class="bg-white border-top"><a class="dropdown-item text-center text-primary fw-bold py-2" href="<?php echo BASE_URL; ?>/user/notifications.php">Xem tất cả thông báo</a></li>
+                            <li class="notif-dropdown-footer text-center"><a class="dropdown-item text-center fw-bold py-1 rounded" href="<?php echo BASE_URL; ?>/user/notifications.php">Xem tất cả thông báo</a></li>
                         </ul>
                     </div>
 

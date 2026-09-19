@@ -201,17 +201,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (data.support_items && data.support_items.length > 0) {
                             data.support_items.forEach(function(usc) {
                                 html += '<li>' +
-                                    '<a class="dropdown-item py-2 border-bottom bg-light" href="' + basePath + '/admin/support-chats.php?user_id=' + usc.user_id + '">' +
+                                    '<a class="notif-item notif-unread" href="' + basePath + '/admin/support-chats.php?user_id=' + usc.user_id + '">' +
                                         '<div class="d-flex w-100 justify-content-between align-items-center mb-1">' +
-                                            '<h6 class="mb-0 text-primary fw-bold text-truncate" style="max-width: 190px;">' +
-                                                '<i class="bi bi-chat-dots-fill me-1 text-success"></i>' + escapeHtml(usc.full_name) +
-                                            '</h6>' +
-                                            '<span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;">' + usc.unread_count + ' tin mới</span>' +
+                                            '<div class="d-flex align-items-center me-2 flex-grow-1" style="min-width: 0;">' +
+                                                '<span class="notif-unread-dot"></span>' +
+                                                '<h6 class="mb-0 notif-item-title text-truncate">' +
+                                                    '<i class="bi bi-chat-dots-fill me-1 text-success"></i>' + escapeHtml(usc.full_name) +
+                                                '</h6>' +
+                                            '</div>' +
+                                            '<span class="badge bg-success rounded-pill text-nowrap flex-shrink-0" style="font-size: 0.65rem; font-weight: 600;">' + usc.unread_count + ' tin mới</span>' +
                                         '</div>' +
-                                        '<p class="mb-1 text-muted text-truncate" style="font-size: 0.8rem; max-width: 250px;">' +
+                                        '<p class="mb-1 notif-item-preview text-truncate">' +
                                             escapeHtml(usc.message) +
                                         '</p>' +
-                                        '<small class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-clock me-1"></i>' + formatShortDate(usc.created_at) + '</small>' +
+                                        '<small class="notif-item-time"><i class="bi bi-clock me-1"></i>' + formatShortDate(usc.created_at) + '</small>' +
                                     '</a>' +
                                 '</li>';
                             });
@@ -219,12 +222,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         if (data.unread_support > 0) {
                             html += '<li>' +
-                                '<a class="dropdown-item py-2 border-bottom bg-light" href="#" onclick="var w=document.getElementById(\'chatbot-window\'); if(w){w.classList.remove(\'d-none\');} var at=document.getElementById(\'admin-tab\'); if(at){at.click();} return false;">' +
+                                '<a class="notif-item notif-unread" href="#" onclick="var w=document.getElementById(\'chatbot-window\'); if(w){w.classList.remove(\'d-none\');} var at=document.getElementById(\'admin-tab\'); if(at){at.click();} return false;">' +
                                     '<div class="d-flex w-100 justify-content-between align-items-center mb-1">' +
-                                        '<h6 class="mb-0 text-primary fw-bold text-truncate"><i class="bi bi-chat-dots-fill me-1 text-success"></i>Hỗ trợ trực tuyến</h6>' +
-                                        '<span class="badge bg-danger rounded-pill">' + data.unread_support + ' mới</span>' +
+                                        '<div class="d-flex align-items-center me-2 flex-grow-1" style="min-width: 0;">' +
+                                            '<span class="notif-unread-dot"></span>' +
+                                            '<h6 class="mb-0 notif-item-title text-truncate"><i class="bi bi-chat-dots-fill me-1 text-success"></i>Hỗ trợ trực tuyến</h6>' +
+                                        '</div>' +
+                                        '<span class="badge bg-success rounded-pill text-nowrap flex-shrink-0" style="font-size: 0.65rem;">' + data.unread_support + ' mới</span>' +
                                     '</div>' +
-                                    '<p class="mb-0 text-muted" style="font-size: 0.8rem;">' +
+                                    '<p class="mb-0 notif-item-preview">' +
                                         'Bạn có phản hồi mới từ ban quản trị.' +
                                     '</p>' +
                                 '</a>' +
@@ -235,8 +241,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Danh sách thông báo hệ thống
                     if (data.recent_notifications && data.recent_notifications.length > 0) {
                         data.recent_notifications.forEach(function(n) {
-                            var bg = n.is_read ? '' : 'bg-light border-start border-primary border-3';
-                            var titleColor = n.is_read ? 'text-dark' : 'text-primary';
+                            var isUnread = !n.is_read;
+                            var itemClass = isUnread ? 'notif-item notif-unread' : 'notif-item';
+                            var unreadDot = isUnread ? '<span class="notif-unread-dot"></span>' : '';
                             var displayMsg = (n.message || '').replace(/^\[UID:\d+\]\s*/, '');
                             var targetLink = basePath + '/user/notifications.php?read=' + n.id + '#notif-' + n.id;
 
@@ -250,17 +257,20 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
 
                             html += '<li>' +
-                                '<a class="dropdown-item py-2 border-bottom ' + bg + '" href="' + targetLink + '">' +
-                                    '<div class="d-flex w-100 justify-content-between align-items-start">' +
-                                        '<h6 class="mb-1 text-truncate fw-semibold ' + titleColor + '" style="max-width: 210px;">' + escapeHtml(n.title) + '</h6>' +
-                                        '<small class="text-muted" style="font-size: 0.7rem;">' + formatShortDate(n.created_at) + '</small>' +
+                                '<a class="' + itemClass + '" href="' + targetLink + '">' +
+                                    '<div class="d-flex w-100 justify-content-between align-items-center mb-1">' +
+                                        '<div class="d-flex align-items-center me-2 flex-grow-1" style="min-width: 0;">' +
+                                            unreadDot +
+                                            '<h6 class="mb-0 notif-item-title text-truncate">' + escapeHtml(n.title) + '</h6>' +
+                                        '</div>' +
+                                        '<small class="notif-item-time text-nowrap flex-shrink-0">' + formatShortDate(n.created_at) + '</small>' +
                                     '</div>' +
-                                    '<p class="mb-0 text-muted text-truncate" style="font-size: 0.8rem; max-width: 270px;">' + escapeHtml(displayMsg) + '</p>' +
+                                    '<p class="mb-0 notif-item-preview text-truncate">' + escapeHtml(displayMsg) + '</p>' +
                                 '</a>' +
                             '</li>';
                         });
                     } else if ((!data.support_items || data.support_items.length === 0) && data.unread_support === 0) {
-                        html = '<li><div class="text-muted text-center py-4 small"><i class="bi bi-bell-slash d-block mb-1 fs-4 text-secondary"></i>Không có thông báo mới</div></li>';
+                        html = '<li><div class="text-muted text-center py-4 small"><i class="bi bi-bell-slash d-block mb-1 fs-4 text-secondary opacity-50"></i>Không có thông báo mới</div></li>';
                     }
 
                     dropdownItemsContainer.innerHTML = html;
