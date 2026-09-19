@@ -15,6 +15,19 @@ try {
     // Không cần xử lý nếu index đã được xóa hoặc không tồn tại
 }
 
+// Tự động bổ sung cột height_cm vào weight_logs nếu chưa có
+try {
+    $conn->exec("ALTER TABLE weight_logs ADD COLUMN height_cm DECIMAL(5,1) NULL AFTER weight_kg");
+} catch (Exception $e) {}
+
+try {
+    // Backfill chiều cao cho các bản ghi cũ từ BMI/weight_kg hoặc từ user_profiles
+    $conn->exec("UPDATE weight_logs wl 
+                 LEFT JOIN user_profiles up ON wl.user_id = up.user_id 
+                 SET wl.height_cm = IF(wl.bmi > 0 AND wl.weight_kg > 0, ROUND(SQRT(wl.weight_kg / wl.bmi) * 100, 1), up.height_cm) 
+                 WHERE wl.height_cm IS NULL OR wl.height_cm = 0");
+} catch (Exception $e) {}
+
 // Lấy chiều cao của người dùng từ user_profiles
 $stmtProfile = $conn->prepare("SELECT height_cm, current_weight_kg FROM user_profiles WHERE user_id = :user_id");
 $stmtProfile->execute([':user_id' => $user_id]);
@@ -36,6 +49,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $note = trim($_POST['note'] ?? '');
         
         if ($weight_kg > 0 && !empty($log_date)) {
+            // 1. Kiểm tra thời gian không được ở tương lai
+            $formatted_time = substr($log_time, 0, 5);
+            $cur_date = date('Y-m-d');
+            $cur_time = date('H:i');
+            $cur_h = (int)date('H');
+            $log_h = (int)substr($formatted_time, 0, 2);
+            $is_future = false;
+
+            if ($log_date > $cur_date) {
+                $is_future = true;
+            } elseif ($log_date === $cur_date) {
+                // Nếu hiện tại đã qua buổi trưa (cur_h >= 12) mà nhập 00:xx (12:xx AM đêm nay theo định dạng 12h)
+                if ($cur_h >= 12 && $log_h === 0) {
+                    $is_future = true;
+                } elseif ($formatted_time > $cur_time) {
+                    $is_future = true;
+                }
+            }
+
+            if ($is_future) {
+                $_SESSION['error'] = 'Thời gian ghi nhận không được ở tương lai (' . $formatted_time . ' ngày ' . date('d/m/Y', strtotime($log_date)) . '). Không thể lưu!';
+                redirect('/user/weight-logs.php');
+            }
+
+            // 2. Kiểm tra không được ghi nhận 2 lần trên cùng 1 thời gian
+            $stmtDup = $conn->prepare("SELECT COUNT(*) FROM weight_logs WHERE user_id = :user_id AND log_date = :log_date AND DATE_FORMAT(created_at, '%H:%i') = :log_time");
+            $stmtDup->execute([
+                ':user_id' => $user_id,
+                ':log_date' => $log_date,
+                ':log_time' => $formatted_time
+            ]);
+            if ($stmtDup->fetchColumn() > 0) {
+                $_SESSION['error'] = 'Đã có bản ghi cân nặng vào lúc ' . $formatted_time . ' ngày ' . date('d/m/Y', strtotime($log_date)) . '. Không được lưu trùng thông tin!';
+                redirect('/user/weight-logs.php');
+            }
+
             // Cập nhật chiều cao vào hồ sơ nếu người dùng thay đổi
             if ($height_input > 0 && $height_input != $height_cm) {
                 $height_cm = $height_input;
@@ -57,12 +106,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $bmi = round($weight_kg / ($height_m * $height_m), 2);
             }
             
-            // Insert bản ghi mới với ngày giờ chính xác
-            $stmt = $conn->prepare("INSERT INTO weight_logs (user_id, weight_kg, bmi, log_date, note, created_at) 
-                                    VALUES (:user_id, :weight, :bmi, :log_date, :note, :created_at)");
+            // Insert bản ghi mới với ngày giờ chính xác và chiều cao
+            $stmt = $conn->prepare("INSERT INTO weight_logs (user_id, weight_kg, height_cm, bmi, log_date, note, created_at) 
+                                    VALUES (:user_id, :weight, :height, :bmi, :log_date, :note, :created_at)");
             $stmt->execute([
                 ':user_id' => $user_id,
                 ':weight' => $weight_kg,
+                ':height' => $height_input > 0 ? $height_input : ($height_cm > 0 ? $height_cm : null),
                 ':bmi' => $bmi,
                 ':log_date' => $log_date,
                 ':note' => $note,
@@ -85,6 +135,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $note = trim($_POST['note'] ?? '');
 
         if ($id > 0 && $weight_kg > 0) {
+            // 1. Kiểm tra thời gian không được ở tương lai
+            $formatted_time = substr($log_time, 0, 5);
+            $cur_date = date('Y-m-d');
+            $cur_time = date('H:i');
+            $cur_h = (int)date('H');
+            $log_h = (int)substr($formatted_time, 0, 2);
+            $is_future = false;
+
+            if ($log_date > $cur_date) {
+                $is_future = true;
+            } elseif ($log_date === $cur_date) {
+                if ($cur_h >= 12 && $log_h === 0) {
+                    $is_future = true;
+                } elseif ($formatted_time > $cur_time) {
+                    $is_future = true;
+                }
+            }
+
+            if ($is_future) {
+                $_SESSION['error'] = 'Thời gian ghi nhận không được ở tương lai (' . $formatted_time . ' ngày ' . date('d/m/Y', strtotime($log_date)) . '). Không thể lưu!';
+                redirect('/user/weight-logs.php');
+            }
+
+            // 2. Kiểm tra không được ghi nhận 2 lần trên cùng 1 thời gian (loại trừ bản ghi hiện tại)
+            $stmtDup = $conn->prepare("SELECT COUNT(*) FROM weight_logs WHERE user_id = :user_id AND log_date = :log_date AND DATE_FORMAT(created_at, '%H:%i') = :log_time AND id != :id");
+            $stmtDup->execute([
+                ':user_id' => $user_id,
+                ':log_date' => $log_date,
+                ':log_time' => $formatted_time,
+                ':id' => $id
+            ]);
+            if ($stmtDup->fetchColumn() > 0) {
+                $_SESSION['error'] = 'Thời điểm ' . $formatted_time . ' ngày ' . date('d/m/Y', strtotime($log_date)) . ' đã có một bản ghi khác. Không được lưu trùng thông tin!';
+                redirect('/user/weight-logs.php');
+            }
+
             // Cập nhật chiều cao vào hồ sơ nếu có
             if ($height_input > 0 && $height_input != $height_cm) {
                 $height_cm = $height_input;
@@ -98,9 +184,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $bmi = round($weight_kg / ($height_m * $height_m), 2);
             }
 
-            $stmt = $conn->prepare("UPDATE weight_logs SET weight_kg = :weight, bmi = :bmi, log_date = :log_date, note = :note, created_at = :created_at WHERE id = :id AND user_id = :user_id");
+            $stmt = $conn->prepare("UPDATE weight_logs SET weight_kg = :weight, height_cm = :height, bmi = :bmi, log_date = :log_date, note = :note, created_at = :created_at WHERE id = :id AND user_id = :user_id");
             $stmt->execute([
                 ':weight' => $weight_kg,
+                ':height' => $height_input > 0 ? $height_input : ($height_cm > 0 ? $height_cm : null),
                 ':bmi' => $bmi,
                 ':log_date' => $log_date,
                 ':note' => $note,
@@ -121,8 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     redirect('/user/weight-logs.php');
 }
 
-// Phân trang lịch sử cân nặng (BUG-16: 10 bản ghi / trang)
-$limit = 10;
+// Phân trang lịch sử cân nặng (7 bản ghi / trang)
+$limit = 7;
 $page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($page - 1) * $limit;
 
@@ -143,6 +230,32 @@ $logs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 $stmtAllLogs = $conn->prepare("SELECT * FROM weight_logs WHERE user_id = :user_id ORDER BY log_date ASC, created_at ASC");
 $stmtAllLogs->execute([':user_id' => $user_id]);
 $allLogs = $stmtAllLogs->fetchAll(PDO::FETCH_ASSOC);
+
+// Trích xuất danh sách Tháng và Năm từ toàn bộ dữ liệu lịch sử để lọc biểu đồ
+$available_months = [];
+$available_years = [];
+
+$current_ym = date('Y-m');
+$available_months[$current_ym] = 'Tháng ' . date('m/Y');
+$available_years[date('Y')] = date('Y');
+
+foreach ($allLogs as $l) {
+    if (!empty($l['log_date'])) {
+        $ym = substr($l['log_date'], 0, 7);
+        $yr = substr($l['log_date'], 0, 4);
+        if (!isset($available_months[$ym])) {
+            $parts = explode('-', $ym);
+            if (count($parts) === 2) {
+                $available_months[$ym] = 'Tháng ' . $parts[1] . '/' . $parts[0];
+            }
+        }
+        if (!isset($available_years[$yr])) {
+            $available_years[$yr] = $yr;
+        }
+    }
+}
+krsort($available_months);
+krsort($available_years);
 
 // Thuật toán phân tích xu hướng và đưa ra nhận xét tự động (BUG-17)
 $trend_comment = "";
@@ -201,15 +314,22 @@ require_once __DIR__ . '/../includes/header.php';
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php endif; ?>
+
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm rounded-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
     
     <div class="row">
         <!-- Form nhập cân nặng (BUG-15) -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm border-0 rounded-4 h-100">
+        <div class="col-lg-4 mb-4 align-self-start">
+            <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-white py-3 border-0">
                     <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-plus-circle-fill text-success me-2"></i>Ghi nhận Cân nặng</h5>
                 </div>
-                <div class="card-body pt-0">
+                <div class="card-body pt-0 pb-4">
                     <form method="POST" id="formLogWeight" novalidate>
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         <input type="hidden" name="action" value="log_weight">
@@ -221,10 +341,15 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div class="invalid-feedback" id="input_log_date_error">Vui lòng chọn ngày hợp lệ.</div>
                             </div>
                             <div class="col-5">
-                                <label class="form-label fw-bold small text-muted">Giờ ghi nhận</label>
+                                <label class="form-label fw-bold small text-muted">Giờ ghi nhận <span class="text-danger">*</span></label>
                                 <input type="time" class="form-control rounded-3" name="log_time" id="input_log_time" value="<?php echo date('H:i'); ?>" required>
                                 <div class="invalid-feedback" id="input_log_time_error">Vui lòng chọn giờ ghi nhận.</div>
                             </div>
+                        </div>
+
+                        <!-- Hộp cảnh báo khi thời gian ở tương lai hoặc trùng lặp ngày giờ -->
+                        <div id="log_datetime_alert" class="alert alert-danger py-2 px-3 small rounded-3 d-none mb-3 shadow-none border-danger border-opacity-25">
+                            <i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i> <span id="log_datetime_alert_msg"></span>
                         </div>
 
                         <div class="row g-2 mb-3">
@@ -256,12 +381,12 @@ require_once __DIR__ . '/../includes/header.php';
                             <small class="text-muted" id="bmi_preview_desc">Nhập cân nặng và chiều cao để xem đánh giá</small>
                         </div>
                         
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label class="form-label fw-bold small text-muted">Ghi chú (tùy chọn)</label>
                             <textarea class="form-control rounded-3" name="note" rows="2" placeholder="Ví dụ: Cân vào buổi sáng sau khi ngủ dậy..."></textarea>
                         </div>
                         
-                        <button type="submit" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm py-2">
+                        <button type="submit" id="btnSubmitLog" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm py-2">
                             <i class="bi bi-check2-circle me-1"></i> Lưu thông tin
                         </button>
                     </form>
@@ -271,7 +396,7 @@ require_once __DIR__ . '/../includes/header.php';
         
         <!-- Bảng lịch sử (BUG-15 & BUG-16) -->
         <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm border-0 rounded-4 h-100">
+            <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
                     <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history text-primary me-2"></i>Lịch sử Ghi nhận</h5>
                     <span class="badge bg-light text-muted border"><?php echo $total_records; ?> bản ghi</span>
@@ -283,19 +408,35 @@ require_once __DIR__ . '/../includes/header.php';
                                 <tr>
                                     <th class="ps-4">Thời gian</th>
                                     <th>Cân nặng</th>
+                                    <th>Chiều cao</th>
                                     <th>BMI</th>
                                     <th>Ghi chú</th>
                                     <th class="text-end pe-4">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($logs as $log): ?>
+                                <?php foreach ($logs as $log): 
+                                    $disp_h = (!empty($log['height_cm']) && (float)$log['height_cm'] > 0) ? (float)$log['height_cm'] : 0;
+                                    if ($disp_h <= 0 && !empty($log['bmi']) && (float)$log['bmi'] > 0 && !empty($log['weight_kg'])) {
+                                        $disp_h = round(sqrt((float)$log['weight_kg'] / (float)$log['bmi']) * 100, 1);
+                                    }
+                                    if ($disp_h <= 0 && $height_cm > 0) {
+                                        $disp_h = (float)$height_cm;
+                                    }
+                                ?>
                                 <tr>
                                     <td class="ps-4">
                                         <div class="fw-bold text-dark"><?php echo date('d/m/Y', strtotime($log['log_date'])); ?></div>
                                         <small class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('H:i', strtotime($log['created_at'])); ?></small>
                                     </td>
                                     <td><span class="fw-bold text-success fs-6"><?php echo $log['weight_kg']; ?> kg</span></td>
+                                    <td>
+                                        <?php if ($disp_h > 0): ?>
+                                            <span class="fw-bold text-dark fs-6"><?php echo $disp_h; ?> cm</span>
+                                        <?php else: ?>
+                                            <span class="text-muted small">--</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?php 
                                             if ($log['bmi']) {
@@ -318,6 +459,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <button type="button" class="btn btn-sm btn-outline-primary rounded-pill me-1 btn-edit-weight" 
                                                 data-id="<?php echo $log['id']; ?>"
                                                 data-weight="<?php echo $log['weight_kg']; ?>"
+                                                data-height="<?php echo $disp_h > 0 ? $disp_h : ''; ?>"
                                                 data-date="<?php echo $log['log_date']; ?>"
                                                 data-time="<?php echo date('H:i', strtotime($log['created_at'])); ?>"
                                                 data-note="<?php echo htmlspecialchars($log['note'] ?? '', ENT_QUOTES); ?>"
@@ -337,7 +479,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 <?php endforeach; ?>
                                 <?php if (empty($logs)): ?>
                                     <tr>
-                                        <td colspan="5" class="text-center py-5 text-muted">
+                                        <td colspan="6" class="text-center py-5 text-muted">
                                             <i class="bi bi-journal-x fs-1 d-block mb-3 text-muted"></i>
                                             Chưa có dữ liệu. Hãy ghi nhận cân nặng đầu tiên của bạn!
                                         </td>
@@ -389,19 +531,50 @@ require_once __DIR__ . '/../includes/header.php';
         <!-- Biểu đồ tiến trình có bộ lọc (BUG-17) -->
         <div class="col-12 mb-4">
             <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-bezier2 text-success me-2"></i>Biến động Tiến trình Cân nặng</h5>
-                    <!-- Nút lọc thời gian -->
-                    <div class="btn-group btn-group-sm" role="group" id="chartFilterGroup">
-                        <button type="button" class="btn btn-outline-success active" data-filter="all">Tất cả</button>
-                        <button type="button" class="btn btn-outline-success" data-filter="7days">Theo tuần (7 ngày)</button>
-                        <button type="button" class="btn btn-outline-success" data-filter="month">Theo tháng (30 ngày)</button>
-                        <button type="button" class="btn btn-outline-success" data-filter="year">Theo năm</button>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Nút lọc nhanh -->
+                        <div class="btn-group btn-group-sm" role="group" id="chartFilterGroup">
+                            <button type="button" class="btn btn-outline-success active" data-filter="all">Tất cả</button>
+                            <button type="button" class="btn btn-outline-success" data-filter="7days">7 ngày</button>
+                            <button type="button" class="btn btn-outline-success" data-filter="month">30 ngày</button>
+                        </div>
+
+                        <!-- Dropdown lọc theo Tháng / Năm cụ thể -->
+                        <div class="d-inline-flex align-items-center">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-success border-success border-opacity-25 rounded-start-pill pe-2">
+                                    <i class="bi bi-calendar3"></i>
+                                </span>
+                                <select id="chartPeriodSelect" class="form-select form-select-sm border-success border-opacity-25 rounded-end-pill shadow-none fw-semibold text-secondary" style="min-width: 175px; cursor: pointer;">
+                                    <option value="all">-- Xem theo Tháng / Năm --</option>
+                                    <?php if (!empty($available_months)): ?>
+                                        <optgroup label="📅 Theo Tháng">
+                                            <?php foreach ($available_months as $ym => $label): ?>
+                                                <option value="month:<?php echo $ym; ?>"><?php echo $label; ?></option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
+                                    <?php if (!empty($available_years)): ?>
+                                        <optgroup label="📆 Theo Năm">
+                                            <?php foreach ($available_years as $yr): ?>
+                                                <option value="year:<?php echo $yr; ?>">Năm <?php echo $yr; ?></option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div style="position: relative; height: 320px; width: 100%;">
+                    <div id="chartContainer" style="position: relative; height: 320px; width: 100%;">
                         <canvas id="weightChart"></canvas>
+                    </div>
+                    <div id="chartEmptyNotice" class="text-center py-5 text-muted d-none">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-muted opacity-50"></i>
+                        <span>Không có dữ liệu cân nặng trong khoảng thời gian đã chọn.</span>
                     </div>
                 </div>
             </div>
@@ -431,10 +604,15 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="invalid-feedback" id="edit_log_date_error">Vui lòng chọn ngày hợp lệ.</div>
                         </div>
                         <div class="col-5">
-                            <label class="form-label fw-bold small text-muted">Giờ ghi nhận</label>
+                            <label class="form-label fw-bold small text-muted">Giờ ghi nhận <span class="text-danger">*</span></label>
                             <input type="time" class="form-control rounded-3" name="log_time" id="edit_log_time" required>
                             <div class="invalid-feedback" id="edit_log_time_error">Vui lòng chọn giờ ghi nhận.</div>
                         </div>
+                    </div>
+
+                    <!-- Hộp cảnh báo khi thời gian ở tương lai hoặc trùng lặp ngày giờ trong modal sửa -->
+                    <div id="edit_datetime_alert" class="alert alert-danger py-2 px-3 small rounded-3 d-none mb-3 shadow-none border-danger border-opacity-25">
+                        <i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i> <span id="edit_datetime_alert_msg"></span>
                     </div>
 
                     <div class="row g-2 mb-3">
@@ -463,7 +641,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Cập nhật</button>
+                    <button type="submit" id="btnSubmitEdit" class="btn btn-primary rounded-pill px-4 fw-bold">Cập nhật</button>
                 </div>
             </form>
         </div>
@@ -517,11 +695,82 @@ document.addEventListener('DOMContentLoaded', function() {
         heightInput.addEventListener('input', updateBmiPreview);
     }
 
-    // Validation cho Form Ghi nhận Cân nặng chính
+    // Danh sách bản ghi đã có để kiểm tra trùng lặp thời gian trên client-side
+    const existingLogs = <?php 
+        $existingTimestamps = array_map(function($l) {
+            return [
+                'id' => (int)$l['id'],
+                'date' => $l['log_date'],
+                'time' => !empty($l['created_at']) ? date('H:i', strtotime($l['created_at'])) : '12:00'
+            ];
+        }, $allLogs);
+        echo json_encode($existingTimestamps);
+    ?>;
+
+    // Helper: Định dạng ngày VN dd/mm/yyyy
+    function formatDateVN(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return dateStr;
+    }
+
+    // Helper: Kiểm tra ngày hoặc thời gian ở tương lai
+    function isFutureDateTime(dateVal, timeVal) {
+        if (!dateVal) return false;
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+
+        // 1. Ngày lớn hơn hôm nay -> Tương lai
+        if (dateVal > todayStr) return true;
+
+        // 2. Ngày hôm nay và có giờ nhập vào
+        if (dateVal === todayStr && timeVal) {
+            const normTime = timeVal.substring(0, 5);
+            const [hStr, mStr] = normTime.split(':');
+            const inputH = parseInt(hStr, 10);
+            const inputM = parseInt(mStr, 10);
+            const curH = now.getHours();
+            const curM = now.getMinutes();
+
+            // Trường hợp 12:xx AM (00:xx) khi thời gian hiện tại đã qua buổi trưa (curH >= 12) -> 12h đêm nay (tương lai)
+            if (curH >= 12 && inputH === 0) {
+                return true;
+            }
+
+            const inputTotalMin = inputH * 60 + inputM;
+            const curTotalMin = curH * 60 + curM;
+            if (inputTotalMin > curTotalMin) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Helper: Kiểm tra trùng lặp ngày và giờ với các bản ghi đã lưu
+    function isDuplicateDateTime(dateVal, timeVal, excludeId = null) {
+        if (!dateVal || !timeVal) return false;
+        const normTime = timeVal.substring(0, 5);
+        return existingLogs.some(l => {
+            if (excludeId && l.id === excludeId) return false;
+            return l.date === dateVal && l.time.substring(0, 5) === normTime;
+        });
+    }
+
+    // Validation & Khóa nút Lưu cho Form Ghi nhận Cân nặng chính
     const formLogWeight = document.getElementById('formLogWeight');
     if (formLogWeight) {
         const inputLogDate = document.getElementById('input_log_date');
         const inputLogTime = document.getElementById('input_log_time');
+        const btnSubmitLog = document.getElementById('btnSubmitLog');
+        const logAlert = document.getElementById('log_datetime_alert');
+        const logAlertMsg = document.getElementById('log_datetime_alert_msg');
+        const dateError = document.getElementById('input_log_date_error');
+        const timeError = document.getElementById('input_log_time_error');
 
         function validateLogW() {
             const val = parseFloat(weightInput.value);
@@ -535,26 +784,80 @@ document.addEventListener('DOMContentLoaded', function() {
             return true;
         }
 
-        function validateLogD() {
-            if (!inputLogDate.value) {
+        function validateLogDateTime() {
+            const dVal = inputLogDate.value;
+            const tVal = inputLogTime.value ? inputLogTime.value.substring(0, 5) : '';
+
+            let isValid = true;
+            let alertMessage = '';
+
+            // 1. Kiểm tra ngày
+            if (!dVal) {
                 inputLogDate.classList.add('is-invalid');
                 inputLogDate.classList.remove('is-valid');
-                return false;
+                if (dateError) dateError.textContent = 'Vui lòng chọn ngày ghi nhận.';
+                isValid = false;
+            } else if (isFutureDateTime(dVal, null)) {
+                inputLogDate.classList.add('is-invalid');
+                inputLogDate.classList.remove('is-valid');
+                if (dateError) dateError.textContent = 'Ngày ghi nhận không được ở tương lai.';
+                alertMessage = 'Ngày ghi nhận không được ở tương lai!';
+                isValid = false;
+            } else {
+                inputLogDate.classList.remove('is-invalid');
+                inputLogDate.classList.add('is-valid');
             }
-            inputLogDate.classList.remove('is-invalid');
-            inputLogDate.classList.add('is-valid');
-            return true;
-        }
 
-        function validateLogT() {
-            if (!inputLogTime.value) {
+            // 2. Kiểm tra giờ & trùng lặp
+            if (!tVal) {
                 inputLogTime.classList.add('is-invalid');
                 inputLogTime.classList.remove('is-valid');
-                return false;
+                if (timeError) timeError.textContent = 'Vui lòng chọn giờ ghi nhận.';
+                isValid = false;
+            } else if (isValid && isFutureDateTime(dVal, tVal)) {
+                inputLogTime.classList.add('is-invalid');
+                inputLogTime.classList.remove('is-valid');
+                const msg = 'Thời gian ghi nhận không được ở tương lai (' + tVal + ').';
+                if (timeError) timeError.textContent = msg;
+                alertMessage = msg + ' Vui lòng chọn lại giờ hợp lệ!';
+                isValid = false;
+            } else if (isValid && isDuplicateDateTime(dVal, tVal)) {
+                inputLogTime.classList.add('is-invalid');
+                inputLogTime.classList.remove('is-valid');
+                const msg = 'Đã có bản ghi vào lúc ' + tVal + ' ngày ' + formatDateVN(dVal) + '. Không được lưu trùng thông tin!';
+                if (timeError) timeError.textContent = msg;
+                alertMessage = msg;
+                isValid = false;
+            } else if (isValid) {
+                inputLogTime.classList.remove('is-invalid');
+                inputLogTime.classList.add('is-valid');
             }
-            inputLogTime.classList.remove('is-invalid');
-            inputLogTime.classList.add('is-valid');
-            return true;
+
+            // 3. Khóa hoặc Mở khóa nút "Lưu thông tin" & Hiển thị cảnh báo nổi bật
+            if (!isValid) {
+                if (alertMessage && logAlert && logAlertMsg) {
+                    logAlertMsg.textContent = alertMessage;
+                    logAlert.classList.remove('d-none');
+                } else if (logAlert) {
+                    logAlert.classList.add('d-none');
+                }
+                if (btnSubmitLog) {
+                    btnSubmitLog.disabled = true;
+                    btnSubmitLog.classList.add('opacity-50');
+                    btnSubmitLog.style.cursor = 'not-allowed';
+                    btnSubmitLog.title = alertMessage || 'Không được lưu thông tin khi thời gian không hợp lệ hoặc bị trùng!';
+                }
+            } else {
+                if (logAlert) logAlert.classList.add('d-none');
+                if (btnSubmitLog) {
+                    btnSubmitLog.disabled = false;
+                    btnSubmitLog.classList.remove('opacity-50');
+                    btnSubmitLog.style.cursor = 'pointer';
+                    btnSubmitLog.title = '';
+                }
+            }
+
+            return isValid;
         }
 
         function validateLogH() {
@@ -575,26 +878,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         weightInput.addEventListener('input', validateLogW);
         weightInput.addEventListener('blur', validateLogW);
-        inputLogDate.addEventListener('input', validateLogD);
-        inputLogDate.addEventListener('blur', validateLogD);
-        inputLogTime.addEventListener('input', validateLogT);
-        inputLogTime.addEventListener('blur', validateLogT);
+
+        inputLogDate.addEventListener('input', validateLogDateTime);
+        inputLogDate.addEventListener('change', validateLogDateTime);
+        inputLogDate.addEventListener('blur', validateLogDateTime);
+
+        inputLogTime.addEventListener('input', validateLogDateTime);
+        inputLogTime.addEventListener('change', validateLogDateTime);
+        inputLogTime.addEventListener('blur', validateLogDateTime);
+
         if (heightInput) {
             heightInput.addEventListener('input', validateLogH);
             heightInput.addEventListener('blur', validateLogH);
         }
 
+        // Kiểm tra ngay khi tải trang để khóa nút nếu thời điểm mặc định trùng với bản ghi đã có
+        validateLogDateTime();
+
         formLogWeight.addEventListener('submit', function(e) {
+            const isDateTimeOk = validateLogDateTime();
             const isWOk = validateLogW();
-            const isDOk = validateLogD();
-            const isTOk = validateLogT();
             const isHOk = validateLogH();
 
-            if (!isWOk || !isDOk || !isTOk || !isHOk) {
+            if (!isDateTimeOk || !isWOk || !isHOk) {
                 e.preventDefault();
                 e.stopPropagation();
                 const firstInvalid = formLogWeight.querySelector('.is-invalid');
                 if (firstInvalid) firstInvalid.focus();
+                return false;
             }
         });
     }
@@ -612,12 +923,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const tInput = document.getElementById('edit_log_time');
         const hInput = document.getElementById('edit_height_cm');
         const nInput = document.getElementById('edit_note');
+        const editAlert = document.getElementById('edit_datetime_alert');
+        const btnSubmitEdit = document.getElementById('btnSubmitEdit');
 
         if (wInput) { wInput.value = ''; wInput.defaultValue = ''; wInput.classList.remove('is-invalid', 'is-valid'); }
         if (dInput) { dInput.value = ''; dInput.defaultValue = ''; dInput.classList.remove('is-invalid', 'is-valid'); }
         if (tInput) { tInput.value = ''; tInput.defaultValue = ''; tInput.classList.remove('is-invalid', 'is-valid'); }
-        if (hInput) { hInput.classList.remove('is-invalid', 'is-valid'); }
+        if (hInput) { hInput.value = '<?php echo $height_cm > 0 ? $height_cm : ''; ?>'; hInput.classList.remove('is-invalid', 'is-valid'); }
         if (nInput) { nInput.value = ''; nInput.defaultValue = ''; }
+        if (editAlert) { editAlert.classList.add('d-none'); }
+        if (btnSubmitEdit) {
+            btnSubmitEdit.disabled = false;
+            btnSubmitEdit.classList.remove('opacity-50');
+            btnSubmitEdit.style.cursor = 'pointer';
+            btnSubmitEdit.title = '';
+        }
     }
 
     if (modalEditWeight) {
@@ -629,23 +949,16 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', resetEditWeightModal);
         });
 
-        document.querySelectorAll('.btn-edit-weight').forEach(btn => {
-            btn.addEventListener('click', function() {
-                resetEditWeightModal();
-                document.getElementById('edit_log_id').value = this.dataset.id;
-                document.getElementById('edit_weight_kg').value = this.dataset.weight;
-                document.getElementById('edit_log_date').value = this.dataset.date;
-                document.getElementById('edit_log_time').value = this.dataset.time || '12:00';
-                document.getElementById('edit_note').value = this.dataset.note || '';
-                bsModalEdit.show();
-            });
-        });
-
         if (formEditWeight) {
             const editW = document.getElementById('edit_weight_kg');
             const editD = document.getElementById('edit_log_date');
             const editT = document.getElementById('edit_log_time');
             const editH = document.getElementById('edit_height_cm');
+            const btnSubmitEdit = document.getElementById('btnSubmitEdit');
+            const editAlert = document.getElementById('edit_datetime_alert');
+            const editAlertMsg = document.getElementById('edit_datetime_alert_msg');
+            const editDateError = document.getElementById('edit_log_date_error');
+            const editTimeError = document.getElementById('edit_log_time_error');
 
             function validateEditW() {
                 const val = parseFloat(editW.value);
@@ -659,26 +972,78 @@ document.addEventListener('DOMContentLoaded', function() {
                 return true;
             }
 
-            function validateEditD() {
-                if (!editD.value) {
+            function validateEditDateTime() {
+                const editId = parseInt(document.getElementById('edit_log_id').value) || 0;
+                const dVal = editD.value;
+                const tVal = editT.value ? editT.value.substring(0, 5) : '';
+
+                let isValid = true;
+                let alertMessage = '';
+
+                if (!dVal) {
                     editD.classList.add('is-invalid');
                     editD.classList.remove('is-valid');
-                    return false;
+                    if (editDateError) editDateError.textContent = 'Vui lòng chọn ngày ghi nhận.';
+                    isValid = false;
+                } else if (isFutureDateTime(dVal, null)) {
+                    editD.classList.add('is-invalid');
+                    editD.classList.remove('is-valid');
+                    if (editDateError) editDateError.textContent = 'Ngày ghi nhận không được ở tương lai.';
+                    alertMessage = 'Ngày ghi nhận không được ở tương lai!';
+                    isValid = false;
+                } else {
+                    editD.classList.remove('is-invalid');
+                    editD.classList.add('is-valid');
                 }
-                editD.classList.remove('is-invalid');
-                editD.classList.add('is-valid');
-                return true;
-            }
 
-            function validateEditT() {
-                if (!editT.value) {
+                if (!tVal) {
                     editT.classList.add('is-invalid');
                     editT.classList.remove('is-valid');
-                    return false;
+                    if (editTimeError) editTimeError.textContent = 'Vui lòng chọn giờ ghi nhận.';
+                    isValid = false;
+                } else if (isValid && isFutureDateTime(dVal, tVal)) {
+                    editT.classList.add('is-invalid');
+                    editT.classList.remove('is-valid');
+                    const msg = 'Thời gian ghi nhận không được ở tương lai (' + tVal + ').';
+                    if (editTimeError) editTimeError.textContent = msg;
+                    alertMessage = msg + ' Vui lòng chọn lại giờ hợp lệ!';
+                    isValid = false;
+                } else if (isValid && isDuplicateDateTime(dVal, tVal, editId)) {
+                    editT.classList.add('is-invalid');
+                    editT.classList.remove('is-valid');
+                    const msg = 'Thời điểm ' + tVal + ' ngày ' + formatDateVN(dVal) + ' đã có một bản ghi khác. Không được lưu trùng thông tin!';
+                    if (editTimeError) editTimeError.textContent = msg;
+                    alertMessage = msg;
+                    isValid = false;
+                } else if (isValid) {
+                    editT.classList.remove('is-invalid');
+                    editT.classList.add('is-valid');
                 }
-                editT.classList.remove('is-invalid');
-                editT.classList.add('is-valid');
-                return true;
+
+                if (!isValid) {
+                    if (alertMessage && editAlert && editAlertMsg) {
+                        editAlertMsg.textContent = alertMessage;
+                        editAlert.classList.remove('d-none');
+                    } else if (editAlert) {
+                        editAlert.classList.add('d-none');
+                    }
+                    if (btnSubmitEdit) {
+                        btnSubmitEdit.disabled = true;
+                        btnSubmitEdit.classList.add('opacity-50');
+                        btnSubmitEdit.style.cursor = 'not-allowed';
+                        btnSubmitEdit.title = alertMessage || 'Không được cập nhật khi thời gian bị trùng hoặc ở tương lai!';
+                    }
+                } else {
+                    if (editAlert) editAlert.classList.add('d-none');
+                    if (btnSubmitEdit) {
+                        btnSubmitEdit.disabled = false;
+                        btnSubmitEdit.classList.remove('opacity-50');
+                        btnSubmitEdit.style.cursor = 'pointer';
+                        btnSubmitEdit.title = '';
+                    }
+                }
+
+                return isValid;
             }
 
             function validateEditH() {
@@ -697,33 +1062,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
             editW.addEventListener('input', validateEditW);
             editW.addEventListener('blur', validateEditW);
-            editD.addEventListener('input', validateEditD);
-            editD.addEventListener('blur', validateEditD);
-            editT.addEventListener('input', validateEditT);
-            editT.addEventListener('blur', validateEditT);
+
+            editD.addEventListener('input', validateEditDateTime);
+            editD.addEventListener('change', validateEditDateTime);
+            editD.addEventListener('blur', validateEditDateTime);
+
+            editT.addEventListener('input', validateEditDateTime);
+            editT.addEventListener('change', validateEditDateTime);
+            editT.addEventListener('blur', validateEditDateTime);
+
             editH.addEventListener('input', validateEditH);
             editH.addEventListener('blur', validateEditH);
 
+            document.querySelectorAll('.btn-edit-weight').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    resetEditWeightModal();
+                    document.getElementById('edit_log_id').value = this.dataset.id;
+                    document.getElementById('edit_weight_kg').value = this.dataset.weight;
+                    document.getElementById('edit_log_date').value = this.dataset.date;
+                    document.getElementById('edit_log_time').value = this.dataset.time || '12:00';
+                    if (document.getElementById('edit_height_cm')) {
+                        document.getElementById('edit_height_cm').value = this.dataset.height || '<?php echo $height_cm > 0 ? $height_cm : ''; ?>';
+                    }
+                    document.getElementById('edit_note').value = this.dataset.note || '';
+                    validateEditDateTime();
+                    bsModalEdit.show();
+                });
+            });
+
             formEditWeight.addEventListener('submit', function(e) {
+                const isDateTimeOk = validateEditDateTime();
                 const isWOk = validateEditW();
-                const isDOk = validateEditD();
-                const isTOk = validateEditT();
                 const isHOk = validateEditH();
 
-                if (!isWOk || !isDOk || !isTOk || !isHOk) {
+                if (!isDateTimeOk || !isWOk || !isHOk) {
                     e.preventDefault();
                     e.stopPropagation();
                     const firstInvalid = formEditWeight.querySelector('.is-invalid');
                     if (firstInvalid) firstInvalid.focus();
+                    return false;
                 }
             });
         }
     }
 
-    // 3. Biểu đồ Chart.js với Bộ lọc Thời gian (BUG-17)
+    // 3. Biểu đồ Chart.js với Bộ lọc Thời gian & Tháng/Năm (BUG-17)
     const rawLogs = <?php echo json_encode($allLogs); ?>;
     if (rawLogs.length > 0 && document.getElementById('weightChart')) {
         const ctx = document.getElementById('weightChart').getContext('2d');
+        const chartContainer = document.getElementById('chartContainer');
+        const chartEmptyNotice = document.getElementById('chartEmptyNotice');
+        const periodSelect = document.getElementById('chartPeriodSelect');
         let chartInstance = null;
 
         function getFilteredData(filterType) {
@@ -738,25 +1127,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cutoff = new Date();
                 cutoff.setDate(now.getDate() - 30);
                 filtered = rawLogs.filter(l => new Date(l.log_date) >= cutoff);
-            } else if (filterType === 'year') {
-                const cutoff = new Date();
-                cutoff.setFullYear(now.getFullYear() - 1);
-                filtered = rawLogs.filter(l => new Date(l.log_date) >= cutoff);
+            } else if (filterType.startsWith('month:')) {
+                const ym = filterType.replace('month:', '');
+                filtered = rawLogs.filter(l => l.log_date && l.log_date.startsWith(ym));
+            } else if (filterType.startsWith('year:')) {
+                const yr = filterType.replace('year:', '');
+                filtered = rawLogs.filter(l => l.log_date && l.log_date.startsWith(yr));
             }
 
-            if (filtered.length === 0) filtered = rawLogs;
-
-            const labels = filtered.map(l => {
-                const d = new Date(l.log_date);
-                return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-            });
-            const data = filtered.map(l => parseFloat(l.weight_kg));
-
-            return { labels, data };
+            return filtered;
         }
 
         function renderChart(filterType) {
-            const { labels, data } = getFilteredData(filterType);
+            const filtered = getFilteredData(filterType);
+
+            if (!filtered || filtered.length === 0) {
+                if (chartContainer) chartContainer.classList.add('d-none');
+                if (chartEmptyNotice) chartEmptyNotice.classList.remove('d-none');
+                return;
+            }
+
+            if (chartContainer) chartContainer.classList.remove('d-none');
+            if (chartEmptyNotice) chartEmptyNotice.classList.add('d-none');
+
+            const labels = filtered.map(l => {
+                const parts = l.log_date.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}`;
+                }
+                return l.log_date;
+            });
+            const data = filtered.map(l => parseFloat(l.weight_kg));
             const minVal = Math.floor(Math.min(...data)) - 2;
             const maxVal = Math.ceil(Math.max(...data)) + 2;
 
@@ -790,8 +1191,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
+                                title: function(context) {
+                                    const index = context[0].dataIndex;
+                                    const log = filtered[index];
+                                    if (!log) return '';
+                                    const timeStr = log.created_at ? log.created_at.substring(11, 16) : '';
+                                    const dateParts = log.log_date.split('-');
+                                    const dateStr = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0];
+                                    return `${dateStr} ${timeStr}`.trim();
+                                },
                                 label: function(context) {
-                                    return ` ${context.parsed.y} kg`;
+                                    const index = context.dataIndex;
+                                    const log = filtered[index];
+                                    let noteStr = (log && log.note) ? ` (${log.note})` : '';
+                                    return ` Cân nặng: ${context.parsed.y} kg${noteStr}`;
                                 }
                             }
                         }
@@ -812,14 +1225,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         renderChart('all');
 
-        // Bắt sự kiện chuyển đổi bộ lọc biểu đồ
+        // Bắt sự kiện chuyển đổi bộ lọc nút bấm nhanh
         document.querySelectorAll('#chartFilterGroup button').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('#chartFilterGroup button').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
+                if (periodSelect) periodSelect.value = 'all';
                 renderChart(this.dataset.filter);
             });
         });
+
+        // Bắt sự kiện chọn dropdown Tháng / Năm
+        if (periodSelect) {
+            periodSelect.addEventListener('change', function() {
+                document.querySelectorAll('#chartFilterGroup button').forEach(b => b.classList.remove('active'));
+                if (this.value === 'all') {
+                    const allBtn = document.querySelector('#chartFilterGroup button[data-filter="all"]');
+                    if (allBtn) allBtn.classList.add('active');
+                }
+                renderChart(this.value);
+            });
+        }
     }
 });
 </script>
