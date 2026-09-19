@@ -480,6 +480,19 @@ document.addEventListener('DOMContentLoaded', function() {
     userCheckboxes.forEach(cb => {
         cb.addEventListener('change', updateSelectedState);
     });
+
+    const importExcelModal = document.getElementById('importExcelModal');
+    if (importExcelModal) {
+        const fileInput = document.getElementById('excel_file');
+        function resetExcelModal() {
+            if (fileInput) fileInput.value = '';
+        }
+        importExcelModal.addEventListener('hidden.bs.modal', resetExcelModal);
+        importExcelModal.addEventListener('hide.bs.modal', resetExcelModal);
+        importExcelModal.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetExcelModal);
+        });
+    }
 });
 
 function confirmBulkDelete() {

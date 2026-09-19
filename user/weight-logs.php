@@ -210,34 +210,38 @@ require_once __DIR__ . '/../includes/header.php';
                     <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-plus-circle-fill text-success me-2"></i>Ghi nhận Cân nặng</h5>
                 </div>
                 <div class="card-body pt-0">
-                    <form method="POST" id="formLogWeight">
+                    <form method="POST" id="formLogWeight" novalidate>
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         <input type="hidden" name="action" value="log_weight">
                         
                         <div class="row g-2 mb-3">
                             <div class="col-7">
                                 <label class="form-label fw-bold small text-muted">Ngày ghi nhận <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control rounded-3" name="log_date" value="<?php echo date('Y-m-d'); ?>" required max="<?php echo date('Y-m-d'); ?>">
+                                <input type="date" class="form-control rounded-3" name="log_date" id="input_log_date" value="<?php echo date('Y-m-d'); ?>" required max="<?php echo date('Y-m-d'); ?>">
+                                <div class="invalid-feedback" id="input_log_date_error">Vui lòng chọn ngày hợp lệ.</div>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold small text-muted">Giờ ghi nhận</label>
-                                <input type="time" class="form-control rounded-3" name="log_time" value="<?php echo date('H:i'); ?>" required>
+                                <input type="time" class="form-control rounded-3" name="log_time" id="input_log_time" value="<?php echo date('H:i'); ?>" required>
+                                <div class="invalid-feedback" id="input_log_time_error">Vui lòng chọn giờ ghi nhận.</div>
                             </div>
                         </div>
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
                                 <label class="form-label fw-bold small text-muted">Cân nặng (kg) <span class="text-danger">*</span></label>
-                                <div class="input-group">
+                                <div class="input-group has-validation">
                                     <input type="number" class="form-control rounded-start-3" id="input_weight_kg" name="weight_kg" step="0.1" min="20" max="300" required placeholder="65.5">
                                     <span class="input-group-text bg-light">kg</span>
+                                    <div class="invalid-feedback" id="input_weight_kg_error">Cân nặng từ 20kg - 300kg.</div>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <label class="form-label fw-bold small text-muted">Chiều cao (cm)</label>
-                                <div class="input-group">
+                                <div class="input-group has-validation">
                                     <input type="number" class="form-control rounded-start-3" id="input_height_cm" name="height_cm" step="1" min="80" max="250" value="<?php echo $height_cm > 0 ? $height_cm : ''; ?>" placeholder="170">
                                     <span class="input-group-text bg-light">cm</span>
+                                    <div class="invalid-feedback" id="input_height_cm_error">Chiều cao từ 80cm - 250cm.</div>
                                 </div>
                             </div>
                         </div>
@@ -410,7 +414,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="modal fade" id="modalEditWeight" tabindex="-1" aria-labelledby="modalEditWeightLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
-            <form method="POST">
+            <form method="POST" id="formEditWeight" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                 <input type="hidden" name="action" value="edit_weight">
                 <input type="hidden" name="id" id="edit_log_id" value="">
@@ -424,26 +428,30 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-7">
                             <label class="form-label fw-bold small text-muted">Ngày ghi nhận <span class="text-danger">*</span></label>
                             <input type="date" class="form-control rounded-3" name="log_date" id="edit_log_date" required max="<?php echo date('Y-m-d'); ?>">
+                            <div class="invalid-feedback" id="edit_log_date_error">Vui lòng chọn ngày hợp lệ.</div>
                         </div>
                         <div class="col-5">
                             <label class="form-label fw-bold small text-muted">Giờ ghi nhận</label>
                             <input type="time" class="form-control rounded-3" name="log_time" id="edit_log_time" required>
+                            <div class="invalid-feedback" id="edit_log_time_error">Vui lòng chọn giờ ghi nhận.</div>
                         </div>
                     </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label fw-bold small text-muted">Cân nặng (kg) <span class="text-danger">*</span></label>
-                            <div class="input-group">
+                            <div class="input-group has-validation">
                                 <input type="number" class="form-control rounded-start-3" id="edit_weight_kg" name="weight_kg" step="0.1" min="20" max="300" required>
                                 <span class="input-group-text bg-light">kg</span>
+                                <div class="invalid-feedback" id="edit_weight_kg_error">Cân nặng từ 20kg - 300kg.</div>
                             </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-bold small text-muted">Chiều cao (cm)</label>
-                            <div class="input-group">
+                            <div class="input-group has-validation">
                                 <input type="number" class="form-control rounded-start-3" id="edit_height_cm" name="height_cm" step="1" min="80" max="250" value="<?php echo $height_cm > 0 ? $height_cm : ''; ?>">
                                 <span class="input-group-text bg-light">cm</span>
+                                <div class="invalid-feedback" id="edit_height_cm_error">Chiều cao từ 80cm - 250cm.</div>
                             </div>
                         </div>
                     </div>
@@ -509,13 +517,121 @@ document.addEventListener('DOMContentLoaded', function() {
         heightInput.addEventListener('input', updateBmiPreview);
     }
 
+    // Validation cho Form Ghi nhận Cân nặng chính
+    const formLogWeight = document.getElementById('formLogWeight');
+    if (formLogWeight) {
+        const inputLogDate = document.getElementById('input_log_date');
+        const inputLogTime = document.getElementById('input_log_time');
+
+        function validateLogW() {
+            const val = parseFloat(weightInput.value);
+            if (isNaN(val) || val < 20 || val > 300) {
+                weightInput.classList.add('is-invalid');
+                weightInput.classList.remove('is-valid');
+                return false;
+            }
+            weightInput.classList.remove('is-invalid');
+            weightInput.classList.add('is-valid');
+            return true;
+        }
+
+        function validateLogD() {
+            if (!inputLogDate.value) {
+                inputLogDate.classList.add('is-invalid');
+                inputLogDate.classList.remove('is-valid');
+                return false;
+            }
+            inputLogDate.classList.remove('is-invalid');
+            inputLogDate.classList.add('is-valid');
+            return true;
+        }
+
+        function validateLogT() {
+            if (!inputLogTime.value) {
+                inputLogTime.classList.add('is-invalid');
+                inputLogTime.classList.remove('is-valid');
+                return false;
+            }
+            inputLogTime.classList.remove('is-invalid');
+            inputLogTime.classList.add('is-valid');
+            return true;
+        }
+
+        function validateLogH() {
+            if (heightInput && heightInput.value.trim() !== '') {
+                const val = parseFloat(heightInput.value);
+                if (isNaN(val) || val < 80 || val > 250) {
+                    heightInput.classList.add('is-invalid');
+                    heightInput.classList.remove('is-valid');
+                    return false;
+                }
+            }
+            if (heightInput) {
+                heightInput.classList.remove('is-invalid');
+                if (heightInput.value.trim() !== '') heightInput.classList.add('is-valid');
+            }
+            return true;
+        }
+
+        weightInput.addEventListener('input', validateLogW);
+        weightInput.addEventListener('blur', validateLogW);
+        inputLogDate.addEventListener('input', validateLogD);
+        inputLogDate.addEventListener('blur', validateLogD);
+        inputLogTime.addEventListener('input', validateLogT);
+        inputLogTime.addEventListener('blur', validateLogT);
+        if (heightInput) {
+            heightInput.addEventListener('input', validateLogH);
+            heightInput.addEventListener('blur', validateLogH);
+        }
+
+        formLogWeight.addEventListener('submit', function(e) {
+            const isWOk = validateLogW();
+            const isDOk = validateLogD();
+            const isTOk = validateLogT();
+            const isHOk = validateLogH();
+
+            if (!isWOk || !isDOk || !isTOk || !isHOk) {
+                e.preventDefault();
+                e.stopPropagation();
+                const firstInvalid = formLogWeight.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
+    }
+
     // 2. Modal Chỉnh Sửa Bản Ghi Cân Nặng (BUG-15)
     const modalEditWeight = document.getElementById('modalEditWeight');
+    const formEditWeight = document.getElementById('formEditWeight');
     let bsModalEdit = null;
+
+    function resetEditWeightModal() {
+        if (!formEditWeight) return;
+        document.getElementById('edit_log_id').value = '';
+        const wInput = document.getElementById('edit_weight_kg');
+        const dInput = document.getElementById('edit_log_date');
+        const tInput = document.getElementById('edit_log_time');
+        const hInput = document.getElementById('edit_height_cm');
+        const nInput = document.getElementById('edit_note');
+
+        if (wInput) { wInput.value = ''; wInput.defaultValue = ''; wInput.classList.remove('is-invalid', 'is-valid'); }
+        if (dInput) { dInput.value = ''; dInput.defaultValue = ''; dInput.classList.remove('is-invalid', 'is-valid'); }
+        if (tInput) { tInput.value = ''; tInput.defaultValue = ''; tInput.classList.remove('is-invalid', 'is-valid'); }
+        if (hInput) { hInput.classList.remove('is-invalid', 'is-valid'); }
+        if (nInput) { nInput.value = ''; nInput.defaultValue = ''; }
+    }
+
     if (modalEditWeight) {
-        bsModalEdit = new bootstrap.Modal(modalEditWeight);
+        bsModalEdit = bootstrap.Modal.getOrCreateInstance(modalEditWeight);
+
+        modalEditWeight.addEventListener('hidden.bs.modal', resetEditWeightModal);
+        modalEditWeight.addEventListener('hide.bs.modal', resetEditWeightModal);
+        modalEditWeight.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetEditWeightModal);
+        });
+
         document.querySelectorAll('.btn-edit-weight').forEach(btn => {
             btn.addEventListener('click', function() {
+                resetEditWeightModal();
                 document.getElementById('edit_log_id').value = this.dataset.id;
                 document.getElementById('edit_weight_kg').value = this.dataset.weight;
                 document.getElementById('edit_log_date').value = this.dataset.date;
@@ -524,6 +640,84 @@ document.addEventListener('DOMContentLoaded', function() {
                 bsModalEdit.show();
             });
         });
+
+        if (formEditWeight) {
+            const editW = document.getElementById('edit_weight_kg');
+            const editD = document.getElementById('edit_log_date');
+            const editT = document.getElementById('edit_log_time');
+            const editH = document.getElementById('edit_height_cm');
+
+            function validateEditW() {
+                const val = parseFloat(editW.value);
+                if (isNaN(val) || val < 20 || val > 300) {
+                    editW.classList.add('is-invalid');
+                    editW.classList.remove('is-valid');
+                    return false;
+                }
+                editW.classList.remove('is-invalid');
+                editW.classList.add('is-valid');
+                return true;
+            }
+
+            function validateEditD() {
+                if (!editD.value) {
+                    editD.classList.add('is-invalid');
+                    editD.classList.remove('is-valid');
+                    return false;
+                }
+                editD.classList.remove('is-invalid');
+                editD.classList.add('is-valid');
+                return true;
+            }
+
+            function validateEditT() {
+                if (!editT.value) {
+                    editT.classList.add('is-invalid');
+                    editT.classList.remove('is-valid');
+                    return false;
+                }
+                editT.classList.remove('is-invalid');
+                editT.classList.add('is-valid');
+                return true;
+            }
+
+            function validateEditH() {
+                if (editH.value.trim() !== '') {
+                    const val = parseFloat(editH.value);
+                    if (isNaN(val) || val < 80 || val > 250) {
+                        editH.classList.add('is-invalid');
+                        editH.classList.remove('is-valid');
+                        return false;
+                    }
+                }
+                editH.classList.remove('is-invalid');
+                if (editH.value.trim() !== '') editH.classList.add('is-valid');
+                return true;
+            }
+
+            editW.addEventListener('input', validateEditW);
+            editW.addEventListener('blur', validateEditW);
+            editD.addEventListener('input', validateEditD);
+            editD.addEventListener('blur', validateEditD);
+            editT.addEventListener('input', validateEditT);
+            editT.addEventListener('blur', validateEditT);
+            editH.addEventListener('input', validateEditH);
+            editH.addEventListener('blur', validateEditH);
+
+            formEditWeight.addEventListener('submit', function(e) {
+                const isWOk = validateEditW();
+                const isDOk = validateEditD();
+                const isTOk = validateEditT();
+                const isHOk = validateEditH();
+
+                if (!isWOk || !isDOk || !isTOk || !isHOk) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const firstInvalid = formEditWeight.querySelector('.is-invalid');
+                    if (firstInvalid) firstInvalid.focus();
+                }
+            });
+        }
     }
 
     // 3. Biểu đồ Chart.js với Bộ lọc Thời gian (BUG-17)

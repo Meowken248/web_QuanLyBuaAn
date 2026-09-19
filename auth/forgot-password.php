@@ -44,13 +44,57 @@ require_once __DIR__ . '/../includes/header.php';
 <p class="text-muted text-center">Nhập email đã đăng ký để tạo yêu cầu đặt lại mật khẩu.</p>
 <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 <?php if ($sent): ?><div class="alert alert-info">Nếu email tồn tại, yêu cầu đặt lại mật khẩu đã được tạo.</div><?php endif; ?>
-<form method="POST"><input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+<form method="POST" id="forgotPasswordForm" novalidate><input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
 <div class="mb-4">
-    <label class="form-label">Email</label>
-    <input type="email" name="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" value="<?php echo old('email'); ?>" required>
-    <?php if(isset($field_errors['email'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['email']; ?></div><?php endif; ?>
+    <label class="form-label fw-bold">Email</label>
+    <input type="email" name="email" id="forgotEmail" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" value="<?php echo old('email'); ?>" required>
+    <div class="invalid-feedback" id="forgotEmailError"><?php echo $field_errors['email'] ?? 'Vui lòng nhập địa chỉ email hợp lệ.'; ?></div>
 </div>
-<button class="btn btn-success w-100" type="submit">Tiếp tục</button></form>
-<div class="text-center mt-3"><a href="<?php echo BASE_URL; ?>/auth/login.php" class="text-success">Quay lại đăng nhập</a></div>
+<button class="btn btn-success w-100 fw-bold rounded-pill shadow-sm" type="submit">Tiếp tục</button></form>
+<div class="text-center mt-3"><a href="<?php echo BASE_URL; ?>/auth/login.php" class="text-success text-decoration-none fw-bold">Quay lại đăng nhập</a></div>
 </div></div></div></div></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('forgotPasswordForm');
+    if (!form) return;
+    const emailInput = document.getElementById('forgotEmail');
+    const emailError = document.getElementById('forgotEmailError');
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    function validateEmail() {
+        const val = emailInput.value.trim();
+        if (!val) {
+            emailInput.classList.add('is-invalid');
+            emailInput.classList.remove('is-valid');
+            if (emailError) emailError.textContent = 'Vui lòng nhập địa chỉ email.';
+            return false;
+        }
+        const hasNonAscii = /[^\x00-\x7F]/.test(val);
+        const hasWhitespace = /\s/.test(val);
+        if (hasNonAscii || hasWhitespace || !emailRegex.test(val)) {
+            emailInput.classList.add('is-invalid');
+            emailInput.classList.remove('is-valid');
+            if (emailError) emailError.textContent = 'Email không hợp lệ (không chứa dấu tiếng Việt hoặc khoảng trắng).';
+            return false;
+        }
+        emailInput.classList.remove('is-invalid');
+        emailInput.classList.add('is-valid');
+        return true;
+    }
+
+    emailInput.addEventListener('input', validateEmail);
+    emailInput.addEventListener('blur', validateEmail);
+
+    form.addEventListener('submit', function(e) {
+        if (!validateEmail()) {
+            e.preventDefault();
+            e.stopPropagation();
+            emailInput.focus();
+        }
+    });
+});
+</script>
+
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
+

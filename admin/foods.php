@@ -428,7 +428,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </p>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Chọn file Excel (.xlsx) <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control rounded-3" name="excel_file" accept=".xlsx" required>
+                        <input type="file" class="form-control rounded-3" id="importFoodsFile" name="excel_file" accept=".xlsx" required>
                     </div>
                     <div class="text-end">
                         <a href="<?php echo BASE_URL; ?>/admin/foods.php?action=sample_excel" class="text-success small fw-bold text-decoration-none">
@@ -446,5 +446,22 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const importModal = document.getElementById('importFoodsModal');
+    if (importModal) {
+        const fileInput = document.getElementById('importFoodsFile');
+        function resetImportModal() {
+            if (fileInput) fileInput.value = '';
+        }
+        importModal.addEventListener('hidden.bs.modal', resetImportModal);
+        importModal.addEventListener('hide.bs.modal', resetImportModal);
+        importModal.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetImportModal);
+        });
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

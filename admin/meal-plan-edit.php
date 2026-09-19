@@ -99,19 +99,19 @@ require_once __DIR__ . '/../includes/header.php';
 
             <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body p-4">
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="mealPlanForm" novalidate>
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Tên thực đơn <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" name="name" id="name" value="<?php echo old('name', $plan['name'] ?? ''); ?>" required>
-                                <?php if(isset($field_errors['name'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['name']; ?></div><?php endif; ?>
+                                <div class="invalid-feedback" id="nameError"><?php echo $field_errors['name'] ?? 'Vui lòng nhập tên thực đơn (tối thiểu 3 ký tự).'; ?></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Đường dẫn thân thiện (Slug) <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control <?php echo isset($field_errors['slug']) ? 'is-invalid' : ''; ?>" name="slug" id="slug" value="<?php echo old('slug', $plan['slug'] ?? ''); ?>" required>
-                                <?php if(isset($field_errors['slug'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['slug']; ?></div><?php endif; ?>
+                                <div class="invalid-feedback" id="slugError"><?php echo $field_errors['slug'] ?? 'Đường dẫn (slug) không hợp lệ (chỉ gồm chữ thường không dấu, số và dấu gạch nối).'; ?></div>
                             </div>
                         </div>
 
@@ -175,8 +175,14 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+    const form = document.getElementById('mealPlanForm');
+    const nameInput = document.getElementById('name');
+    const slugInput = document.getElementById('slug');
+    const nameError = document.getElementById('nameError');
+    const slugError = document.getElementById('slugError');
+
     // Tự động tạo slug từ tên
-    document.getElementById('name').addEventListener('input', function() {
+    nameInput.addEventListener('input', function() {
         let slug = this.value.toLowerCase();
         slug = slug.replace(/á|à|ả|ạ|ã|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ/gi, 'a');
         slug = slug.replace(/é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ/gi, 'e');
@@ -190,9 +196,73 @@ require_once __DIR__ . '/../includes/header.php';
         slug = slug.replace(/^-|-$/g, '');
         
         <?php if (!$id): ?>
-        document.getElementById('slug').value = slug;
+        slugInput.value = slug;
+        if (slug) validateSlug();
         <?php endif; ?>
     });
+
+    function validateName() {
+        const val = nameInput.value.trim();
+        if (!val) {
+            nameInput.classList.add('is-invalid');
+            nameInput.classList.remove('is-valid');
+            if (nameError) nameError.textContent = 'Vui lòng nhập tên thực đơn.';
+            return false;
+        }
+        if (val.length < 3) {
+            nameInput.classList.add('is-invalid');
+            nameInput.classList.remove('is-valid');
+            if (nameError) nameError.textContent = 'Tên thực đơn phải có ít nhất 3 ký tự.';
+            return false;
+        }
+        nameInput.classList.remove('is-invalid');
+        nameInput.classList.add('is-valid');
+        return true;
+    }
+
+    function validateSlug() {
+        const val = slugInput.value.trim();
+        if (!val) {
+            slugInput.classList.add('is-invalid');
+            slugInput.classList.remove('is-valid');
+            if (slugError) slugError.textContent = 'Vui lòng nhập đường dẫn thân thiện (slug).';
+            return false;
+        }
+        if (val.length < 3) {
+            slugInput.classList.add('is-invalid');
+            slugInput.classList.remove('is-valid');
+            if (slugError) slugError.textContent = 'Slug phải có ít nhất 3 ký tự.';
+            return false;
+        }
+        if (!/^[a-z0-9-]+$/.test(val)) {
+            slugInput.classList.add('is-invalid');
+            slugInput.classList.remove('is-valid');
+            if (slugError) slugError.textContent = 'Slug chỉ chứa chữ cái thường không dấu, số và dấu gạch ngang.';
+            return false;
+        }
+        slugInput.classList.remove('is-invalid');
+        slugInput.classList.add('is-valid');
+        return true;
+    }
+
+    nameInput.addEventListener('input', validateName);
+    nameInput.addEventListener('blur', validateName);
+    slugInput.addEventListener('input', validateSlug);
+    slugInput.addEventListener('blur', validateSlug);
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const isNameOk = validateName();
+            const isSlugOk = validateSlug();
+
+            if (!isNameOk || !isSlugOk) {
+                e.preventDefault();
+                e.stopPropagation();
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
+    }
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

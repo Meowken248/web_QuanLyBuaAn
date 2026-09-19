@@ -160,7 +160,7 @@ $repeats = [
             <div class="col-12 text-center py-5">
                 <i class="bi bi-alarm text-muted" style="font-size: 3rem;"></i>
                 <h5 class="text-muted mt-3">Chưa có nhắc nhở nào được thiết lập.</h5>
-                <button type="button" class="btn btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#reminderModal">
+                <button type="button" class="btn btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#reminderModal" onclick="resetForm()">
                     Tạo nhắc nhở ngay
                 </button>
             </div>
@@ -171,7 +171,7 @@ $repeats = [
 <!-- Modal Thêm/Sửa Nhắc nhở -->
 <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="POST" action="">
+        <form method="POST" action="" id="reminderForm" novalidate>
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title fw-bold" id="reminderModalLabel">Thêm Nhắc Nhở</h5>
@@ -185,6 +185,7 @@ $repeats = [
                     <div class="mb-3">
                         <label for="title" class="form-label fw-bold">Tên nhắc nhở <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="title" name="title" required placeholder="VD: Uống cốc nước 300ml">
+                        <div class="invalid-feedback" id="titleError">Vui lòng nhập tên nhắc nhở (tối thiểu 2 ký tự).</div>
                     </div>
                     
                     <div class="row">
@@ -199,6 +200,7 @@ $repeats = [
                         <div class="col-md-6 mb-3">
                             <label for="reminder_time" class="form-label fw-bold">Giờ nhắc <span class="text-danger">*</span></label>
                             <input type="time" class="form-control" id="reminder_time" name="reminder_time" required>
+                            <div class="invalid-feedback" id="timeError">Vui lòng chọn giờ nhắc nhở.</div>
                         </div>
                     </div>
                     
@@ -229,19 +231,98 @@ $repeats = [
 </div>
 
 <script>
+    const reminderModalEl = document.getElementById('reminderModal');
+    const reminderForm = document.getElementById('reminderForm');
+    const titleInput = document.getElementById('title');
+    const timeInput = document.getElementById('reminder_time');
+    const titleError = document.getElementById('titleError');
+    const timeError = document.getElementById('timeError');
+
+    function validateTitle() {
+        const val = titleInput.value.trim();
+        if (!val) {
+            titleInput.classList.add('is-invalid');
+            titleInput.classList.remove('is-valid');
+            if (titleError) titleError.textContent = 'Vui lòng nhập tên nhắc nhở.';
+            return false;
+        }
+        if (val.length < 2) {
+            titleInput.classList.add('is-invalid');
+            titleInput.classList.remove('is-valid');
+            if (titleError) titleError.textContent = 'Tên nhắc nhở phải có ít nhất 2 ký tự.';
+            return false;
+        }
+        titleInput.classList.remove('is-invalid');
+        titleInput.classList.add('is-valid');
+        return true;
+    }
+
+    function validateTime() {
+        const val = timeInput.value.trim();
+        if (!val) {
+            timeInput.classList.add('is-invalid');
+            timeInput.classList.remove('is-valid');
+            if (timeError) timeError.textContent = 'Vui lòng chọn giờ nhắc nhở.';
+            return false;
+        }
+        timeInput.classList.remove('is-invalid');
+        timeInput.classList.add('is-valid');
+        return true;
+    }
+
+    titleInput.addEventListener('input', validateTitle);
+    titleInput.addEventListener('blur', validateTitle);
+    timeInput.addEventListener('input', validateTime);
+    timeInput.addEventListener('blur', validateTime);
+
+    if (reminderForm) {
+        reminderForm.addEventListener('submit', function(e) {
+            const isTitleOk = validateTitle();
+            const isTimeOk = validateTime();
+
+            if (!isTitleOk || !isTimeOk) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const firstInvalid = reminderForm.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
+    }
+
     function resetForm() {
         document.getElementById('reminderModalLabel').innerText = 'Thêm Nhắc Nhở';
         document.getElementById('form_action').value = 'create';
         document.getElementById('reminder_id').value = '';
-        document.getElementById('title').value = '';
-        document.getElementById('reminder_time').value = '';
+        
+        titleInput.value = '';
+        titleInput.defaultValue = '';
+        titleInput.classList.remove('is-invalid', 'is-valid');
+
+        timeInput.value = '';
+        timeInput.defaultValue = '';
+        timeInput.classList.remove('is-invalid', 'is-valid');
+
         document.getElementById('reminder_type').value = 'water';
         document.getElementById('repeat_type').value = 'daily';
         document.getElementById('status').value = 'active';
         document.getElementById('btnSubmit').innerText = 'Lưu Nhắc nhở';
     }
 
+    if (reminderModalEl) {
+        reminderModalEl.addEventListener('hidden.bs.modal', function() {
+            resetForm();
+        });
+        reminderModalEl.addEventListener('hide.bs.modal', function() {
+            resetForm();
+        });
+        reminderModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetForm);
+        });
+    }
+
     function editReminder(r) {
+        resetForm();
         document.getElementById('reminderModalLabel').innerText = 'Sửa Nhắc Nhở';
         document.getElementById('form_action').value = 'update';
         document.getElementById('reminder_id').value = r.id;
@@ -252,7 +333,7 @@ $repeats = [
         document.getElementById('status').value = r.status;
         document.getElementById('btnSubmit').innerText = 'Cập nhật';
         
-        var modal = new bootstrap.Modal(document.getElementById('reminderModal'));
+        var modal = bootstrap.Modal.getOrCreateInstance(reminderModalEl);
         modal.show();
     }
 </script>

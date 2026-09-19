@@ -89,15 +89,15 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div class="alert alert-danger shadow-sm border-0 rounded-3 text-sm" data-aos="fade-in"><i class="bi bi-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?></div>
                             <?php endif; ?>
                             
-                            <form method="POST" action="">
+                            <form method="POST" action="" id="loginForm" novalidate>
                                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                 
                                 <div class="mb-3">
                                     <div class="form-floating">
                                         <input type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" id="floatingInput" name="email" placeholder="name@example.com" value="<?php echo htmlspecialchars($input_email); ?>" autocomplete="email" required>
                                         <label for="floatingInput" class="text-muted"><i class="bi bi-envelope me-2"></i>Email</label>
+                                        <div class="invalid-feedback" id="loginEmailError"><?php echo $field_errors['email'] ?? 'Vui lòng nhập địa chỉ email hợp lệ.'; ?></div>
                                     </div>
-                                    <?php if(isset($field_errors['email'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['email']; ?></div><?php endif; ?>
                                 </div>
                                 
                                 <div class="mb-4">
@@ -107,8 +107,8 @@ require_once __DIR__ . '/../includes/header.php';
                                         <button type="button" class="btn btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-2 password-toggle" data-password-toggle="floatingPassword" aria-label="Hiện mật khẩu" aria-pressed="false">
                                             <i class="bi bi-eye" aria-hidden="true"></i>
                                         </button>
+                                        <div class="invalid-feedback" id="loginPasswordError"><?php echo $field_errors['password'] ?? 'Vui lòng nhập mật khẩu.'; ?></div>
                                     </div>
-                                    <?php if(isset($field_errors['password'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['password']; ?></div><?php endif; ?>
                                 </div>
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -132,5 +132,74 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('loginForm');
+    if (!form) return;
+
+    const emailInput = document.getElementById('floatingInput');
+    const passInput = document.getElementById('floatingPassword');
+    const emailError = document.getElementById('loginEmailError');
+    const passError = document.getElementById('loginPasswordError');
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    function validateEmail() {
+        const val = emailInput.value.trim();
+        if (!val) {
+            emailInput.classList.add('is-invalid');
+            emailInput.classList.remove('is-valid');
+            if (emailError) emailError.textContent = 'Vui lòng nhập địa chỉ email.';
+            return false;
+        }
+        const hasNonAscii = /[^\x00-\x7F]/.test(val);
+        const hasWhitespace = /\s/.test(val);
+        if (hasNonAscii || hasWhitespace || !emailRegex.test(val)) {
+            emailInput.classList.add('is-invalid');
+            emailInput.classList.remove('is-valid');
+            if (emailError) emailError.textContent = 'Email không hợp lệ (không chứa dấu tiếng Việt hoặc khoảng trắng).';
+            return false;
+        }
+        emailInput.classList.remove('is-invalid');
+        emailInput.classList.add('is-valid');
+        return true;
+    }
+
+    function validatePass() {
+        const val = passInput.value;
+        if (!val) {
+            passInput.classList.add('is-invalid');
+            passInput.classList.remove('is-valid');
+            if (passError) passError.textContent = 'Vui lòng nhập mật khẩu.';
+            return false;
+        }
+        passInput.classList.remove('is-invalid');
+        passInput.classList.add('is-valid');
+        return true;
+    }
+
+    emailInput.addEventListener('input', validateEmail);
+    emailInput.addEventListener('blur', validateEmail);
+
+    passInput.addEventListener('input', validatePass);
+    passInput.addEventListener('blur', validatePass);
+
+    form.addEventListener('submit', function(e) {
+        const isEmailOk = validateEmail();
+        const isPassOk = validatePass();
+
+        if (!isEmailOk || !isPassOk) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const firstInvalid = form.querySelector('.is-invalid');
+            if (firstInvalid) {
+                firstInvalid.focus();
+            }
+        }
+    });
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
