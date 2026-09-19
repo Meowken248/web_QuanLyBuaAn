@@ -132,23 +132,23 @@ require_once __DIR__ . '/../includes/header.php';
 <h3 class="fw-bold mb-4"><?php echo htmlspecialchars($page_title); ?></h3>
 <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 <?php if ($field_errors): ?><div class="alert alert-danger">Dữ liệu chưa hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.</div><?php endif; ?>
-<form method="POST" enctype="multipart/form-data" novalidate><input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+<form method="POST" enctype="multipart/form-data" novalidate id="foodForm"><input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
 <div class="row g-3">
-<div class="col-md-8"><label class="form-label">Tên món <span class="text-danger">*</span></label><input class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" name="name" maxlength="200" value="<?php echo food_form_value('name', $food); ?>" required><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['name'] ?? 'Vui lòng nhập tên món.'); ?></div></div>
-<div class="col-md-4"><label class="form-label">Danh mục <span class="text-danger">*</span></label><select class="form-select <?php echo isset($field_errors['category_id']) ? 'is-invalid' : ''; ?>" name="category_id" required><option value="">Chọn danh mục</option><?php foreach ($categories as $c): ?><option value="<?php echo $c['id']; ?>" <?php echo (string)($_POST['category_id'] ?? $food['category_id'] ?? '') === (string)$c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['name']); ?></option><?php endforeach; ?></select><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['category_id'] ?? 'Vui lòng chọn danh mục.'); ?></div></div>
-<div class="col-12"><label class="form-label">Mô tả ngắn</label><textarea class="form-control" name="description" rows="2"><?php echo food_form_value('description', $food); ?></textarea></div>
-<div class="col-md-6"><label class="form-label">Nguyên liệu</label><textarea class="form-control" name="ingredients" rows="4"><?php echo food_form_value('ingredients', $food); ?></textarea></div>
-<div class="col-md-6"><label class="form-label">Cách làm</label><textarea class="form-control" name="instructions" rows="4"><?php echo food_form_value('instructions', $food); ?></textarea></div>
-<div class="col-12"><label class="form-label">Hình ảnh minh họa</label><input type="file" class="form-control <?php echo isset($field_errors['image']) ? 'is-invalid' : ''; ?>" name="image" accept="image/jpeg,image/png,image/webp,image/gif"><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['image'] ?? ''); ?></div><?php if (!empty($food['image'])): ?><div class="mt-2"><img src="<?php echo htmlspecialchars(food_image_url($food['image'])); ?>" alt="Hình ảnh" style="height:100px;object-fit:cover;border-radius:8px"></div><?php endif; ?></div>
-<div class="col-md-4"><label class="form-label">Khẩu phần <span class="text-danger">*</span></label><input type="number" step="0.01" min="0.01" class="form-control <?php echo isset($field_errors['serving_size']) ? 'is-invalid' : ''; ?>" name="serving_size" value="<?php echo food_form_value('serving_size', $food, '100'); ?>" required><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['serving_size'] ?? 'Khẩu phần phải lớn hơn 0.'); ?></div></div>
-<div class="col-md-4"><label class="form-label">Đơn vị <span class="text-danger">*</span></label><input class="form-control <?php echo isset($field_errors['serving_unit']) ? 'is-invalid' : ''; ?>" name="serving_unit" value="<?php echo food_form_value('serving_unit', $food, 'gram'); ?>" required><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['serving_unit'] ?? 'Vui lòng nhập đơn vị.'); ?></div></div>
-<div class="col-md-4"><label class="form-label">Trạng thái</label><select class="form-select" name="status"><option value="active">Hoạt động</option><option value="inactive" <?php echo ($_POST['status'] ?? $food['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Ẩn</option></select></div>
+<div class="col-md-8"><label class="form-label fw-bold">Tên món <span class="text-danger">*</span></label><input id="food_name" class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" name="name" maxlength="200" value="<?php echo food_form_value('name', $food); ?>" required autocomplete="off"><div class="invalid-feedback" id="food_name_error"><?php echo htmlspecialchars($field_errors['name'] ?? 'Vui lòng nhập tên món.'); ?></div></div>
+<div class="col-md-4"><label class="form-label fw-bold">Danh mục <span class="text-danger">*</span></label><select id="category_id" class="form-select <?php echo isset($field_errors['category_id']) ? 'is-invalid' : ''; ?>" name="category_id" required><option value="">Chọn danh mục</option><?php foreach ($categories as $c): ?><option value="<?php echo $c['id']; ?>" <?php echo (string)($_POST['category_id'] ?? $food['category_id'] ?? '') === (string)$c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['name']); ?></option><?php endforeach; ?></select><div class="invalid-feedback" id="category_id_error"><?php echo htmlspecialchars($field_errors['category_id'] ?? 'Vui lòng chọn danh mục.'); ?></div></div>
+<div class="col-12"><label class="form-label fw-bold">Mô tả ngắn</label><textarea class="form-control" name="description" rows="2"><?php echo food_form_value('description', $food); ?></textarea></div>
+<div class="col-md-6"><label class="form-label fw-bold">Nguyên liệu</label><textarea class="form-control" name="ingredients" rows="4"><?php echo food_form_value('ingredients', $food); ?></textarea></div>
+<div class="col-md-6"><label class="form-label fw-bold">Cách làm</label><textarea class="form-control" name="instructions" rows="4"><?php echo food_form_value('instructions', $food); ?></textarea></div>
+<div class="col-12"><label class="form-label fw-bold">Hình ảnh minh họa</label><input type="file" class="form-control <?php echo isset($field_errors['image']) ? 'is-invalid' : ''; ?>" name="image" accept="image/jpeg,image/png,image/webp,image/gif"><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors['image'] ?? ''); ?></div><?php if (!empty($food['image'])): ?><div class="mt-2"><img src="<?php echo htmlspecialchars(food_image_url($food['image'])); ?>" alt="Hình ảnh" style="height:100px;object-fit:cover;border-radius:8px"></div><?php endif; ?></div>
+<div class="col-md-4"><label class="form-label fw-bold">Khẩu phần <span class="text-danger">*</span></label><input id="serving_size" type="number" step="0.01" min="0.01" class="form-control <?php echo isset($field_errors['serving_size']) ? 'is-invalid' : ''; ?>" name="serving_size" value="<?php echo food_form_value('serving_size', $food, '100'); ?>" required><div class="invalid-feedback" id="serving_size_error"><?php echo htmlspecialchars($field_errors['serving_size'] ?? 'Khẩu phần phải lớn hơn 0.'); ?></div></div>
+<div class="col-md-4"><label class="form-label fw-bold">Đơn vị <span class="text-danger">*</span></label><input id="serving_unit" class="form-control <?php echo isset($field_errors['serving_unit']) ? 'is-invalid' : ''; ?>" name="serving_unit" value="<?php echo food_form_value('serving_unit', $food, 'gram'); ?>" required autocomplete="off"><div class="invalid-feedback" id="serving_unit_error"><?php echo htmlspecialchars($field_errors['serving_unit'] ?? 'Vui lòng nhập đơn vị.'); ?></div></div>
+<div class="col-md-4"><label class="form-label fw-bold">Trạng thái</label><select class="form-select" name="status"><option value="active">Hoạt động</option><option value="inactive" <?php echo ($_POST['status'] ?? $food['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Ẩn</option></select></div>
 <?php foreach (['calories'=>'Calories','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $key=>$label): ?>
-<div class="col-md"><label class="form-label"><?php echo $label; ?> <?php if($key !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label><input type="number" min="0" step="0.01" data-clear-zero class="form-control <?php echo isset($field_errors[$key]) ? 'is-invalid' : ''; ?> <?php echo $key === 'calories' ? 'bg-light text-muted fw-bold' : ''; ?>" name="<?php echo $key; ?>" placeholder="0.00" value="<?php echo food_form_value($key, $food, ''); ?>" <?php echo $key === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors[$key] ?? 'Giá trị phải lớn hơn hoặc bằng 0.'); ?></div></div>
+<div class="col-md"><label class="form-label fw-bold"><?php echo $label; ?> <?php if($key !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label><input type="number" min="0" step="0.01" data-clear-zero class="form-control <?php echo isset($field_errors[$key]) ? 'is-invalid' : ''; ?> <?php echo $key === 'calories' ? 'bg-light text-muted fw-bold' : ''; ?>" name="<?php echo $key; ?>" placeholder="0.00" value="<?php echo food_form_value($key, $food, ''); ?>" <?php echo $key === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>><div class="invalid-feedback"><?php echo htmlspecialchars($field_errors[$key] ?? 'Giá trị phải lớn hơn hoặc bằng 0.'); ?></div></div>
 <?php endforeach; ?>
 <div class="col-12"><div class="form-text">Calories tham khảo = Protein × 4 + Carbs × 4 + Fat × 9. Nếu đơn vị là gram, tổng macros và chất xơ không được vượt khẩu phần.</div></div>
 </div>
-<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/foods.php">Hủy</a><button class="btn btn-outline-success rounded-pill px-4">Lưu món ăn</button></div>
+<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/foods.php">Hủy</a><button class="btn btn-outline-primary rounded-pill px-4 shadow-sm">Lưu món ăn</button></div>
 </form></div></div></div></div></div>
 <script>
 document.querySelectorAll('[data-clear-zero]').forEach(input => {
@@ -166,6 +166,112 @@ if (calInput && macros.length > 0) {
         calInput.value = (p * 4 + c * 4 + f * 9).toFixed(2);
     };
     macros.forEach(el => el.addEventListener('input', calcCals));
+}
+
+// Client-side validation for Food Form
+const foodForm = document.getElementById('foodForm');
+const foodNameInput = document.getElementById('food_name');
+const categorySelect = document.getElementById('category_id');
+const servingSizeInput = document.getElementById('serving_size');
+const servingUnitInput = document.getElementById('serving_unit');
+
+function validateFoodName(trigger = 'blur') {
+    if (!foodNameInput) return true;
+    const val = foodNameInput.value.trim();
+    const err = document.getElementById('food_name_error');
+    if (!val) {
+        if (trigger === 'submit' || trigger === 'blur') {
+            foodNameInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Vui lòng nhập tên món.';
+            return false;
+        }
+        return true;
+    }
+    foodNameInput.classList.remove('is-invalid');
+    return true;
+}
+
+function validateCategory(trigger = 'blur') {
+    if (!categorySelect) return true;
+    const val = categorySelect.value;
+    const err = document.getElementById('category_id_error');
+    if (!val) {
+        if (trigger === 'submit' || trigger === 'blur') {
+            categorySelect.classList.add('is-invalid');
+            if (err) err.textContent = 'Vui lòng chọn danh mục.';
+            return false;
+        }
+        return true;
+    }
+    categorySelect.classList.remove('is-invalid');
+    return true;
+}
+
+function validateServingSize(trigger = 'blur') {
+    if (!servingSizeInput) return true;
+    const val = parseFloat(servingSizeInput.value);
+    const err = document.getElementById('serving_size_error');
+    if (isNaN(val) || val <= 0) {
+        if (trigger === 'submit' || trigger === 'blur') {
+            servingSizeInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Khẩu phần phải lớn hơn 0.';
+            return false;
+        }
+        return true;
+    }
+    servingSizeInput.classList.remove('is-invalid');
+    return true;
+}
+
+function validateServingUnit(trigger = 'blur') {
+    if (!servingUnitInput) return true;
+    const val = servingUnitInput.value.trim();
+    const err = document.getElementById('serving_unit_error');
+    if (!val) {
+        if (trigger === 'submit' || trigger === 'blur') {
+            servingUnitInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Vui lòng nhập đơn vị.';
+            return false;
+        }
+        return true;
+    }
+    servingUnitInput.classList.remove('is-invalid');
+    return true;
+}
+
+if (foodNameInput) {
+    foodNameInput.addEventListener('input', () => validateFoodName('input'));
+    foodNameInput.addEventListener('blur', () => validateFoodName('blur'));
+}
+if (categorySelect) {
+    categorySelect.addEventListener('change', () => validateCategory('blur'));
+}
+if (servingSizeInput) {
+    servingSizeInput.addEventListener('input', () => validateServingSize('input'));
+    servingSizeInput.addEventListener('blur', () => validateServingSize('blur'));
+}
+if (servingUnitInput) {
+    servingUnitInput.addEventListener('input', () => validateServingUnit('input'));
+    servingUnitInput.addEventListener('blur', () => validateServingUnit('blur'));
+}
+
+if (foodForm) {
+    foodForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const isNameValid = validateFoodName('submit');
+        const isCatValid = validateCategory('submit');
+        const isSizeValid = validateServingSize('submit');
+        const isUnitValid = validateServingUnit('submit');
+
+        if (isNameValid && isCatValid && isSizeValid && isUnitValid) {
+            foodForm.submit();
+        } else {
+            const firstInvalid = foodForm.querySelector('.is-invalid');
+            if (firstInvalid) firstInvalid.focus();
+        }
+    });
 }
 </script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

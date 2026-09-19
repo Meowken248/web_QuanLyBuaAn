@@ -167,7 +167,7 @@ require_once '../includes/header.php';
 <div class="modal fade" id="addClassModal" tabindex="-1" aria-labelledby="addClassModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content rounded-4 border-0 shadow">
-            <form method="post">
+            <form method="post" id="addClassForm" novalidate>
                 <div class="modal-header border-bottom-0">
                     <h5 class="modal-title fw-bold" id="addClassModalLabel"><i class="bi bi-plus-circle text-primary me-2"></i>Thêm Lớp Học Mới</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -176,20 +176,128 @@ require_once '../includes/header.php';
                     <input type="hidden" name="action" value="add">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mã Lớp <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="class_code" required placeholder="VD: D21_TH01">
+                        <input type="text" class="form-control" name="class_code" id="class_code" required placeholder="VD: D21_TH01" autocomplete="off">
+                        <div class="invalid-feedback" id="class_code_error">Vui lòng nhập Mã lớp.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Tên Lớp <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="class_name" required placeholder="VD: Công nghệ Thông tin 1">
+                        <input type="text" class="form-control" name="class_name" id="class_name" required placeholder="VD: Công nghệ Thông tin 1" autocomplete="off">
+                        <div class="invalid-feedback" id="class_name_error">Vui lòng nhập Tên lớp.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
-                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Lưu Lớp Học</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">Lưu Lớp Học</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addClassModalEl = document.getElementById('addClassModal');
+    const addClassForm = document.getElementById('addClassForm');
+    const classCodeInput = document.getElementById('class_code');
+    const classNameInput = document.getElementById('class_name');
+
+    function validateClassCode(trigger = 'blur') {
+        if (!classCodeInput) return true;
+        const val = classCodeInput.value.trim();
+        const err = document.getElementById('class_code_error');
+        if (!val) {
+            if (trigger === 'submit' || trigger === 'blur') {
+                classCodeInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập Mã lớp.';
+                return false;
+            }
+            return true;
+        }
+        if (/\s/.test(val) || /[^\x00-\x7F]/.test(val)) {
+            classCodeInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Mã lớp không được chứa khoảng trắng hoặc dấu tiếng Việt.';
+            return false;
+        }
+        classCodeInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    function validateClassName(trigger = 'blur') {
+        if (!classNameInput) return true;
+        const val = classNameInput.value.trim();
+        const err = document.getElementById('class_name_error');
+        if (!val) {
+            if (trigger === 'submit' || trigger === 'blur') {
+                classNameInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập Tên lớp.';
+                return false;
+            }
+            return true;
+        }
+        if (val.length < 2) {
+            classNameInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Tên lớp phải có ít nhất 2 ký tự.';
+            return false;
+        }
+        classNameInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    if (classCodeInput) {
+        classCodeInput.addEventListener('input', () => validateClassCode('input'));
+        classCodeInput.addEventListener('blur', () => validateClassCode('blur'));
+    }
+    if (classNameInput) {
+        classNameInput.addEventListener('input', () => validateClassName('input'));
+        classNameInput.addEventListener('blur', () => validateClassName('blur'));
+    }
+
+    if (addClassForm) {
+        addClassForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const isCodeValid = validateClassCode('submit');
+            const isNameValid = validateClassName('submit');
+
+            if (isCodeValid && isNameValid) {
+                addClassForm.submit();
+            } else {
+                const firstInvalid = addClassForm.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
+    }
+
+    function resetAddClassModal() {
+        if (!addClassForm) return;
+        addClassForm.reset();
+        addClassForm.querySelectorAll('input').forEach(input => {
+            if (input.type !== 'hidden') {
+                input.value = '';
+                input.defaultValue = '';
+                input.classList.remove('is-invalid', 'is-valid');
+            }
+        });
+        const errCode = document.getElementById('class_code_error');
+        if (errCode) errCode.textContent = 'Vui lòng nhập Mã lớp.';
+        const errName = document.getElementById('class_name_error');
+        if (errName) errName.textContent = 'Vui lòng nhập Tên lớp.';
+    }
+
+    if (addClassModalEl) {
+        addClassModalEl.addEventListener('hidden.bs.modal', resetAddClassModal);
+        addClassModalEl.addEventListener('hide.bs.modal', resetAddClassModal);
+        addClassModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetAddClassModal);
+        });
+    }
+
+    const btnOpenAddClass = document.querySelector('[data-bs-target="#addClassModal"]');
+    if (btnOpenAddClass) {
+        btnOpenAddClass.addEventListener('click', resetAddClassModal);
+    }
+});
+</script>
 
 <?php require_once '../includes/footer.php'; ?>

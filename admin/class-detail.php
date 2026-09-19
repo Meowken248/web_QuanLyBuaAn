@@ -491,13 +491,13 @@ require_once '../includes/header.php';
                     <input type="hidden" name="action" value="add_student">
                     <div class="mb-3">
                         <label class="form-label fw-bold">MSSV <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control <?= isset($field_errors['mssv']) ? 'is-invalid' : '' ?>" name="mssv" id="mssv" value="<?= htmlspecialchars($old_input['mssv'] ?? '') ?>" required>
-                        <div class="invalid-feedback"><?= $field_errors['mssv'] ?? 'Vui lòng nhập MSSV.' ?></div>
+                        <input type="text" class="form-control <?= isset($field_errors['mssv']) ? 'is-invalid' : '' ?>" name="mssv" id="mssv" value="<?= htmlspecialchars($old_input['mssv'] ?? '') ?>" required autocomplete="off">
+                        <div class="invalid-feedback" id="mssv_error"><?= $field_errors['mssv'] ?? 'Vui lòng nhập MSSV.' ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Họ Và Tên <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control <?= isset($field_errors['full_name']) ? 'is-invalid' : '' ?>" name="full_name" id="full_name" value="<?= htmlspecialchars($old_input['full_name'] ?? '') ?>" required>
-                        <div class="invalid-feedback"><?= $field_errors['full_name'] ?? 'Vui lòng nhập Họ và tên.' ?></div>
+                        <input type="text" class="form-control <?= isset($field_errors['full_name']) ? 'is-invalid' : '' ?>" name="full_name" id="full_name" value="<?= htmlspecialchars($old_input['full_name'] ?? '') ?>" required autocomplete="off">
+                        <div class="invalid-feedback" id="full_name_error"><?= $field_errors['full_name'] ?? 'Vui lòng nhập Họ và tên.' ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Ngày Sinh <span class="text-danger">*</span></label>
@@ -506,14 +506,14 @@ require_once '../includes/header.php';
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control <?= isset($field_errors['email']) ? 'is-invalid' : '' ?>" name="email" id="email" value="<?= htmlspecialchars($old_input['email'] ?? '') ?>" required>
-                        <div class="invalid-feedback"><?= $field_errors['email'] ?? 'Vui lòng nhập địa chỉ Email hợp lệ.' ?></div>
+                        <input type="email" class="form-control <?= isset($field_errors['email']) ? 'is-invalid' : '' ?>" name="email" id="email" value="<?= htmlspecialchars($old_input['email'] ?? '') ?>" required autocomplete="off">
+                        <div class="invalid-feedback" id="email_error"><?= $field_errors['email'] ?? 'Vui lòng nhập địa chỉ Email hợp lệ.' ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mật Khẩu <span class="text-danger">*</span></label>
                         <div class="input-group has-validation">
-                            <input type="password" class="form-control <?= isset($field_errors['password']) ? 'is-invalid' : '' ?>" name="password" id="password" required>
-                            <button class="btn btn-outline-secondary" type="button" data-password-toggle="password" aria-label="Hiện mật khẩu">
+                            <input type="password" class="form-control <?= isset($field_errors['password']) ? 'is-invalid' : '' ?>" name="password" id="password" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary password-toggle" type="button" data-target="password" aria-label="Hiện mật khẩu">
                                 <i class="bi bi-eye"></i>
                             </button>
                             <div class="invalid-feedback" id="password_error"><?= $field_errors['password'] ?? 'Vui lòng nhập Mật khẩu (tối thiểu 6 ký tự).' ?></div>
@@ -522,8 +522,8 @@ require_once '../includes/header.php';
                     <div class="mb-3">
                         <label class="form-label fw-bold">Xác nhận Mật Khẩu <span class="text-danger">*</span></label>
                         <div class="input-group has-validation">
-                            <input type="password" class="form-control <?= isset($field_errors['confirm_password']) ? 'is-invalid' : '' ?>" name="confirm_password" id="confirm_password" required>
-                            <button class="btn btn-outline-secondary" type="button" data-password-toggle="confirm_password" aria-label="Hiện mật khẩu">
+                            <input type="password" class="form-control <?= isset($field_errors['confirm_password']) ? 'is-invalid' : '' ?>" name="confirm_password" id="confirm_password" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary password-toggle" type="button" data-target="confirm_password" aria-label="Hiện mật khẩu">
                                 <i class="bi bi-eye"></i>
                             </button>
                             <div class="invalid-feedback" id="confirm_password_error"><?= $field_errors['confirm_password'] ?? 'Vui lòng xác nhận mật khẩu.' ?></div>
@@ -531,8 +531,8 @@ require_once '../includes/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
-                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Thêm Sinh Viên</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-4 shadow-sm">Thêm Sinh Viên</button>
                 </div>
             </form>
         </div>
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    if(selectAll) {
+    if (selectAll) {
         selectAll.addEventListener('change', function() {
             checkboxes.forEach(cb => cb.checked = selectAll.checked);
             updateDeleteButton();
@@ -563,134 +563,321 @@ document.addEventListener('DOMContentLoaded', function() {
         cb.addEventListener('change', updateDeleteButton);
     });
 
-    // Explicit modal show fallback
-    const btnAddStudent = document.getElementById('btnAddStudent');
-    if (btnAddStudent) {
-        btnAddStudent.addEventListener('click', function(e) {
-            e.preventDefault();
-            const modalEl = document.getElementById('addStudentModal');
-            if (modalEl) {
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modal.show();
+    // Password toggle
+    document.querySelectorAll('.password-toggle').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const input = document.getElementById(targetId);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.className = 'bi ' + (isPassword ? 'bi-eye-slash' : 'bi-eye');
             }
+            this.setAttribute('aria-label', isPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
         });
-    }
+    });
 
     // Form Validation for Add Student
+    const addStudentModalEl = document.getElementById('addStudentModal');
     const addStudentForm = document.getElementById('addStudentForm');
+    const mssvInput = document.getElementById('mssv');
+    const fullNameInput = document.getElementById('full_name');
     const birthDateInput = document.getElementById('birth_date');
-    const birthDateError = document.getElementById('birth_date_error');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
 
+    // Date range restrictions
     if (birthDateInput) {
-        // Set max date to 18 years ago, min date to 100 years ago
         const today = new Date();
         const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()).toISOString().split('T')[0];
         const minDate = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate()).toISOString().split('T')[0];
-        
         birthDateInput.setAttribute('max', maxDate);
         birthDateInput.setAttribute('min', minDate);
     }
 
+    // Single source of truth validators
+    function validateMssv(trigger = 'blur') {
+        if (!mssvInput) return true;
+        const val = mssvInput.value.trim();
+        const err = document.getElementById('mssv_error');
+        if (!val) {
+            if (trigger === 'submit') {
+                mssvInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập MSSV.';
+                return false;
+            }
+            return true;
+        }
+        if (/\s/.test(val) || /[^\x00-\x7F]/.test(val) || !/^[a-zA-Z0-9_-]+$/.test(val)) {
+            mssvInput.classList.add('is-invalid');
+            if (err) err.textContent = 'MSSV không được chứa khoảng trắng, dấu tiếng Việt hoặc ký tự đặc biệt.';
+            return false;
+        }
+        mssvInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    function validateFullName(trigger = 'blur') {
+        if (!fullNameInput) return true;
+        const val = fullNameInput.value.trim();
+        const err = document.getElementById('full_name_error');
+        if (!val) {
+            if (trigger === 'submit') {
+                fullNameInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập Họ và tên.';
+                return false;
+            }
+            return true;
+        }
+        if (val.length < 2) {
+            fullNameInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Họ và tên phải có ít nhất 2 ký tự.';
+            return false;
+        }
+        fullNameInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    function validateBirthDate(trigger = 'blur') {
+        if (!birthDateInput) return true;
+        const val = birthDateInput.value.trim();
+        const err = document.getElementById('birth_date_error');
+        if (!val) {
+            if (trigger === 'submit') {
+                birthDateInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập Ngày sinh.';
+                return false;
+            }
+            return true;
+        }
+        const dob = new Date(val);
+        const today = new Date();
+        if (isNaN(dob.getTime())) {
+            birthDateInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Định dạng ngày sinh không hợp lệ.';
+            return false;
+        }
+        if (dob > today) {
+            birthDateInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Ngày sinh không được ở tương lai.';
+            return false;
+        }
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        if (age < 18) {
+            birthDateInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Sinh viên phải từ 18 tuổi trở lên.';
+            return false;
+        }
+        if (age > 100) {
+            birthDateInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Ngày sinh không hợp lệ (quá 100 tuổi).';
+            return false;
+        }
+        birthDateInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    function validateEmail(trigger = 'blur') {
+        if (!emailInput) return true;
+        const val = emailInput.value.trim();
+        const err = document.getElementById('email_error');
+        if (!val) {
+            if (trigger === 'submit' || trigger === 'blur') {
+                emailInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập địa chỉ Email.';
+                return false;
+            }
+            return true;
+        }
+        // Strict ASCII check: rejects any Vietnamese accents or non-ASCII characters or whitespace
+        if (/[^\x00-\x7F]/.test(val) || /\s/.test(val)) {
+            emailInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Email không được chứa khoảng trắng hoặc dấu tiếng Việt (VD: sinhvien@gmail.com).';
+            return false;
+        }
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+        if (!emailRegex.test(val)) {
+            if (trigger === 'submit' || trigger === 'blur' || val.includes('@')) {
+                emailInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Định dạng email không hợp lệ (VD: sinhvien@gmail.com).';
+                return false;
+            }
+            return true;
+        }
+        emailInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    function validatePassword(trigger = 'blur') {
+        if (!passwordInput) return true;
+        const val = passwordInput.value;
+        const err = document.getElementById('password_error');
+        if (!val) {
+            if (trigger === 'submit' || trigger === 'blur') {
+                passwordInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập Mật khẩu.';
+                return false;
+            }
+            return true;
+        }
+        if (val.trim() === '') {
+            passwordInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Mật khẩu không được chỉ chứa khoảng trắng.';
+            return false;
+        }
+        if (val.length < 6) {
+            if (trigger === 'submit' || trigger === 'blur' || passwordInput.classList.contains('is-invalid')) {
+                passwordInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Mật khẩu phải có ít nhất 6 ký tự.';
+                return false;
+            }
+            return true;
+        }
+        passwordInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    function validateConfirmPassword(trigger = 'blur') {
+        if (!confirmPasswordInput || !passwordInput) return true;
+        const val = confirmPasswordInput.value;
+        const pwdVal = passwordInput.value;
+        const err = document.getElementById('confirm_password_error');
+        if (!val) {
+            if (trigger === 'submit' || trigger === 'blur') {
+                confirmPasswordInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng xác nhận mật khẩu.';
+                return false;
+            }
+            return true;
+        }
+        if (val.length < 6) {
+            confirmPasswordInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Mật khẩu xác nhận phải có ít nhất 6 ký tự.';
+            return false;
+        }
+        if (val !== pwdVal) {
+            confirmPasswordInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Mật khẩu xác nhận không khớp.';
+            return false;
+        }
+        confirmPasswordInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    // Real-time listeners on inputs
+    if (mssvInput) {
+        mssvInput.addEventListener('input', () => validateMssv('input'));
+        mssvInput.addEventListener('blur', () => validateMssv('blur'));
+    }
+    if (fullNameInput) {
+        fullNameInput.addEventListener('input', () => validateFullName('input'));
+        fullNameInput.addEventListener('blur', () => validateFullName('blur'));
+    }
+    if (birthDateInput) {
+        birthDateInput.addEventListener('change', () => validateBirthDate('blur'));
+        birthDateInput.addEventListener('blur', () => validateBirthDate('blur'));
+    }
+    if (emailInput) {
+        emailInput.addEventListener('input', () => validateEmail('input'));
+        emailInput.addEventListener('blur', () => validateEmail('blur'));
+    }
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => {
+            validatePassword('input');
+            if (confirmPasswordInput && confirmPasswordInput.value) {
+                validateConfirmPassword('input');
+            }
+        });
+        passwordInput.addEventListener('blur', () => {
+            validatePassword('blur');
+            if (confirmPasswordInput && confirmPasswordInput.value) {
+                validateConfirmPassword('blur');
+            }
+        });
+    }
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', () => validateConfirmPassword('input'));
+        confirmPasswordInput.addEventListener('blur', () => validateConfirmPassword('blur'));
+    }
+
+    // Submit handler: validate ALL 6 fields simultaneously
     if (addStudentForm) {
         addStudentForm.addEventListener('submit', function(event) {
             event.preventDefault();
             event.stopPropagation();
-            
-            let isValid = true;
-            
-            // Check MSSV
-            const mssv = document.getElementById('mssv');
-            if (!mssv.value.trim()) {
-                mssv.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                mssv.classList.remove('is-invalid');
-            }
 
-            // Check Full Name
-            const fullName = document.getElementById('full_name');
-            if (!fullName.value.trim()) {
-                fullName.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                fullName.classList.remove('is-invalid');
-            }
+            const isMssvValid = validateMssv('submit');
+            const isFullNameValid = validateFullName('submit');
+            const isBirthDateValid = validateBirthDate('submit');
+            const isEmailValid = validateEmail('submit');
+            const isPasswordValid = validatePassword('submit');
+            const isConfirmValid = validateConfirmPassword('submit');
 
-            // Check Email
-            const email = document.getElementById('email');
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!email.value.trim() || !emailRegex.test(email.value.trim())) {
-                email.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                email.classList.remove('is-invalid');
-            }
-
-            // Check Password
-            const password = document.getElementById('password');
-            const passwordError = document.getElementById('password_error');
-            if (!password.value.trim()) {
-                password.classList.add('is-invalid');
-                if (passwordError) passwordError.textContent = "Vui lòng nhập Mật khẩu.";
-                isValid = false;
-            } else if (password.value.length < 6) {
-                password.classList.add('is-invalid');
-                if (passwordError) passwordError.textContent = "Mật khẩu phải có ít nhất 6 ký tự.";
-                isValid = false;
-            } else {
-                password.classList.remove('is-invalid');
-            }
-
-            // Check Confirm Password
-            const confirmPassword = document.getElementById('confirm_password');
-            const confirmPasswordError = document.getElementById('confirm_password_error');
-            if (!confirmPassword.value.trim()) {
-                confirmPassword.classList.add('is-invalid');
-                if (confirmPasswordError) confirmPasswordError.textContent = "Vui lòng xác nhận mật khẩu.";
-                isValid = false;
-            } else if (confirmPassword.value !== password.value) {
-                confirmPassword.classList.add('is-invalid');
-                if (confirmPasswordError) confirmPasswordError.textContent = "Mật khẩu xác nhận không khớp.";
-                isValid = false;
-            } else {
-                confirmPassword.classList.remove('is-invalid');
-            }
-
-            // Check Birth Date
-            const dobValue = birthDateInput.value;
-            if (dobValue) {
-                const dobDate = new Date(dobValue);
-                const maxAllowedDate = new Date(birthDateInput.getAttribute('max'));
-                const minAllowedDate = new Date(birthDateInput.getAttribute('min'));
-                
-                if (dobDate > maxAllowedDate) {
-                    birthDateInput.classList.add('is-invalid');
-                    birthDateError.textContent = "Sinh viên phải từ 18 tuổi trở lên.";
-                    isValid = false;
-                } else if (dobDate < minAllowedDate) {
-                    birthDateInput.classList.add('is-invalid');
-                    birthDateError.textContent = "Ngày sinh không hợp lệ (quá 100 tuổi).";
-                    isValid = false;
-                } else {
-                    birthDateInput.classList.remove('is-invalid');
-                }
-            } else {
-                birthDateInput.classList.add('is-invalid');
-                birthDateError.textContent = "Vui lòng nhập Ngày sinh.";
-                isValid = false;
-            }
-
-            if (isValid) {
+            if (isMssvValid && isFullNameValid && isBirthDateValid && isEmailValid && isPasswordValid && isConfirmValid) {
                 addStudentForm.submit();
+            } else {
+                const firstInvalid = addStudentForm.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
             }
         });
+    }
 
-        // Clear validation on input
-        const inputs = addStudentForm.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.addEventListener('input', function() {
-                this.classList.remove('is-invalid');
-            });
+    // Function to completely reset addStudentModal
+    function resetAddStudentModal() {
+        if (!addStudentForm) return;
+        addStudentForm.reset();
+        addStudentForm.querySelectorAll('input').forEach(input => {
+            if (input.type !== 'hidden') {
+                input.value = '';
+                input.defaultValue = '';
+                input.classList.remove('is-invalid', 'is-valid');
+            }
+        });
+        // Reset password visibility
+        addStudentForm.querySelectorAll('.password-toggle').forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'bi bi-eye';
+            btn.setAttribute('aria-label', 'Hiện mật khẩu');
+        });
+        if (passwordInput) passwordInput.type = 'password';
+        if (confirmPasswordInput) confirmPasswordInput.type = 'password';
+
+        // Reset default error messages
+        const defaultErrors = {
+            'mssv_error': 'Vui lòng nhập MSSV.',
+            'full_name_error': 'Vui lòng nhập Họ và tên.',
+            'birth_date_error': 'Vui lòng nhập Ngày sinh hợp lệ.',
+            'email_error': 'Vui lòng nhập địa chỉ Email hợp lệ.',
+            'password_error': 'Vui lòng nhập Mật khẩu (tối thiểu 6 ký tự).',
+            'confirm_password_error': 'Vui lòng xác nhận mật khẩu.'
+        };
+        for (const [id, msg] of Object.entries(defaultErrors)) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = msg;
+        }
+    }
+
+    // Reset when modal is closed (by Hủy, X, Escape, or backdrop click)
+    if (addStudentModalEl) {
+        addStudentModalEl.addEventListener('hidden.bs.modal', resetAddStudentModal);
+        addStudentModalEl.addEventListener('hide.bs.modal', resetAddStudentModal);
+        addStudentModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetAddStudentModal);
+        });
+    }
+
+    // Clean reset when opening modal via button
+    const btnAddStudent = document.getElementById('btnAddStudent');
+    if (btnAddStudent) {
+        btnAddStudent.addEventListener('click', function() {
+            resetAddStudentModal();
         });
     }
 });
@@ -699,8 +886,11 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php if (!empty($field_errors)): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var addStudentModal = new bootstrap.Modal(document.getElementById('addStudentModal'));
-    addStudentModal.show();
+    var addStudentModalEl = document.getElementById('addStudentModal');
+    if (addStudentModalEl) {
+        var addStudentModal = bootstrap.Modal.getOrCreateInstance(addStudentModalEl);
+        addStudentModal.show();
+    }
 });
 </script>
 <?php endif; ?>

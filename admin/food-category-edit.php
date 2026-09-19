@@ -124,18 +124,18 @@ require_once __DIR__ . '/../includes/header.php';
 
             <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body">
-                    <form method="POST" action="">
+                    <form method="POST" action="" id="categoryForm" novalidate>
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         
                         <div class="mb-3">
                             <label for="name" class="form-label fw-bold">Tên danh mục <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" id="name" name="name" value="<?php echo old('name', $category['name'] ?? ''); ?>" required>
-                            <?php if(isset($field_errors['name'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['name']; ?></div><?php endif; ?>
+                            <input type="text" class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" id="name" name="name" value="<?php echo old('name', $category['name'] ?? ''); ?>" required autocomplete="off">
+                            <div class="invalid-feedback" id="name_error"><?php echo htmlspecialchars($field_errors['name'] ?? 'Vui lòng nhập tên danh mục.'); ?></div>
                         </div>
 
                         <div class="mb-3">
                             <label for="slug" class="form-label fw-bold">Đường dẫn (Slug)</label>
-                            <input type="text" class="form-control" id="slug" name="slug" value="<?php echo old('slug', $category['slug'] ?? ''); ?>" placeholder="Để trống để tự động tạo từ tên danh mục">
+                            <input type="text" class="form-control" id="slug" name="slug" value="<?php echo old('slug', $category['slug'] ?? ''); ?>" placeholder="Để trống để tự động tạo từ tên danh mục" autocomplete="off">
                             <div class="form-text">Chuỗi URL thân thiện. Ví dụ: do-uong, mon-chinh</div>
                         </div>
 
@@ -149,7 +149,7 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-4">
+                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-4 shadow-sm">
                                 <i class="bi bi-save me-1"></i><?php echo $is_edit ? 'Cập nhật' : 'Lưu Danh mục'; ?>
                             </button>
                         </div>
@@ -159,6 +159,52 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('categoryForm');
+    const nameInput = document.getElementById('name');
+
+    function validateName(trigger = 'blur') {
+        if (!nameInput) return true;
+        const val = nameInput.value.trim();
+        const err = document.getElementById('name_error');
+        if (!val) {
+            if (trigger === 'submit' || trigger === 'blur') {
+                nameInput.classList.add('is-invalid');
+                if (err) err.textContent = 'Vui lòng nhập tên danh mục.';
+                return false;
+            }
+            return true;
+        }
+        if (val.length < 2) {
+            nameInput.classList.add('is-invalid');
+            if (err) err.textContent = 'Tên danh mục phải có ít nhất 2 ký tự.';
+            return false;
+        }
+        nameInput.classList.remove('is-invalid');
+        return true;
+    }
+
+    if (nameInput) {
+        nameInput.addEventListener('input', () => validateName('input'));
+        nameInput.addEventListener('blur', () => validateName('blur'));
+    }
+
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (validateName('submit')) {
+                form.submit();
+            } else {
+                nameInput.focus();
+            }
+        });
+    }
+});
+</script>
 
 <?php 
 require_once __DIR__ . '/../includes/footer.php'; 
