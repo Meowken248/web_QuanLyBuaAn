@@ -49,6 +49,42 @@ try {
         ':message' => $message
     ]);
 
+    // Tạo thông báo vào bảng notifications
+    try {
+        if ($sender_type === 'user') {
+            // Lấy tên người gửi
+            $sender_name = $_SESSION['full_name'] ?? 'Khách hàng';
+            $notif_title = '💬 Tin nhắn mới từ ' . mb_substr($sender_name, 0, 80, 'UTF-8');
+            $notif_message = '[UID:' . $chat_user_id . '] ' . mb_substr($message, 0, 250, 'UTF-8');
+
+            // Gửi thông báo cho tất cả tài khoản Admin
+            $stmtAdmins = $conn->query("SELECT id FROM users WHERE role = 'admin' AND status = 'active'");
+            $admins = $stmtAdmins->fetchAll(PDO::FETCH_COLUMN);
+
+            $stmtInsertNotif = $conn->prepare("INSERT INTO notifications (user_id, title, message, type, is_read) VALUES (:uid, :title, :message, 'info', 0)");
+            foreach ($admins as $admin_id) {
+                $stmtInsertNotif->execute([
+                    ':uid' => $admin_id,
+                    ':title' => $notif_title,
+                    ':message' => $notif_message
+                ]);
+            }
+        } else {
+            // Admin trả lời -> gửi thông báo cho User
+            $notif_title = '💬 Phản hồi từ Ban quản trị';
+            $notif_message = mb_substr($message, 0, 250, 'UTF-8');
+
+            $stmtInsertNotif = $conn->prepare("INSERT INTO notifications (user_id, title, message, type, is_read) VALUES (:uid, :title, :message, 'info', 0)");
+            $stmtInsertNotif->execute([
+                ':uid' => $chat_user_id,
+                ':title' => $notif_title,
+                ':message' => $notif_message
+            ]);
+        }
+    } catch (Exception $notifEx) {
+        // Không để lỗi thông báo ảnh hưởng đến việc gửi tin nhắn
+    }
+
     echo json_encode(['success' => true, 'message' => 'Sent']);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Database error']);

@@ -30,7 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Auto-dismiss alert notifications after 4 seconds (BUG-08)
-    var alerts = document.querySelectorAll('.alert-dismissible');
+    // Only auto-dismiss success and info alerts; keep danger and warning alerts visible
+    var alerts = document.querySelectorAll('.alert-dismissible.alert-success, .alert-dismissible.alert-info');
     alerts.forEach(function(alertEl) {
         setTimeout(function() {
             try {
@@ -47,7 +48,106 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000);
     });
 
-    // Realtime notification and support chat badge polling (BUG-02)
+    // Helper functions for notifications and realtime sync
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatShortDate(dateStr) {
+        if (!dateStr) return '';
+        var d = new Date(dateStr.replace(/-/g, '/'));
+        if (isNaN(d.getTime())) return dateStr;
+        var h = String(d.getHours()).padStart(2, '0');
+        var m = String(d.getMinutes()).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        var mo = String(d.getMonth() + 1).padStart(2, '0');
+        return h + ':' + m + ' ' + day + '/' + mo;
+    }
+
+    // Global Floating Toast notification for real-time incoming messages
+    function showGlobalToast(title, text, link, iconClass) {
+        var container = document.getElementById('globalToastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'globalToastContainer';
+            document.body.appendChild(container);
+        }
+
+        var toast = document.createElement('div');
+        toast.className = 'custom-toast-card';
+        toast.innerHTML = 
+            '<div class="d-flex justify-content-between align-items-start mb-1">' +
+                '<strong class="text-primary text-truncate pe-2" style="font-size: 0.88rem;">' +
+                    '<i class="' + (iconClass || 'bi bi-chat-dots-fill text-success') + ' me-1"></i>' + escapeHtml(title) +
+                '</strong>' +
+                '<button type="button" class="btn-close btn-close-toast" style="font-size: 0.65rem;" aria-label="Close"></button>' +
+            '</div>' +
+            '<p class="mb-0 text-muted text-truncate" style="font-size: 0.8rem; line-height: 1.3;">' +
+                escapeHtml(text) +
+            '</p>';
+
+        function dismiss() {
+            toast.classList.add('toast-hiding');
+            setTimeout(function() {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }
+
+        toast.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-close-toast')) {
+                dismiss();
+                return;
+            }
+            if (typeof link === 'function') {
+                link();
+            } else if (typeof link === 'string' && link) {
+                window.location.href = link;
+            }
+        });
+
+        var closeBtn = toast.querySelector('.btn-close-toast');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dismiss();
+            });
+        }
+
+        container.appendChild(toast);
+
+        // Auto dismiss after 6 seconds
+        setTimeout(dismiss, 6000);
+    }
+
+    // Bind "Đã đọc tất cả" button in Header dropdown
+    var headerMarkAllBtn = document.getElementById('headerMarkAllReadBtn');
+    if (headerMarkAllBtn) {
+        headerMarkAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var basePath = window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '';
+            fetch(basePath + '/api/mark_notification_read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=all'
+            })
+            .then(function() {
+                pollUnreadCounts();
+            })
+            .catch(function(err) {
+                console.error('Error marking all notifications as read:', err);
+            });
+        });
+    }
+
+    // Realtime notification and support chat polling
+    var lastKnownMsgId = null;
+
     function pollUnreadCounts() {
         var basePath = window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '';
         var apiUrl = basePath + '/api/check_unread_support.php';
@@ -81,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
 
-                // 3. Cập nhật icon Chatbot nổi của User khi Admin gửi tin nhắn
+                // 3. Cập nhật icon Chatbot nổi của User
                 var userChatbotBadge = document.getElementById('userChatbotBadgeContainer');
                 if (userChatbotBadge) {
                     if (!data.is_admin && data.unread_support > 0) {
@@ -90,14 +190,127 @@ document.addEventListener('DOMContentLoaded', function() {
                         userChatbotBadge.innerHTML = '';
                     }
                 }
+
+                // 4. Đồng bộ danh sách thông báo động trong Header dropdown
+                var dropdownItemsContainer = document.getElementById('headerNotificationDropdownItems');
+                if (dropdownItemsContainer) {
+                    var html = '';
+
+                    // Mục tin nhắn hỗ trợ trực tuyến
+                    if (data.is_admin) {
+                        if (data.support_items && data.support_items.length > 0) {
+                            data.support_items.forEach(function(usc) {
+                                html += '<li>' +
+                                    '<a class="dropdown-item py-2 border-bottom bg-light" href="' + basePath + '/admin/support-chats.php?user_id=' + usc.user_id + '">' +
+                                        '<div class="d-flex w-100 justify-content-between align-items-center mb-1">' +
+                                            '<h6 class="mb-0 text-primary fw-bold text-truncate" style="max-width: 190px;">' +
+                                                '<i class="bi bi-chat-dots-fill me-1 text-success"></i>' + escapeHtml(usc.full_name) +
+                                            '</h6>' +
+                                            '<span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;">' + usc.unread_count + ' tin mới</span>' +
+                                        '</div>' +
+                                        '<p class="mb-1 text-muted text-truncate" style="font-size: 0.8rem; max-width: 250px;">' +
+                                            escapeHtml(usc.message) +
+                                        '</p>' +
+                                        '<small class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-clock me-1"></i>' + formatShortDate(usc.created_at) + '</small>' +
+                                    '</a>' +
+                                '</li>';
+                            });
+                        }
+                    } else {
+                        if (data.unread_support > 0) {
+                            html += '<li>' +
+                                '<a class="dropdown-item py-2 border-bottom bg-light" href="#" onclick="var w=document.getElementById(\'chatbot-window\'); if(w){w.classList.remove(\'d-none\');} var at=document.getElementById(\'admin-tab\'); if(at){at.click();} return false;">' +
+                                    '<div class="d-flex w-100 justify-content-between align-items-center mb-1">' +
+                                        '<h6 class="mb-0 text-primary fw-bold text-truncate"><i class="bi bi-chat-dots-fill me-1 text-success"></i>Hỗ trợ trực tuyến</h6>' +
+                                        '<span class="badge bg-danger rounded-pill">' + data.unread_support + ' mới</span>' +
+                                    '</div>' +
+                                    '<p class="mb-0 text-muted" style="font-size: 0.8rem;">' +
+                                        'Bạn có phản hồi mới từ ban quản trị.' +
+                                    '</p>' +
+                                '</a>' +
+                            '</li>';
+                        }
+                    }
+
+                    // Danh sách thông báo hệ thống
+                    if (data.recent_notifications && data.recent_notifications.length > 0) {
+                        data.recent_notifications.forEach(function(n) {
+                            var bg = n.is_read ? '' : 'bg-light border-start border-primary border-3';
+                            var titleColor = n.is_read ? 'text-dark' : 'text-primary';
+                            var displayMsg = (n.message || '').replace(/^\[UID:\d+\]\s*/, '');
+                            var targetLink = basePath + '/user/notifications.php?read=' + n.id + '#notif-' + n.id;
+
+                            if (data.is_admin && n.title.indexOf('💬 Tin nhắn') !== -1) {
+                                var uidMatch = (n.message || '').match(/\[UID:(\d+)\]/);
+                                if (uidMatch && uidMatch[1]) {
+                                    targetLink = basePath + '/admin/support-chats.php?user_id=' + uidMatch[1];
+                                } else {
+                                    targetLink = basePath + '/admin/support-chats.php';
+                                }
+                            }
+
+                            html += '<li>' +
+                                '<a class="dropdown-item py-2 border-bottom ' + bg + '" href="' + targetLink + '">' +
+                                    '<div class="d-flex w-100 justify-content-between align-items-start">' +
+                                        '<h6 class="mb-1 text-truncate fw-semibold ' + titleColor + '" style="max-width: 210px;">' + escapeHtml(n.title) + '</h6>' +
+                                        '<small class="text-muted" style="font-size: 0.7rem;">' + formatShortDate(n.created_at) + '</small>' +
+                                    '</div>' +
+                                    '<p class="mb-0 text-muted text-truncate" style="font-size: 0.8rem; max-width: 270px;">' + escapeHtml(displayMsg) + '</p>' +
+                                '</a>' +
+                            '</li>';
+                        });
+                    } else if ((!data.support_items || data.support_items.length === 0) && data.unread_support === 0) {
+                        html = '<li><div class="text-muted text-center py-4 small"><i class="bi bi-bell-slash d-block mb-1 fs-4 text-secondary"></i>Không có thông báo mới</div></li>';
+                    }
+
+                    dropdownItemsContainer.innerHTML = html;
+                }
+
+                // 5. Hiển thị Toast thông báo nổi khi có tin nhắn mới tới
+                var currentLatestId = parseInt(data.latest_msg_id, 10) || 0;
+                if (lastKnownMsgId === null) {
+                    lastKnownMsgId = currentLatestId;
+                } else if (currentLatestId > lastKnownMsgId) {
+                    lastKnownMsgId = currentLatestId;
+
+                    if (data.is_admin && data.support_items && data.support_items.length > 0) {
+                        var topMsg = data.support_items[0];
+                        // Kiểm tra nếu admin đang mở đúng phòng chat của user này thì không cần popup toast
+                        var urlParams = new URLSearchParams(window.location.search);
+                        var currentChatUserId = urlParams.get('user_id');
+                        var isCurrentChat = window.location.pathname.indexOf('/admin/support-chats.php') !== -1 && currentChatUserId == topMsg.user_id;
+
+                        if (!isCurrentChat) {
+                            showGlobalToast(
+                                'Tin nhắn mới từ ' + topMsg.full_name,
+                                topMsg.message,
+                                basePath + '/admin/support-chats.php?user_id=' + topMsg.user_id,
+                                'bi bi-chat-dots-fill text-success'
+                            );
+                        }
+                    } else if (!data.is_admin && data.unread_support > 0 && data.support_items && data.support_items.length > 0) {
+                        var userMsg = data.support_items[0];
+                        showGlobalToast(
+                            'Phản hồi từ Ban quản trị',
+                            userMsg.message,
+                            function() {
+                                var w = document.getElementById('chatbot-window');
+                                if (w) w.classList.remove('d-none');
+                                var at = document.getElementById('admin-tab');
+                                if (at) at.click();
+                            },
+                            'bi bi-shield-check text-primary'
+                        );
+                    }
+                }
             })
             .catch(function(err) {
-                // Ignore network errors during polling
+                // Ignore network errors during background polling
             });
     }
 
-    // Run immediately once and every 10 seconds
+    // Run immediately once and every 8 seconds
     pollUnreadCounts();
-    setInterval(pollUnreadCounts, 10000);
+    setInterval(pollUnreadCounts, 8000);
 });
 

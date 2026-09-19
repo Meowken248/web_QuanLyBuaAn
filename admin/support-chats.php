@@ -10,14 +10,10 @@ if ($_SESSION['user_role'] !== 'admin') {
 $db = new Database();
 $conn = $db->getConnection();
 
-$page_title = 'Hỗ trợ trực tuyến';
-$hide_footer = true;
-require_once __DIR__ . '/../includes/header.php';
-
 $target_user_id = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
 $target_user = null;
 if ($target_user_id) {
-    // BUG-04: Đánh dấu tin nhắn của user này là đã đọc NGAY LẬP TỨC trước khi truy vấn danh sách $chats
+    // Đánh dấu tin nhắn của user này là đã đọc NGAY LẬP TỨC trước khi header.php chạy
     try {
         $stmtMarkRead = $conn->prepare("
             UPDATE support_messages sm
@@ -26,12 +22,27 @@ if ($target_user_id) {
             WHERE sc.user_id = :uid AND sm.sender_type = 'user' AND sm.is_read = 0
         ");
         $stmtMarkRead->execute([':uid' => $target_user_id]);
+
+        // Đánh dấu đã đọc các thông báo chuông liên quan đến user này
+        $stmtNotifRead = $conn->prepare("
+            UPDATE notifications 
+            SET is_read = 1 
+            WHERE user_id = :admin_id AND message LIKE :pattern AND is_read = 0
+        ");
+        $stmtNotifRead->execute([
+            ':admin_id' => $_SESSION['user_id'],
+            ':pattern' => '%[UID:' . $target_user_id . ']%'
+        ]);
     } catch (Exception $e) {}
 
     $stmt = $conn->prepare("SELECT full_name, email FROM users WHERE id = :id");
     $stmt->execute([':id' => $target_user_id]);
     $target_user = $stmt->fetch(PDO::FETCH_ASSOC);
 }
+
+$page_title = 'Hỗ trợ trực tuyến';
+$hide_footer = true;
+require_once __DIR__ . '/../includes/header.php';
 
 // Fetch chats with their latest message
 $stmt = $conn->query("
@@ -209,29 +220,35 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(res => res.json())
             .then(data => {
                 if (data.success && Array.isArray(data.chats)) {
+                    const chatListContainer = document.getElementById('admin-chat-list');
                     data.chats.forEach(chat => {
-                        const item = document.getElementById('chat-user-' + chat.user_id);
+                        let item = document.getElementById('chat-user-' + chat.user_id);
+                        const isCurrent = (typeof targetUserId !== 'undefined' && targetUserId == chat.user_id);
+                        const unread = isCurrent ? 0 : parseInt(chat.unread_count || 0);
+
+                        let timeText = '';
+                        if (chat.last_time) {
+                            const d = new Date(chat.last_time);
+                            const h = String(d.getHours()).padStart(2, '0');
+                            const m = String(d.getMinutes()).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            const mo = String(d.getMonth() + 1).padStart(2, '0');
+                            timeText = 'Hôm nay, ' + h + ':' + m + ' - ' + day + '/' + mo + ' · ';
+                        }
+
+                        const msgText = chat.last_message ? chat.last_message.substring(0, 30) : 'Chưa có tin nhắn';
+
                         if (item) {
                             // Cập nhật text preview
                             const previewEl = item.querySelector('.chat-preview-text');
-                            if (previewEl) {
-                                const msgText = chat.last_message ? chat.last_message.substring(0, 30) : 'Chưa có tin nhắn';
-                                previewEl.textContent = msgText;
-                            }
+                            if (previewEl) previewEl.textContent = msgText;
+
                             // Cập nhật thời gian
                             const timeEl = item.querySelector('.chat-preview-time');
-                            if (timeEl && chat.last_time) {
-                                const d = new Date(chat.last_time);
-                                const h = String(d.getHours()).padStart(2, '0');
-                                const m = String(d.getMinutes()).padStart(2, '0');
-                                const day = String(d.getDate()).padStart(2, '0');
-                                const mo = String(d.getMonth() + 1).padStart(2, '0');
-                                timeEl.textContent = 'Hôm nay, ' + h + ':' + m + ' - ' + day + '/' + mo + ' · ';
-                            }
+                            if (timeEl) timeEl.textContent = timeText;
+
                             // Cập nhật badge unread (BUG-04)
                             let badgeEl = item.querySelector('.chat-badge-count');
-                            const isCurrent = (typeof targetUserId !== 'undefined' && targetUserId == chat.user_id);
-                            const unread = isCurrent ? 0 : parseInt(chat.unread_count || 0);
                             if (unread > 0) {
                                 if (!badgeEl) {
                                     const header = item.querySelector('.chat-name-header');
@@ -246,6 +263,42 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else if (badgeEl) {
                                 badgeEl.remove();
                             }
+                        } else if (chatListContainer) {
+                            // Tạo mới item nếu user này chưa có trong danh sách
+                            // Xóa thông báo trống nếu có
+                            const emptyMsg = chatListContainer.querySelector('.text-center.py-5');
+                            if (emptyMsg) emptyMsg.remove();
+
+                            let initials = '';
+                            const words = (chat.full_name || 'Khách').trim().split(' ');
+                            words.forEach(w => { if (w) initials += w.charAt(0).toUpperCase(); });
+                            initials = initials.substring(0, 2);
+
+                            const newA = document.createElement('a');
+                            newA.href = '<?php echo BASE_URL; ?>/admin/support-chats.php?user_id=' + chat.user_id;
+                            newA.id = 'chat-user-' + chat.user_id;
+                            newA.dataset.userId = chat.user_id;
+                            newA.className = 'chat-list-item d-flex align-items-start px-3 py-3 text-decoration-none ' + (isCurrent ? 'active' : '');
+                            newA.style.borderBottom = '1px solid #f0f0f0';
+                            newA.style.borderLeft = isCurrent ? '4px solid #198754' : '4px solid transparent';
+                            if (isCurrent) newA.style.background = '#f0faf5';
+
+                            newA.innerHTML = `
+                                <div class="flex-shrink-0 me-3 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" 
+                                     style="width: 44px; height: 44px; font-size: 0.85rem; background: ${isCurrent ? '#198754' : '#6c757d'};">
+                                    ${initials}
+                                </div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex justify-content-between align-items-center mb-1 chat-name-header">
+                                        <span class="fw-bold text-dark text-truncate" style="font-size: 0.9rem; max-width: 130px;">${(chat.full_name || '').replace(/</g, '&lt;')}</span>
+                                        ${unread > 0 ? `<span class="badge bg-success rounded-pill ms-1 chat-badge-count" style="font-size: 0.65rem;">${unread}</span>` : ''}
+                                    </div>
+                                    <div class="text-muted text-truncate" style="font-size: 0.75rem;">
+                                        <span class="chat-preview-time">${timeText}</span><span class="chat-preview-text">${msgText.replace(/</g, '&lt;')}</span>
+                                    </div>
+                                </div>
+                            `;
+                            chatListContainer.prepend(newA);
                         }
                     });
                 }
