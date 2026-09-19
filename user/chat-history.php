@@ -19,8 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     redirect('/user/chat-history.php');
 }
 
-$stmt = $conn->prepare("SELECT * FROM chat_conversations WHERE user_id = :uid ORDER BY updated_at DESC");
-$stmt->execute([':uid' => $user_id]);
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = 10;
+$offset = ($page - 1) * $limit;
+
+$stmtTotal = $conn->prepare("SELECT COUNT(*) FROM chat_conversations WHERE user_id = :uid");
+$stmtTotal->execute([':uid' => $user_id]);
+$total_chats = (int)$stmtTotal->fetchColumn();
+$total_pages = ceil($total_chats / $limit);
+
+$stmt = $conn->prepare("SELECT * FROM chat_conversations WHERE user_id = :uid ORDER BY updated_at DESC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
+$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
 $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $page_title = 'Lịch sử Chatbot AI';
@@ -82,6 +94,24 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
                 <?php endif; ?>
             </div>
+
+            <?php if ($total_pages > 1): ?>
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $page - 1; ?>">Trước</a>
+                        </li>
+                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                            <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $page + 1; ?>">Tiếp</a>
+                        </li>
+                    </ul>
+                </nav>
+            <?php endif; ?>
         </div>
     </div>
 </div>

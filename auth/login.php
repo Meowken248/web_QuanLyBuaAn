@@ -16,9 +16,14 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 $field_errors = [];
 
+$remembered_email = $_COOKIE['remember_email'] ?? '';
+$is_remembered = !empty($remembered_email);
+$input_email = $_POST['email'] ?? $remembered_email;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $remember = isset($_POST['remember']);
     
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = 'Yêu cầu không hợp lệ. Vui lòng thử lại.';
@@ -31,6 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $userModel->login($email, $password);
             
             if ($result['status']) {
+                if ($remember) {
+                    setcookie('remember_email', $email, time() + (86400 * 30), '/', '', false, true);
+                } else {
+                    setcookie('remember_email', '', time() - 3600, '/');
+                }
+                
                 set_flash_message('success', 'Đăng nhập thành công!');
                 if ($_SESSION['user_role'] === 'admin') {
                     redirect('/admin/index.php');
@@ -83,7 +94,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 
                                 <div class="mb-3">
                                     <div class="form-floating">
-                                        <input type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" id="floatingInput" name="email" placeholder="name@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                                        <input type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" id="floatingInput" name="email" placeholder="name@example.com" value="<?php echo htmlspecialchars($input_email); ?>" autocomplete="email" required>
                                         <label for="floatingInput" class="text-muted"><i class="bi bi-envelope me-2"></i>Email</label>
                                     </div>
                                     <?php if(isset($field_errors['email'])): ?><div class="text-danger small mt-1"><?php echo $field_errors['email']; ?></div><?php endif; ?>
@@ -91,7 +102,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 
                                 <div class="mb-4">
                                     <div class="form-floating position-relative">
-                                        <input type="password" class="form-control pe-5 <?php echo isset($field_errors['password']) ? 'is-invalid' : ''; ?>" id="floatingPassword" name="password" placeholder="Password" required>
+                                        <input type="password" class="form-control pe-5 <?php echo isset($field_errors['password']) ? 'is-invalid' : ''; ?>" id="floatingPassword" name="password" placeholder="Password" autocomplete="current-password" required>
                                         <label for="floatingPassword" class="text-muted"><i class="bi bi-lock me-2"></i>Mật khẩu</label>
                                         <button type="button" class="btn btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-2 password-toggle" data-password-toggle="floatingPassword" aria-label="Hiện mật khẩu" aria-pressed="false">
                                             <i class="bi bi-eye" aria-hidden="true"></i>
@@ -102,8 +113,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-4">
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                                        <label class="form-check-label text-muted small" for="remember">Ghi nhớ</label>
+                                        <input type="checkbox" class="form-check-input" id="remember" name="remember" <?php echo ($is_remembered || isset($_POST['remember'])) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label text-muted small" for="remember">Ghi nhớ đăng nhập</label>
                                     </div>
                                     <a href="<?php echo BASE_URL; ?>/auth/forgot-password.php" class="text-success text-decoration-none small fw-bold">Quên mật khẩu?</a>
                                 </div>

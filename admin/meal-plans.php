@@ -38,7 +38,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-9 col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold mb-0">Thực đơn Mẫu (Meal Plans)</h2>
-                <a href="<?php echo BASE_URL; ?>/admin/meal-plan-edit.php" class="btn btn-primary">
+                <a href="<?php echo BASE_URL; ?>/admin/meal-plan-edit.php" class="btn btn-sm btn-outline-primary rounded-pill">
                     <i class="bi bi-plus-circle me-1"></i>Thêm Thực đơn mới
                 </a>
             </div>
@@ -50,11 +50,11 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="card shadow-sm border-0">
+            <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 text-nowrap">
-                            <thead class="table-light">
+                            <thead style="background: rgba(243, 244, 246, 0.7);">
                                 <tr>
                                     <th>ID</th>
                                     <th>Tên thực đơn</th>
@@ -97,13 +97,13 @@ require_once __DIR__ . '/../includes/header.php';
 
                                     </td>
                                     <td class="text-end">
-                                        <a href="<?php echo BASE_URL; ?>/admin/meal-plan-builder.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-info text-white" title="Xây dựng thực đơn"><i class="bi bi-list-check"></i> Chi tiết bữa ăn</a>
-                                        <a href="<?php echo BASE_URL; ?>/admin/meal-plan-edit.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a>
+                                        <a href="<?php echo BASE_URL; ?>/admin/meal-plan-builder.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-info rounded-pill" title="Xây dựng thực đơn"><i class="bi bi-list-check"></i> Chi tiết bữa ăn</a>
+                                        <a href="<?php echo BASE_URL; ?>/admin/meal-plan-edit.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-pencil"></i></a>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa thực đơn này?');">
                                             <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </td>
                                 </tr>

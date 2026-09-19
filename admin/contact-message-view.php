@@ -39,13 +39,13 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="fw-bold mb-0">Chi tiết Tin nhắn</h3>
-                <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="btn btn-secondary">
+                <a href="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="btn btn-sm btn-outline-secondary rounded-pill">
                     <i class="bi bi-arrow-left me-1"></i>Quay lại
                 </a>
             </div>
 
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
                     <h5 class="card-title fw-bold mb-0 text-primary">
                         Chủ đề: <?php echo htmlspecialchars($msg['subject']); ?>
                     </h5>
@@ -77,12 +77,12 @@ require_once __DIR__ . '/../includes/header.php';
                         </p>
                     </div>
 
-                    <div class="p-4 bg-light rounded-3 border">
+                    <div class="p-4 bg-light bg-opacity-50 rounded-3 border">
                         <p class="mb-2 text-muted fw-bold">Nội dung tin nhắn:</p>
                         <div class="fs-5" style="white-space: pre-wrap;"><?php echo htmlspecialchars($msg['message']); ?></div>
                     </div>
                 </div>
-                <div class="card-footer bg-white py-3">
+                <div class="card-footer bg-transparent py-3">
                     <form method="POST" action="<?php echo BASE_URL; ?>/admin/contact-messages.php" class="d-flex justify-content-end align-items-center gap-2">
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                         <input type="hidden" name="id" value="<?php echo $msg['id']; ?>">
@@ -90,18 +90,18 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php if ($msg['status'] !== 'replied'): ?>
                             <input type="hidden" name="action" value="update_status">
                             <input type="hidden" name="status" value="replied">
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-sm btn-outline-success rounded-pill">
                                 <i class="bi bi-check-circle me-1"></i>Đánh dấu Đã xử lý
                             </button>
                         <?php else: ?>
                             <input type="hidden" name="action" value="update_status">
                             <input type="hidden" name="status" value="read">
-                            <button type="submit" class="btn btn-outline-secondary">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i>Chuyển về Đã đọc
                             </button>
                         <?php endif; ?>
                         
-                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?php echo rawurlencode($msg['email']); ?>&su=<?php echo rawurlencode('Re: ' . $msg['subject']); ?>" target="_blank" rel="noopener" class="btn btn-primary">
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?php echo rawurlencode($msg['email']); ?>&su=<?php echo rawurlencode('Re: ' . $msg['subject']); ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary rounded-pill">
                             <i class="bi bi-reply me-1"></i>Phản hồi qua Gmail
                         </a>
                     </form>

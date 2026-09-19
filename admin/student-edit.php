@@ -109,7 +109,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-10">
             <div class="row justify-content-center mt-3">
                 <div class="col-lg-8">
-                    <div class="card shadow-sm border-0">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h3 class="fw-bold mb-0"><?php echo htmlspecialchars($page_title); ?></h3>
@@ -142,7 +142,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold" for="birth_date">Ngày Sinh <span class="text-danger">*</span></label>
-                                    <input type="date" id="birth_date" class="form-control <?php echo isset($field_errors['birth_date']) ? 'is-invalid' : ''; ?>" name="birth_date" value="<?php echo old('birth_date', $edit_student['birth_date'] ?? ''); ?>" required>
+                                    <input id="birth_date" type="date" class="form-control <?php echo isset($field_errors['birth_date']) ? 'is-invalid' : ''; ?>" name="birth_date" value="<?php echo old('birth_date', $edit_student['birth_date'] ?? ''); ?>" required>
                                     <div class="invalid-feedback" id="birth_date_error"><?php echo htmlspecialchars($field_errors['birth_date'] ?? 'Vui lòng nhập ngày sinh.'); ?></div>
                                 </div>
                                 
@@ -162,8 +162,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 </div>
                                 
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a class="btn btn-light rounded-pill" href="<?php echo BASE_URL; ?>/admin/class-detail.php?id=<?= $class_id ?>">Hủy</a>
-                                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Cập nhật</button>
+                                    <a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/class-detail.php?id=<?= $class_id ?>">Hủy</a>
+                                    <button type="submit" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">Cập nhật</button>
                                 </div>
                             </form>
                         </div>

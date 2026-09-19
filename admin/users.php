@@ -210,13 +210,13 @@ require_once __DIR__ . '/../includes/header.php';
                     <p class="text-muted small mb-0">Quản lý các tài khoản người dùng hệ thống (không bao gồm sinh viên trong lớp học)</p>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="button" id="btnBulkDelete" class="btn btn-outline-danger" disabled onclick="confirmBulkDelete()">
+                    <button type="button" id="btnBulkDelete" class="btn btn-sm btn-outline-danger rounded-pill" disabled onclick="confirmBulkDelete()">
                         <i class="bi bi-trash me-1"></i>Xóa đã chọn (<span id="selectedCount">0</span>)
                     </button>
-                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#importExcelModal">
                         <i class="bi bi-file-earmark-excel me-1"></i>Nhập từ Excel
                     </button>
-                    <a href="<?php echo BASE_URL; ?>/admin/user-edit.php" class="btn btn-success">
+                    <a href="<?php echo BASE_URL; ?>/admin/user-edit.php" class="btn btn-sm btn-outline-success rounded-pill">
                         <i class="bi bi-person-plus me-1"></i>Thêm người dùng
                     </a>
                 </div>
@@ -228,11 +228,11 @@ require_once __DIR__ . '/../includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                 <input type="hidden" name="action" value="bulk_delete">
 
-                <div class="card shadow-sm border-0 mb-4">
+                <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0 text-nowrap">
-                                <thead class="table-light">
+                                <thead style="background: rgba(243, 244, 246, 0.7);">
                                     <tr>
                                         <th style="width: 40px;" class="text-center">
                                             <input type="checkbox" class="form-check-input" id="selectAllUsers" title="Chọn tất cả">
@@ -243,7 +243,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <th>Vai trò</th>
                                         <th>Quyền sử dụng</th>
                                         <th>Ngày đăng ký</th>
-                                        <th class="text-end">Hành động</th>
+                                        <th class="text-end pe-4">Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -316,7 +316,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
 
                     <?php if ($total_pages > 1): ?>
-                        <div class="card-footer bg-white py-3 border-0">
+                        <div class="card-footer bg-transparent py-3 border-0">
                             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                                 <div class="text-muted small">
                                     Hiển thị <?php echo min(($page - 1) * $limit + 1, $total_users); ?> - <?php echo min($page * $limit, $total_users); ?> trên tổng số <?php echo $total_users; ?> người dùng

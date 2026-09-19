@@ -40,15 +40,15 @@ require __DIR__ . '/../includes/header.php';
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="fw-bold mb-0">Chi tiết Món ăn: <?php echo htmlspecialchars($food['name']); ?></h3>
                 <div>
-                    <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-2"></i>Quay lại</a>
-                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $food['id']; ?>" class="btn btn-primary"><i class="bi bi-pencil me-2"></i>Sửa món ăn</a>
+                    <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="btn btn-sm btn-outline-secondary rounded-pill me-2"><i class="bi bi-arrow-left me-2"></i>Quay lại</a>
+                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $food['id']; ?>" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-pencil me-2"></i>Sửa món ăn</a>
                 </div>
             </div>
 
             <div class="row g-4">
                 <!-- Hình ảnh & Thông tin cơ bản -->
                 <div class="col-md-4">
-                    <div class="card shadow-sm border-0 h-100">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden h-100">
                         <?php if (!empty($food['image'])): ?>
                             <img src="<?php echo food_image_url($food['image']); ?>" class="card-img-top" alt="Image" style="height: 250px; object-fit: cover;">
                         <?php else: ?>
@@ -75,8 +75,8 @@ require __DIR__ . '/../includes/header.php';
 
                 <!-- Thành phần dinh dưỡng -->
                 <div class="col-md-8">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white border-bottom py-3">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden h-100">
+                        <div class="card-header bg-transparent border-bottom py-3">
                             <h5 class="fw-bold mb-0 text-success"><i class="bi bi-heart-pulse me-2"></i>Thành phần dinh dưỡng</h5>
                         </div>
                         <div class="card-body">

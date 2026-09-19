@@ -357,17 +357,17 @@ require_once '../includes/header.php';
             <?php endif; ?>
 
             <!-- Import Card -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+            <div class="card glass-card border-0 shadow-sm rounded-4 mb-4 bg-light bg-opacity-50">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-excel text-success me-2"></i>Import Tài Khoản Sinh Viên</h5>
                     <p class="text-muted mb-3">Tải lên file Excel (.xlsx) với các cột theo thứ tự: <strong>STT | MSSV | Họ Và Tên | Ngày Sinh | Email | Mật Khẩu</strong>.</p>
                     
                     <form method="post" enctype="multipart/form-data" class="d-flex align-items-center flex-wrap gap-2">
                         <input class="form-control" type="file" name="excel_file" accept=".xlsx" required style="max-width: 400px;">
-                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
+                        <button type="submit" class="btn btn-sm btn-outline-success fw-bold rounded-pill px-4 shadow-sm">
                             <i class="bi bi-cloud-upload me-2"></i>Upload & Import
                         </button>
-                        <a href="?id=<?= $class_id ?>&action=export" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
+                        <a href="?id=<?= $class_id ?>&action=export" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-4 shadow-sm">
                             <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
                         </a>
                     </form>
@@ -378,21 +378,21 @@ require_once '../includes/header.php';
             <form method="post" id="bulkDeleteForm">
                 <input type="hidden" name="action" value="bulk_delete">
             </form>
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <div class="card glass-card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2"></i>Danh sách Sinh viên trong lớp</h5>
                         <div>
-                            <button type="button" id="btnAddStudent" class="btn btn-sm btn-primary rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                            <button type="button" id="btnAddStudent" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
                                 <i class="bi bi-person-plus-fill me-1"></i>Thêm Sinh Viên
                             </button>
-                            <button type="submit" form="bulkDeleteForm" class="btn btn-sm btn-danger rounded-pill shadow-sm" id="btnBulkDelete" disabled onclick="return confirm('Bạn có chắc chắn muốn xóa những sinh viên đã chọn?');">
+                            <button type="submit" form="bulkDeleteForm" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm" id="btnBulkDelete" disabled onclick="return confirm('Bạn có chắc chắn muốn xóa những sinh viên đã chọn?');">
                                 <i class="bi bi-trash-fill me-1"></i>Xóa Đã Chọn
                             </button>
                         </div>
                     </div>
                 <div class="card-body p-0 table-responsive">
                     <table class="table table-hover align-middle mb-0 text-nowrap">
-                        <thead class="table-light">
+                        <thead style="background: rgba(243, 244, 246, 0.7);">
                             <tr>
                                 <th scope="col" class="ps-3" style="width: 40px;">
                                     <input class="form-check-input" type="checkbox" id="selectAll">
@@ -425,7 +425,7 @@ require_once '../includes/header.php';
                                         <td><?= $student['birth_date'] ? date('d/m/Y', strtotime($student['birth_date'])) : '-' ?></td>
                                         <td><?= htmlspecialchars($student['email']) ?></td>
                                         <td class="text-end pe-4">
-                                            <a href="student-edit.php?id=<?= $student['id'] ?>" class="btn btn-sm btn-primary rounded-pill shadow-sm">
+                                            <a href="student-edit.php?id=<?= $student['id'] ?>" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm me-1">
                                                 <i class="bi bi-pencil"></i> Sửa
                                             </a>
                                             <form method="post" class="d-inline" onsubmit="return confirm('Xóa sinh viên này khỏi hệ thống?');">
@@ -444,7 +444,7 @@ require_once '../includes/header.php';
                 </div>
                 
                 <?php if ($total_pages > 1): ?>
-                <div class="card-footer bg-white border-top py-3 d-flex justify-content-center">
+                <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-center">
                     <nav aria-label="Page navigation">
                         <ul class="pagination mb-0">
                             <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">

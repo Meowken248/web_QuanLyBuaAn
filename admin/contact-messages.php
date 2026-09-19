@@ -56,11 +56,11 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="card shadow-sm border-0">
+            <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 text-nowrap">
-                            <thead class="table-light">
+                            <thead style="background: rgba(243, 244, 246, 0.7);">
                                 <tr>
                                     <th>Thời gian</th>
                                     <th>Người gửi</th>
@@ -87,14 +87,14 @@ require_once __DIR__ . '/../includes/header.php';
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
-                                        <a href="<?php echo BASE_URL; ?>/admin/contact-message-view.php?id=<?php echo $msg['id']; ?>" class="btn btn-sm btn-outline-info me-1" title="Xem chi tiết">
+                                        <a href="<?php echo BASE_URL; ?>/admin/contact-message-view.php?id=<?php echo $msg['id']; ?>" class="btn btn-sm btn-outline-info rounded-pill me-1" title="Xem chi tiết">
                                             <i class="bi bi-eye"></i> Xem
                                         </a>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tin nhắn này?');">
                                             <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo $msg['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" title="Xóa">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>

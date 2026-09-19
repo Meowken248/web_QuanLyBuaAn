@@ -87,7 +87,7 @@ require_once '../includes/header.php';
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold"><i class="bi bi-mortarboard text-primary me-2"></i>Quản lý Lớp học & Sinh viên</h2>
-                <button type="button" class="btn btn-primary fw-bold rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addClassModal">
                     <i class="bi bi-plus-circle me-1"></i>Thêm Lớp Mới
                 </button>
             </div>
@@ -105,10 +105,10 @@ require_once '../includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card glass-card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                 <div class="card-body p-0 table-responsive">
                     <table class="table table-hover align-middle mb-0 text-nowrap">
-                        <thead class="table-light">
+                        <thead style="background: rgba(243, 244, 246, 0.7);">
                             <tr>
                                 <th scope="col" class="ps-4">STT</th>
                                 <th scope="col">Mã Lớp</th>
@@ -141,13 +141,13 @@ require_once '../includes/header.php';
                                             </span>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <a href="class-detail.php?id=<?= $cls['id'] ?>" class="btn btn-sm btn-success rounded-pill shadow-sm">
+                                            <a href="class-detail.php?id=<?= $cls['id'] ?>" class="btn btn-sm btn-outline-success rounded-pill">
                                                 <i class="bi bi-eye"></i> Xem / Nhập Excel
                                             </a>
                                             <form method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa lớp này?');">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?= $cls['id'] ?>">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>

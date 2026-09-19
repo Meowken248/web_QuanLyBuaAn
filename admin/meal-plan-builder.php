@@ -139,7 +139,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <h2 class="fw-bold mb-1">Xây dựng Thực đơn</h2>
                     <h5 class="text-success"><?php echo htmlspecialchars($plan['name']); ?></h5>
                 </div>
-                <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="btn btn-outline-secondary">Quay lại danh sách</a>
+                <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="btn btn-sm btn-outline-secondary rounded-pill">Quay lại danh sách</a>
             </div>
 
             <?php if (isset($_SESSION['success'])): ?>
@@ -150,7 +150,7 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endif; ?>
 
             <!-- Bảng tổng hợp Dinh dưỡng của toàn Thực đơn -->
-            <div class="card shadow-sm border-0 mb-4 bg-success text-white">
+            <div class="card glass-card border-0 rounded-4 shadow-sm mb-4 bg-success text-white">
                 <div class="card-body py-3">
                     <div class="row text-center">
                         <div class="col-md-2 border-end border-light border-opacity-25">
@@ -181,8 +181,8 @@ require_once __DIR__ . '/../includes/header.php';
                 <!-- Danh sách các bữa ăn -->
                 <div class="col-lg-8">
                     <?php foreach ($meals as $m): ?>
-                        <div class="card shadow-sm border-0 mb-4">
-                            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                        <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
+                            <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
                                 <h5 class="fw-bold mb-0 text-primary">
                                     <i class="bi bi-clock me-2"></i><?php echo $meal_types[$m['meal_type']] ?? $m['meal_type']; ?> 
                                     - <?php echo htmlspecialchars($m['title']); ?>
@@ -194,7 +194,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                     <input type="hidden" name="action" value="delete_meal">
                                     <input type="hidden" name="meal_id" value="<?php echo $m['id']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Xóa bữa</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i> Xóa bữa</button>
                                 </form>
                             </div>
                             <div class="card-body p-0">
@@ -204,7 +204,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
                                 ?>
                                 <table class="table table-hover align-middle mb-0 text-nowrap">
-                                    <thead class="table-light">
+                                    <thead style="background: rgba(243, 244, 246, 0.7);">
                                         <tr>
                                             <th>Món ăn</th>
                                             <th>Khối lượng</th>
@@ -245,7 +245,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <div class="fw-bold text-dark">Tổng cộng bữa này: <span class="text-success ms-2 fs-5"><?php echo round($meal_cal); ?> kcal</span></div>
                                                     
                                                     <!-- Nút mở form thêm món -->
-                                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal<?php echo $m['id']; ?>">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addItemModal<?php echo $m['id']; ?>">
                                                         <i class="bi bi-plus"></i> Thêm món ăn
                                                     </button>
                                                 </div>
@@ -307,8 +307,8 @@ require_once __DIR__ . '/../includes/header.php';
                 
                 <!-- Form tạo bữa ăn mới -->
                 <div class="col-lg-4">
-                    <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
-                        <div class="card-header bg-white py-3">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm position-sticky overflow-hidden" style="top: 20px;">
+                        <div class="card-header bg-transparent border-bottom py-3">
                             <h5 class="fw-bold mb-0">Thêm Bữa ăn Mới</h5>
                         </div>
                         <div class="card-body">
@@ -339,7 +339,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     </div>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-success w-100 fw-bold">
+                                <button type="submit" class="btn btn-outline-success rounded-pill w-100 fw-bold">
                                     <i class="bi bi-plus-circle"></i> Tạo Bữa Ăn
                                 </button>
                             </form>

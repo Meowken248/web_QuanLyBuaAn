@@ -73,7 +73,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="row">
 <div class="col-md-2"><?php require __DIR__ . '/includes/sidebar.php'; ?></div>
 <div class="col-md-10"><div class="row justify-content-center mt-3"><div class="col-lg-8">
-<div class="card shadow-sm border-0"><div class="card-body p-4">
+<div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4"><div class="card-body p-4">
 <h3 class="fw-bold mb-4"><?php echo htmlspecialchars($page_title); ?></h3>
 <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 <?php if ($field_errors): ?><div class="alert alert-danger">Vui lòng kiểm tra lại các trường được đánh dấu bên dưới.</div><?php endif; ?>
@@ -110,7 +110,7 @@ require_once __DIR__ . '/../includes/header.php';
 <option value="locked" <?php echo ($_POST['status'] ?? $edit_user['status'] ?? '') === 'locked' ? 'selected' : ''; ?>>Đã khóa</option>
 </select></div>
 </div>
-<div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="<?php echo BASE_URL; ?>/admin/users.php">Hủy</a><button class="btn btn-success"><?php echo $id ? 'Cập nhật' : 'Thêm mới'; ?></button></div>
+<div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/users.php">Hủy</a><button class="btn btn-outline-success rounded-pill px-4"><?php echo $id ? 'Cập nhật' : 'Thêm mới'; ?></button></div>
 </form>
 </div></div></div></div></div></div></div>
 <script>

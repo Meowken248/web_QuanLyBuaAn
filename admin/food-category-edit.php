@@ -110,7 +110,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="fw-bold mb-0"><?php echo $page_title; ?></h3>
-                <a href="<?php echo BASE_URL; ?>/admin/food-categories.php" class="btn btn-secondary">
+                <a href="<?php echo BASE_URL; ?>/admin/food-categories.php" class="btn btn-sm btn-outline-secondary rounded-pill">
                     <i class="bi bi-arrow-left me-1"></i>Quay lại
                 </a>
             </div>
@@ -122,7 +122,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="card shadow-sm border-0">
+            <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body">
                     <form method="POST" action="">
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
@@ -149,7 +149,7 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-primary px-4">
+                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-4">
                                 <i class="bi bi-save me-1"></i><?php echo $is_edit ? 'Cập nhật' : 'Lưu Danh mục'; ?>
                             </button>
                         </div>

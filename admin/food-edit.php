@@ -128,7 +128,7 @@ function food_form_value(string $key, ?array $food = null, string $default = '')
 $page_title = $id ? 'Sửa món ăn' : 'Thêm món ăn';
 require_once __DIR__ . '/../includes/header.php';
 ?>
-<div class="container py-5"><div class="row justify-content-center"><div class="col-lg-9"><div class="card shadow-sm"><div class="card-body p-4">
+<div class="container py-5"><div class="row justify-content-center"><div class="col-lg-9"><div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4"><div class="card-body p-4">
 <h3 class="fw-bold mb-4"><?php echo htmlspecialchars($page_title); ?></h3>
 <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 <?php if ($field_errors): ?><div class="alert alert-danger">Dữ liệu chưa hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.</div><?php endif; ?>
@@ -148,7 +148,7 @@ require_once __DIR__ . '/../includes/header.php';
 <?php endforeach; ?>
 <div class="col-12"><div class="form-text">Calories tham khảo = Protein × 4 + Carbs × 4 + Fat × 9. Nếu đơn vị là gram, tổng macros và chất xơ không được vượt khẩu phần.</div></div>
 </div>
-<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary" href="<?php echo BASE_URL; ?>/admin/foods.php">Hủy</a><button class="btn btn-success">Lưu món ăn</button></div>
+<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary rounded-pill" href="<?php echo BASE_URL; ?>/admin/foods.php">Hủy</a><button class="btn btn-outline-success rounded-pill px-4">Lưu món ăn</button></div>
 </form></div></div></div></div></div>
 <script>
 document.querySelectorAll('[data-clear-zero]').forEach(input => {

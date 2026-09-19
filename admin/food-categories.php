@@ -179,13 +179,13 @@ require_once __DIR__ . '/../includes/header.php';
                     <p class="text-muted small mb-0">Tổng cộng: <?php echo $totalCategories; ?> danh mục (10 danh mục/trang)</p>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="<?php echo BASE_URL; ?>/admin/food-categories.php?action=sample_excel" class="btn btn-outline-success">
+                    <a href="<?php echo BASE_URL; ?>/admin/food-categories.php?action=sample_excel" class="btn btn-sm btn-outline-secondary rounded-pill">
                         <i class="bi bi-file-earmark-arrow-down me-1"></i>Tải file mẫu Excel
                     </a>
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill" data-bs-toggle="modal" data-bs-target="#importExcelModal">
                         <i class="bi bi-file-earmark-arrow-up me-1"></i>Nhập từ Excel
                     </button>
-                    <a href="<?php echo BASE_URL; ?>/admin/food-category-edit.php" class="btn btn-primary">
+                    <a href="<?php echo BASE_URL; ?>/admin/food-category-edit.php" class="btn btn-sm btn-outline-primary rounded-pill">
                         <i class="bi bi-plus-circle me-1"></i>Thêm Danh mục
                     </a>
                 </div>
@@ -204,11 +204,11 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="card shadow-sm border-0 rounded-4">
+            <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 text-nowrap">
-                            <thead class="table-light">
+                            <thead style="background: rgba(243, 244, 246, 0.7);">
                                 <tr>
                                     <th class="ps-4">ID</th>
                                     <th>Tên danh mục</th>

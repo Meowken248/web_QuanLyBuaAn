@@ -87,17 +87,17 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="col-md-9 col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold mb-0"><?php echo $page_title; ?></h2>
-                <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="btn btn-outline-secondary">Quay lại</a>
+                <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="btn btn-sm btn-outline-secondary rounded-pill">Quay lại</a>
             </div>
 
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
 
-            <div class="card shadow-sm border-0">
+            <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <div class="card-body p-4">
                     <form method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
@@ -157,7 +157,7 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
 
                         <div class="text-end">
-                            <button type="submit" class="btn btn-primary px-4 fw-bold">Lưu thông tin</button>
+                            <button type="submit" class="btn btn-outline-primary rounded-pill px-4 fw-bold">Lưu thông tin</button>
                         </div>
                     </form>
                 </div>
