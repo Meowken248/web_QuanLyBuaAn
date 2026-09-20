@@ -358,3 +358,82 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(pollUnreadCounts, 8000);
 });
 
+// ==========================================================
+// GLOBAL LENIS INERTIA SMOOTH SCROLL ENGINE
+// ==========================================================
+(function() {
+    if (typeof Lenis === 'undefined') return;
+    if (window.lenis) return;
+
+    try {
+        const lenis = new Lenis({
+            duration: 1.15,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 0.95,
+            touchMultiplier: 1.5,
+            infinite: false,
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+        // Pause smooth scroll when Bootstrap modal or offcanvas is open
+        document.addEventListener('show.bs.modal', function() {
+            lenis.stop();
+        });
+        document.addEventListener('hidden.bs.modal', function() {
+            lenis.start();
+        });
+        document.addEventListener('show.bs.offcanvas', function() {
+            lenis.stop();
+        });
+        document.addEventListener('hidden.bs.offcanvas', function() {
+            lenis.start();
+        });
+
+        // Global Anchor Smooth Scrolling (#...)
+        document.addEventListener('click', function(e) {
+            const anchor = e.target.closest('a[href*="#"]');
+            if (!anchor) return;
+
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+
+            const hashIndex = href.indexOf('#');
+            if (hashIndex === -1) return;
+
+            const hash = href.substring(hashIndex);
+            if (!hash || hash === '#' || hash === '#!' || hash.startsWith('#collapse') || anchor.hasAttribute('data-bs-toggle') || anchor.hasAttribute('data-bs-target')) {
+                return;
+            }
+
+            const pathPart = href.substring(0, hashIndex);
+            const currentPath = window.location.pathname;
+            if (!pathPart || pathPart === '' || currentPath.endsWith(pathPart) || pathPart === window.location.href.split('#')[0]) {
+                try {
+                    const target = document.querySelector(hash);
+                    if (target) {
+                        e.preventDefault();
+                        lenis.scrollTo(target, { offset: -90, duration: 1.2 });
+                        if (history.pushState) {
+                            history.pushState(null, null, hash);
+                        }
+                    }
+                } catch (err) {
+                    // Ignore selector errors
+                }
+            }
+        });
+
+        window.lenis = lenis;
+    } catch (e) {
+        console.warn('Lenis smooth scroll init error:', e);
+    }
+})();
+

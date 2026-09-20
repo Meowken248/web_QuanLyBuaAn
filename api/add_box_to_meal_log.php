@@ -28,9 +28,12 @@ $foodId = (int)($inputData['food_id'] ?? 0);
 $mealType = trim($inputData['meal_type'] ?? 'lunch');
 $logDate = trim($inputData['log_date'] ?? date('Y-m-d'));
 
-// Hợp lệ hóa meal_type
-$validMealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'morning_snack', 'afternoon_snack', 'evening_snack'];
-if (!in_array($mealType, $validMealTypes)) {
+// Hợp lệ hóa meal_type (Chuyển snack sang afternoon_snack để khớp DB enum)
+if ($mealType === 'snack') {
+    $mealType = 'afternoon_snack';
+}
+$validMealTypes = ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack'];
+if (!in_array($mealType, $validMealTypes, true)) {
     $mealType = 'lunch';
 }
 
@@ -95,19 +98,21 @@ try {
     if ($added) {
         $mealLabels = [
             'breakfast' => 'Bữa sáng',
-            'lunch' => 'Bữa trưa',
-            'dinner' => 'Bữa tối',
-            'snack' => 'Bữa phụ',
             'morning_snack' => 'Bữa phụ sáng',
+            'lunch' => 'Bữa trưa',
             'afternoon_snack' => 'Bữa phụ chiều',
+            'dinner' => 'Bữa tối',
             'evening_snack' => 'Bữa phụ tối'
         ];
         $label = $mealLabels[$mealType] ?? 'Bữa ăn';
+        $logUrl = BASE_URL . '/user/meals.php?date=' . urlencode($logDate) . '#meal-' . urlencode($mealType);
 
         echo json_encode([
             'success' => true,
             'message' => "Đã thêm thành công \"{$food['name']}\" vào {$label} hôm nay!",
-            'log_url' => BASE_URL . '/user/meal-logs.php?date=' . $logDate
+            'log_url' => $logUrl,
+            'meal_type' => $mealType,
+            'meal_label' => $label
         ], JSON_UNESCAPED_UNICODE);
     } else {
         echo json_encode([

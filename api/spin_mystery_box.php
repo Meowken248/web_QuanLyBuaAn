@@ -82,18 +82,7 @@ try {
         exit;
     }
 
-    // Kiểm tra giới hạn số lượt
-    if ($spinsLeft <= 0) {
-        echo json_encode([
-            'success' => false,
-            'code' => 'LIMIT_REACHED',
-            'message' => 'Bạn đã sử dụng hết 5 lượt mở hộp miễn phí hôm nay! Hãy quay lại vào ngày mai nhé.',
-            'spins_left' => 0,
-            'spins_today' => $spinsToday,
-            'max_spins' => $maxSpins
-        ]);
-        exit;
-    }
+    // Không giới hạn lượt mở hộp (Unlimited spins)
 
     // Nhận dữ liệu filter từ request (JSON hoặc POST thông thường)
     $inputData = json_decode(file_get_contents('php://input'), true);
@@ -108,15 +97,19 @@ try {
     $conditions = ["f.status = 'active'"];
     $params = [];
 
+    if ($mealType === 'snack') {
+        $mealType = 'afternoon_snack';
+    }
+
     // Filter theo meal_type
     if ($mealType === 'breakfast') {
         $conditions[] = "(f.category_id IN (23, 26, 41, 44, 65, 66, 67, 68, 70, 71) 
                          OR f.name LIKE '%phở%' OR f.name LIKE '%bún%' OR f.name LIKE '%bánh mì%' 
                          OR f.name LIKE '%cháo%' OR f.name LIKE '%xôi%' OR f.name LIKE '%trứng%' 
                          OR f.name LIKE '%yến mạch%' OR f.name LIKE '%pancake%')";
-    } elseif ($mealType === 'snack') {
+    } elseif ($mealType === 'afternoon_snack' || $mealType === 'morning_snack' || $mealType === 'evening_snack') {
         $conditions[] = "(f.category_id IN (25, 29, 70, 71, 72) 
-                         OR f.calories <= 280 
+                         OR f.calories <= 320 
                          OR f.name LIKE '%sinh tố%' OR f.name LIKE '%nước ép%' OR f.name LIKE '%sữa chua%' 
                          OR f.name LIKE '%chè%' OR f.name LIKE '%bánh%' OR f.name LIKE '%gỏi cuốn%')";
     } elseif ($mealType === 'dinner') {

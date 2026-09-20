@@ -60,8 +60,11 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         
         <div class="col-md-9 col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <h2 class="fw-bold mb-0">Quản lý Lịch sử Chatbot AI</h2>
+                <a href="<?php echo BASE_URL; ?>/admin/ai-settings.php" class="btn btn-success rounded-pill px-3 fw-bold shadow-sm">
+                    <i class="bi bi-key-fill me-1"></i> Cấu hình API Key AI
+                </a>
             </div>
 
             <?php if (isset($_SESSION['success'])): ?>

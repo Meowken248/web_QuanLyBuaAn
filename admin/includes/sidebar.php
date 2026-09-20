@@ -74,6 +74,9 @@ if (isset($conn)) {
             <a href="<?php echo BASE_URL; ?>/admin/chat-logs.php" class="admin-sidebar-item <?php echo $current_page == 'chat-logs.php' ? 'active' : ''; ?>">
                 <i class="bi bi-robot me-2"></i>Lịch sử Chatbot AI
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/ai-settings.php" class="admin-sidebar-item <?php echo $current_page == 'ai-settings.php' ? 'active' : ''; ?>">
+                <i class="bi bi-key-fill me-2 text-warning"></i>Cấu hình API Key AI
+            </a>
             <a href="<?php echo BASE_URL; ?>/auth/logout.php" class="admin-sidebar-item admin-sidebar-item-danger">
                 <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
             </a>

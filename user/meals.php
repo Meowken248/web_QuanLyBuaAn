@@ -125,12 +125,44 @@ if ($cal_percent > 100) $cal_percent = 100;
                 </div>
             </div>
 
+            <!-- Thanh điều hướng nhanh các bữa ăn -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white" data-aos="fade-up">
+                <div class="card-body p-3">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center text-dark fw-bold small">
+                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                <i class="bi bi-compass-fill"></i>
+                            </div>
+                            <span>Bữa ăn trong ngày:</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php foreach ($meal_types as $type_key => $type_name): 
+                                $itemsCount = count($dailyMeals[$type_key] ?? []);
+                                $mealCals = 0;
+                                if (!empty($dailyMeals[$type_key])) {
+                                    foreach ($dailyMeals[$type_key] as $it) {
+                                        $mealCals += (float)$it['calories'];
+                                    }
+                                }
+                            ?>
+                            <a href="#meal-<?php echo $type_key; ?>" class="btn btn-sm rounded-pill px-3 py-1 fw-semibold transition-all d-flex align-items-center gap-1 <?php echo $itemsCount > 0 ? 'btn-success shadow-sm' : 'btn-light border text-muted'; ?>" style="font-size: 0.85rem;">
+                                <?php echo $type_name; ?>
+                                <?php if ($itemsCount > 0): ?>
+                                    <span class="badge bg-white text-success rounded-pill px-2 py-0 ms-1 fw-bold"><?php echo $itemsCount; ?> món (<?php echo round($mealCals); ?> kcal)</span>
+                                <?php endif; ?>
+                            </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Danh sách bữa ăn -->
             <?php 
             $delay = 100;
             foreach ($meal_types as $type_key => $type_name): 
             ?>
-            <div class="card card-premium mb-4 border-0 shadow-sm" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
+            <div class="card card-premium mb-4 border-0 shadow-sm meal-section-card" id="meal-<?php echo $type_key; ?>" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 px-4">
                     <h5 class="mb-0 fw-bold text-dark d-flex align-items-center">
                         <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
@@ -214,5 +246,58 @@ if ($cal_percent > 100) $cal_percent = 100;
         </div>
     </div>
 </div>
+<style>
+@keyframes mealHighlightPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+        border: 2px solid #16a34a !important;
+        transform: translateY(-3px);
+    }
+    50% {
+        box-shadow: 0 0 30px 8px rgba(22, 163, 74, 0.45);
+        border: 2px solid #16a34a !important;
+        transform: translateY(-3px);
+    }
+    100% {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0,0,0,0.05) !important;
+        transform: translateY(0);
+    }
+}
+.meal-highlight-pulse {
+    animation: mealHighlightPulse 3s ease-out;
+}
+.meal-section-card {
+    scroll-margin-top: 90px;
+    transition: all 0.3s ease;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function handleMealAnchor() {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#meal-')) {
+            const target = document.querySelector(hash);
+            if (target) {
+                setTimeout(() => {
+                    if (window.lenis) {
+                        window.lenis.scrollTo(target, { offset: -90, duration: 1.2 });
+                    } else {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    target.classList.add('meal-highlight-pulse');
+                    setTimeout(() => {
+                        target.classList.remove('meal-highlight-pulse');
+                    }, 3200);
+                }, 300);
+            }
+        }
+    }
+
+    handleMealAnchor();
+    window.addEventListener('hashchange', handleMealAnchor);
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

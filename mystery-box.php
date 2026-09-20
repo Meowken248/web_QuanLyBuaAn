@@ -19,24 +19,9 @@ require_once __DIR__ . '/includes/header.php';
 $userId = $_SESSION['user_id'] ?? null;
 $sessionId = session_id();
 $today = date('Y-m-d');
-$maxSpins = 5;
 
 $db = new Database();
 $conn = $db->getConnection();
-
-// Đếm số lượt đã mở hôm nay
-if ($userId) {
-    $stmtCount = $conn->prepare("SELECT COUNT(*) FROM mystery_box_history WHERE user_id = :uid AND spin_date = :today");
-    $stmtCount->execute([':uid' => $userId, ':today' => $today]);
-} else {
-    $stmtCount = $conn->prepare("SELECT COUNT(*) FROM mystery_box_history WHERE session_id = :sid AND spin_date = :today");
-    $stmtCount->execute([':sid' => $sessionId, ':today' => $today]);
-}
-$spinsToday = (int)$stmtCount->fetchColumn();
-$spinsLeft = max(0, $maxSpins - $spinsToday);
-
-// Lấy 3 món ngẫu nhiên cho thẻ 1, 2, 4 trên hàng thẻ sân khấu
-$previewFoods = $conn->query("SELECT id, name, image, calories, category_id FROM foods WHERE status = 'active' ORDER BY RAND() LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
 
 // Lấy lịch sử mở hộp hôm nay
 $historySql = "SELECT h.id, h.created_at, h.meal_type, h.health_goal,
@@ -55,9 +40,64 @@ $stmtHist->execute([
     ':today' => $today
 ]);
 $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
+
+// Tự động gợi ý loại bữa ăn phù hợp theo khung giờ hiện tại
+$currentHour = (int)date('H');
+if ($currentHour >= 5 && $currentHour < 11) {
+    $defaultMeal = 'breakfast';
+} elseif ($currentHour >= 11 && $currentHour < 15) {
+    $defaultMeal = 'lunch';
+} elseif ($currentHour >= 15 && $currentHour < 18) {
+    $defaultMeal = 'afternoon_snack';
+} else {
+    $defaultMeal = 'dinner';
+}
 ?>
 
 <style>
+/* ==========================================================
+   SMOOTH SCROLL & GPU ACCELERATION OPTIMIZATIONS
+   ========================================================== */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+html.lenis, html.lenis body {
+    height: auto;
+}
+.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+
+/* Fix severe Chrome scroll repaint jank caused by fixed background */
+body {
+    background-attachment: scroll !important;
+}
+
+/* Custom Ultra-Sleek Modern Emerald Scrollbar */
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.45);
+    border-radius: 9999px;
+    border: 2px solid #f1f5f9;
+    transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.85);
+}
+
 /* ==========================================================
    MYSTERY BOX ULTIMATE GLASSMORPHISM UI - HEALTH EMERALD THEME
    ========================================================== */
@@ -83,17 +123,19 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
                 #f8fafc;
 }
 
-/* Ambient Floating Glow Orbs */
+/* Ambient Floating Glow Orbs (GPU Layer Composited with Pure Radial Gradients) */
 .ambient-glow-1 {
     position: absolute;
     top: 40px;
     left: -120px;
     width: 520px;
     height: 520px;
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+    background: radial-gradient(circle closest-side, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 50%, transparent 80%);
     pointer-events: none;
     z-index: 0;
-    filter: blur(40px);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
 }
 .ambient-glow-2 {
     position: absolute;
@@ -101,13 +143,15 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
     right: -140px;
     width: 560px;
     height: 560px;
-    background: radial-gradient(circle, rgba(52, 211, 153, 0.16) 0%, rgba(255, 255, 255, 0) 70%);
+    background: radial-gradient(circle closest-side, rgba(52, 211, 153, 0.13) 0%, rgba(52, 211, 153, 0.04) 50%, transparent 80%);
     pointer-events: none;
     z-index: 0;
-    filter: blur(50px);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
-/* Glassmorphism Card System */
+/* Glassmorphism Card System (Hardware Layer Promoted) */
 .glass-panel-luxury {
     background: var(--mb-surface-glass);
     backdrop-filter: blur(20px) saturate(190%);
@@ -117,6 +161,8 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
     box-shadow: var(--mb-shadow);
     position: relative;
     z-index: 2;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
 }
 
 /* Header Badge & Title */
@@ -160,181 +206,150 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /* ==========================================================
-   4-CARDS STAGE ROW (Matching Mockup with Luxury 3D Polish)
+   MYSTERY BOX CENTERPIECE CARD (Luxury 3D Polish)
    ========================================================== */
 .mystery-cards-row {
     display: flex;
     justify-content: center;
-    align-items: stretch;
-    gap: 1.25rem;
-    margin: 2.5rem 0 3rem;
+    align-items: center;
+    margin: 2rem 0 2.8rem;
     perspective: 1200px;
     position: relative;
     z-index: 2;
 }
 
-/* Side Preview Cards (Món 1, 2, 4) */
+/* Ẩn hoàn toàn 3 card xem trước bên cạnh */
 .stage-card-side {
-    width: 185px;
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(209, 250, 229, 0.8);
-    border-radius: 22px;
-    padding: 0.9rem;
-    text-align: center;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
-    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    display: flex;
-    flex-direction: column;
-}
-.stage-card-side:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 16px 36px rgba(16, 185, 129, 0.14);
-    border-color: rgba(52, 211, 153, 0.9);
-}
-.stage-card-badge {
-    background: rgba(240, 253, 244, 0.9);
-    border: 1px solid rgba(167, 243, 208, 0.8);
-    color: #047857;
-    font-size: 0.72rem;
-    font-weight: 700;
-    border-radius: 9999px;
-    padding: 0.25rem 0.65rem;
-    margin-bottom: 0.65rem;
-    display: inline-block;
-}
-.stage-card-img-wrap {
-    width: 100%;
-    height: 125px;
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 0.65rem;
-    background: #e2e8f0;
-    position: relative;
-}
-.stage-card-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.4s ease;
-}
-.stage-card-side:hover .stage-card-img {
-    transform: scale(1.08);
-}
-.stage-card-title {
-    font-size: 0.92rem;
-    font-weight: 750;
-    color: #1e293b;
-    margin-bottom: 0.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.stage-card-cal-badge {
-    background: #fff1f2;
-    color: #e11d48;
-    border: 1px solid #ffe4e6;
-    font-size: 0.75rem;
-    font-weight: 700;
-    border-radius: 9999px;
-    padding: 0.2rem 0.6rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-top: auto;
+    display: none !important;
 }
 
-/* THE CENTERPIECE: Món 3 Bí Ẩn (Mystery Lucky Box) */
+/* THE CENTERPIECE: Hộp Bí Ẩn (Luxury Emerald Vault) */
 .stage-card-center {
-    width: 220px;
-    background: linear-gradient(150deg, rgba(236, 253, 245, 0.95) 0%, rgba(209, 250, 229, 0.85) 50%, rgba(255, 255, 255, 0.92) 100%);
-    border: 2px solid #10b981;
-    border-radius: 26px;
-    padding: 1.1rem;
+    width: 360px;
+    max-width: 92vw;
+    background: radial-gradient(circle at 50% 28%, #064e3b 0%, #033628 48%, #011d15 100%);
+    border: 1.5px solid rgba(110, 231, 183, 0.4);
+    border-radius: 36px;
+    padding: 2.2rem 1.8rem 2rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 16px 40px rgba(16, 185, 129, 0.25), 0 0 0 6px rgba(16, 185, 129, 0.08);
+    justify-content: center;
+    box-shadow: 0 25px 65px -12px rgba(6, 78, 59, 0.55), 
+                0 0 40px rgba(16, 185, 129, 0.22),
+                inset 0 1px 1px rgba(255, 255, 255, 0.25),
+                inset 0 0 35px rgba(16, 185, 129, 0.12);
     position: relative;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease;
     overflow: hidden;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    margin: 0 auto;
+    animation: cardAuraPulse 4.5s infinite ease-in-out;
 }
-.stage-card-center:hover {
-    transform: translateY(-10px) scale(1.04);
-    box-shadow: 0 22px 50px rgba(16, 185, 129, 0.35), 0 0 0 8px rgba(16, 185, 129, 0.14);
-}
-.center-glow-ribbon {
+.stage-card-center::before {
+    content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #10b981, #f59e0b, #10b981);
-    background-size: 200% 100%;
-    animation: rainbowRibbon 3s infinite linear;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(110, 231, 183, 0.9), rgba(245, 158, 11, 0.85), rgba(110, 231, 183, 0.9), transparent);
+    border-radius: 9999px;
+    pointer-events: none;
 }
-@keyframes rainbowRibbon {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
+.stage-card-center:hover {
+    transform: translateY(-10px) scale(1.025);
+    box-shadow: 0 35px 80px -10px rgba(6, 78, 59, 0.65), 
+                0 0 55px rgba(16, 185, 129, 0.38),
+                inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    border-color: rgba(110, 231, 183, 0.7);
+}
+
+@keyframes cardAuraPulse {
+    0%, 100% {
+        box-shadow: 0 25px 65px -12px rgba(6, 78, 59, 0.55), 
+                    0 0 35px rgba(16, 185, 129, 0.2),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    }
+    50% {
+        box-shadow: 0 30px 75px -10px rgba(6, 78, 59, 0.65), 
+                    0 0 50px rgba(16, 185, 129, 0.32),
+                    inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    }
 }
 
 .center-mystery-badge {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: #ffffff;
-    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(110, 231, 183, 0.45);
+    color: #a7f3d0;
+    font-size: 0.82rem;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     border-radius: 9999px;
-    padding: 0.35rem 0.85rem;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    margin-bottom: 0.5rem;
+    padding: 0.45rem 1.3rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    margin-bottom: 0.65rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.45rem;
+    transition: all 0.3s ease;
+}
+.stage-card-center:hover .center-mystery-badge {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: rgba(110, 231, 183, 0.8);
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
 }
 
 .center-artwork-wrap {
-    width: 140px;
-    height: 140px;
-    border-radius: 20px;
-    margin: 0.5rem 0;
+    width: 235px;
+    height: 230px;
+    border-radius: 26px;
+    margin: 0.6rem 0 1rem;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease;
+    transition: transform 0.35s ease;
 }
 .center-box-art {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    border-radius: 18px;
-    filter: drop-shadow(0 10px 18px rgba(16, 185, 129, 0.35));
-    animation: boxFloat 3s infinite ease-in-out;
+    object-fit: cover;
+    border-radius: 22px;
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.45));
+    animation: boxFloat 3.6s infinite ease-in-out;
+    transition: all 0.3s ease;
 }
 @keyframes boxFloat {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-7px) rotate(1deg); }
+    0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+    50% { transform: translateY(-8px) rotate(1deg) scale(1.02); }
 }
 
 .center-status-title {
-    font-size: 1.05rem;
+    font-size: 1.45rem;
     font-weight: 850;
-    color: #0f172a;
-    line-height: 1.2;
-    margin-bottom: 0.2rem;
+    color: #ffffff;
+    line-height: 1.25;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.01em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
 .center-sub-hint {
-    font-size: 0.78rem;
+    font-size: 0.92rem;
     font-weight: 600;
-    color: #059669;
+    color: #6ee7b7;
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.4rem;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Card Spinning Animation when Rolling */
@@ -494,6 +509,10 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
                 url('<?php echo BASE_URL; ?>/img/banner_healthy_food.jpg') center/cover no-repeat;
     box-shadow: 0 16px 40px rgba(6, 78, 59, 0.25);
     margin: 3.5rem 0;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    contain: paint;
 }
 .lifestyle-banner-content {
     padding: 2.25rem 2.75rem;
@@ -589,13 +608,17 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
 .history-food-tile {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(226, 232, 240, 0.9);
     border-radius: 20px;
     padding: 0.9rem;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
     height: 100%;
     display: flex;
     flex-direction: column;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 .history-food-tile:hover {
     transform: translateY(-5px);
@@ -653,14 +676,6 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
 
     <div class="container py-4 position-relative" style="z-index: 2;">
         
-        <!-- Breadcrumb Navigation -->
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="<?php echo BASE_URL; ?>" class="text-success text-decoration-none">Trang chủ</a></li>
-                <li class="breadcrumb-item"><a href="<?php echo BASE_URL; ?>/smart-menu.php" class="text-success text-decoration-none">Thực đơn AI</a></li>
-                <li class="breadcrumb-item active text-secondary" aria-current="page">Ăn Gì Hôm Nay</li>
-            </ol>
-        </nav>
 
         <!-- Main Hero Header -->
         <div class="text-center mb-4">
@@ -674,78 +689,29 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
                 <span class="main-title-gradient">MỞ HỘP DINH DƯỠNG SỨC KHỎE</span>
             </h1>
             <p class="text-muted mx-auto fs-5" style="max-width: 680px;">
-                Giải phóng tâm trí khỏi câu hỏi muôn thuở <em>"Bữa nay ăn gì?"</em>. Chạm mở ngẫu nhiên món ăn cân đối calo, hợp chuẩn theo mục tiêu sức khỏe của bạn!
+                Giải phóng tâm trí khỏi câu hỏi muôn thuở <em>"Hôm nay ăn gì?"</em>. Chạm mở ngẫu nhiên món ăn cân đối calo, hợp chuẩn theo mục tiêu sức khỏe của bạn!
             </p>
         </div>
 
         <!-- ==========================================================
-             4-CARDS STAGE ROW (Matching Mockup with Luxury 3D Polish)
+             MYSTERY LUCKY BOX CENTERPIECE
              ========================================================== -->
         <div class="mystery-cards-row" id="mysteryCardsRow">
-            <!-- Món 1 -->
-            <div class="stage-card-side" id="stageCard1">
-                <div>
-                    <span class="stage-card-badge"><i class="bi bi-egg-fried me-1 text-success"></i>Món 1</span>
-                </div>
-                <div class="stage-card-img-wrap">
-                    <img src="<?php echo food_image_url($previewFoods[0]['image'] ?? null); ?>" class="stage-card-img" alt="Món 1">
-                </div>
-                <div class="stage-card-title"><?php echo htmlspecialchars($previewFoods[0]['name'] ?? 'Phở bò Hà Nội'); ?></div>
-                <div class="mt-auto">
-                    <span class="stage-card-cal-badge">
-                        <i class="bi bi-fire"></i> <?php echo floatval($previewFoods[0]['calories'] ?? 420); ?> kcal
-                    </span>
-                </div>
-            </div>
-
-            <!-- Món 2 -->
-            <div class="stage-card-side" id="stageCard2">
-                <div>
-                    <span class="stage-card-badge"><i class="bi bi-cup-hot me-1 text-success"></i>Món 2</span>
-                </div>
-                <div class="stage-card-img-wrap">
-                    <img src="<?php echo food_image_url($previewFoods[1]['image'] ?? null); ?>" class="stage-card-img" alt="Món 2">
-                </div>
-                <div class="stage-card-title"><?php echo htmlspecialchars($previewFoods[1]['name'] ?? 'Salad ức gà mè rang'); ?></div>
-                <div class="mt-auto">
-                    <span class="stage-card-cal-badge">
-                        <i class="bi bi-fire"></i> <?php echo floatval($previewFoods[1]['calories'] ?? 320); ?> kcal
-                    </span>
-                </div>
-            </div>
-
-            <!-- Món 3: BÍ ẨN (Centerpiece Mystery Card) -->
+            <!-- Hộp Bí Ẩn nằm giữa màn hình -->
             <div class="stage-card-center" id="centerMysteryBox" title="Nhấn để mở hộp ngẫu nhiên!">
-                <div class="center-glow-ribbon"></div>
                 <div>
                     <span class="center-mystery-badge">
-                        <i class="bi bi-sparkles text-warning"></i> Món 3: Bí ẩn
+                        <i class="bi bi-sparkles text-warning"></i> Hộp Dinh Dưỡng Bí Ẩn
                     </span>
                 </div>
                 <div class="center-artwork-wrap" id="centerArtworkWrap">
                     <img src="<?php echo BASE_URL; ?>/img/lucky_mystery_box.jpg" class="center-box-art" id="centerBoxImg" alt="Mystery Box">
                 </div>
-                <div class="mt-2">
+                <div class="mt-2 text-center">
                     <div class="center-status-title" id="centerStatusTitle">Hộp Dinh Dưỡng</div>
                     <div class="center-sub-hint" id="centerSubHint">
-                        <i class="bi bi-stars"></i> Sắp được mở...
+                        <i class="bi bi-stars text-warning"></i> Chạm để mở món bất ngờ
                     </div>
-                </div>
-            </div>
-
-            <!-- Món 4 -->
-            <div class="stage-card-side" id="stageCard4">
-                <div>
-                    <span class="stage-card-badge"><i class="bi bi-droplet me-1 text-success"></i>Món 4</span>
-                </div>
-                <div class="stage-card-img-wrap">
-                    <img src="<?php echo food_image_url($previewFoods[2]['image'] ?? null); ?>" class="stage-card-img" alt="Món 4">
-                </div>
-                <div class="stage-card-title"><?php echo htmlspecialchars($previewFoods[2]['name'] ?? 'Sinh tố bơ chuối'); ?></div>
-                <div class="mt-auto">
-                    <span class="stage-card-cal-badge">
-                        <i class="bi bi-fire"></i> <?php echo floatval($previewFoods[2]['calories'] ?? 260); ?> kcal
-                    </span>
                 </div>
             </div>
         </div>
@@ -756,62 +722,34 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
         <div class="glass-panel-luxury mb-5 mx-auto" style="max-width: 860px;">
             <div class="filter-card-body">
                 
-                <!-- 1. Bữa ăn (Pills) -->
+                <!-- Bữa ăn (Pills) -->
                 <div class="mb-4 text-center">
                     <div class="text-uppercase small fw-bold text-muted letter-spacing-1 mb-2">
-                        <i class="bi bi-clock me-1 text-success"></i> 1. Bạn đang chuẩn bị cho bữa nào?
+                        <i class="bi bi-clock me-1 text-success"></i> Bạn đang chuẩn bị cho bữa nào?
                     </div>
                     <div class="d-flex flex-wrap justify-content-center gap-2" id="mealPillsGroup">
-                        <button type="button" class="btn pill-meal-option" data-meal="breakfast">
+                        <button type="button" class="btn pill-meal-option <?php echo ($defaultMeal === 'breakfast') ? 'active' : ''; ?>" data-meal="breakfast">
                             <i class="bi bi-sun me-1"></i> Bữa sáng
                         </button>
-                        <button type="button" class="btn pill-meal-option active" data-meal="lunch">
+                        <button type="button" class="btn pill-meal-option <?php echo ($defaultMeal === 'lunch') ? 'active' : ''; ?>" data-meal="lunch">
                             <i class="bi bi-fire me-1"></i> Bữa trưa
                         </button>
-                        <button type="button" class="btn pill-meal-option" data-meal="dinner">
+                        <button type="button" class="btn pill-meal-option <?php echo ($defaultMeal === 'dinner') ? 'active' : ''; ?>" data-meal="dinner">
                             <i class="bi bi-moon-stars me-1"></i> Bữa tối
                         </button>
-                        <button type="button" class="btn pill-meal-option" data-meal="snack">
-                            <i class="bi bi-cup-straw me-1"></i> Ăn vặt / Phụ
+                        <button type="button" class="btn pill-meal-option <?php echo ($defaultMeal === 'afternoon_snack') ? 'active' : ''; ?>" data-meal="afternoon_snack">
+                            <i class="bi bi-cup-straw me-1"></i> Bữa phụ / Ăn vặt
                         </button>
                     </div>
                 </div>
 
-                <!-- 2. Mục tiêu sức khỏe (Interactive Chips) -->
-                <div class="mb-4 text-center">
-                    <div class="text-uppercase small fw-bold text-muted letter-spacing-1 mb-2">
-                        <i class="bi bi-bullseye me-1 text-success"></i> 2. Mục tiêu dinh dưỡng của bạn
-                    </div>
-                    <div class="goal-chips-deck" id="goalChipsDeck">
-                        <div class="goal-chip active" data-goal="all"><i class="bi bi-compass me-1 text-success"></i> Tất cả mục tiêu</div>
-                        <div class="goal-chip" data-goal="weight_loss"><i class="bi bi-arrow-down-right-circle me-1 text-danger"></i> Giảm mỡ &amp; Siết cân</div>
-                        <div class="goal-chip" data-goal="muscle_gain"><i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Tăng cơ (High Protein)</div>
-                        <div class="goal-chip" data-goal="maintenance"><i class="bi bi-shield-check me-1 text-info"></i> Giữ dáng &amp; Cân bằng</div>
-                        <div class="goal-chip" data-goal="weight_gain"><i class="bi bi-arrow-up-right-circle me-1 text-primary"></i> Tăng cân an toàn</div>
-                        <div class="goal-chip" data-goal="eat_clean"><i class="bi bi-leaf-fill me-1 text-success"></i> Eat Clean &amp; Lành mạnh</div>
-                    </div>
-                </div>
-
-                <!-- 3. Spin Action Button & Real-time Live Counters -->
+                <!-- 3. Spin Action Button -->
                 <div class="text-center pt-2">
                     <button type="button" class="btn btn-open-box-magnetic shadow-lg" id="btnSpin">
                         <i class="bi bi-gift-fill me-2 fs-5"></i> MỞ HỘP GỢI Ý
                     </button>
 
-                    <!-- Lượt mở còn lại -->
-                    <div class="mt-3 d-flex align-items-center justify-content-center">
-                        <span class="text-muted small fw-semibold">
-                            Lượt mở miễn phí hôm nay:
-                            <strong class="text-success ms-1 fs-6" id="spinsLeftNum"><?php echo $spinsLeft; ?></strong>/<?php echo $maxSpins; ?>
-                        </span>
-                        <div class="spins-pills-bar" id="spinsPillsBar">
-                            <?php for ($i = 1; $i <= $maxSpins; $i++): ?>
-                                <span class="spin-indicator-dot <?php echo ($i > $spinsLeft) ? 'used' : ''; ?>"></span>
-                            <?php endfor; ?>
-                        </div>
-                    </div>
-
-                    <div id="spinNotice" class="small mt-2" style="min-height: 22px;"></div>
+                    <div id="spinNotice" class="small mt-2" style="min-height: 18px;"></div>
                 </div>
 
             </div>
@@ -891,7 +829,7 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
                                     <a href="<?php echo BASE_URL; ?>/food-detail.php?id=<?php echo $hist['food_id']; ?>" class="btn btn-sm btn-outline-success w-50 rounded-pill fw-semibold" target="_blank" title="Xem công thức">
                                         <i class="bi bi-book me-1"></i>Xem
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-success w-50 rounded-pill fw-semibold btn-quick-add" data-food-id="<?php echo $hist['food_id']; ?>" data-meal-type="<?php echo htmlspecialchars($hist['meal_type']); ?>" title="Thêm vào nhật ký">
+                                    <button type="button" class="btn btn-sm btn-success w-50 rounded-pill fw-semibold btn-quick-add" data-food-id="<?php echo $hist['food_id']; ?>" data-meal-type="<?php echo htmlspecialchars($hist['meal_type'] === 'snack' ? 'afternoon_snack' : $hist['meal_type']); ?>" title="Thêm vào nhật ký">
                                         <i class="bi bi-plus"></i>Nhật ký
                                     </button>
                                 </div>
@@ -975,6 +913,21 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                         </div>
 
+                        <!-- Chọn bữa ăn để thêm vào nhật ký -->
+                        <div class="d-flex align-items-center justify-content-between p-2 px-3 rounded-4 bg-light border mb-3">
+                            <label for="modalMealSelect" class="small fw-bold text-dark mb-0 d-flex align-items-center">
+                                <i class="bi bi-clock-history text-success me-2 fs-6"></i> Thêm vào bữa ăn:
+                            </label>
+                            <select id="modalMealSelect" class="form-select form-select-sm w-auto rounded-pill border-success-subtle fw-semibold text-dark shadow-sm">
+                                <option value="breakfast">🌅 Bữa sáng</option>
+                                <option value="morning_snack">☕ Bữa phụ sáng</option>
+                                <option value="lunch">☀️ Bữa trưa</option>
+                                <option value="afternoon_snack">🍵 Bữa phụ chiều</option>
+                                <option value="dinner">🌙 Bữa tối</option>
+                                <option value="evening_snack">🥛 Bữa phụ tối</option>
+                            </select>
+                        </div>
+
                         <!-- Action Buttons -->
                         <div class="d-flex flex-wrap gap-2">
                             <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm flex-grow-1" id="btnAddToLog">
@@ -1000,12 +953,10 @@ $todayHistory = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
      ========================================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let currentSelectedMeal = 'lunch';
+    let currentSelectedMeal = '<?php echo $defaultMeal; ?>';
     let currentSelectedGoal = 'all';
     let currentWinner = null;
     let isSpinning = false;
-    let spinsLeft = <?php echo (int)$spinsLeft; ?>;
-    const maxSpins = <?php echo (int)$maxSpins; ?>;
 
     const btnSpin = document.getElementById('btnSpin');
     const centerMysteryBox = document.getElementById('centerMysteryBox');
@@ -1013,8 +964,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const centerBoxImg = document.getElementById('centerBoxImg');
     const centerStatusTitle = document.getElementById('centerStatusTitle');
     const centerSubHint = document.getElementById('centerSubHint');
-    const spinsLeftNum = document.getElementById('spinsLeftNum');
-    const spinsPillsBar = document.getElementById('spinsPillsBar');
     const spinNotice = document.getElementById('spinNotice');
 
     const resultModalEl = document.getElementById('resultModal');
@@ -1030,6 +979,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const winnerCarbs = document.getElementById('winnerCarbs');
     const winnerFat = document.getElementById('winnerFat');
     const winnerAiReasoning = document.getElementById('winnerAiReasoning');
+    const modalMealSelect = document.getElementById('modalMealSelect');
     const btnAddToLog = document.getElementById('btnAddToLog');
     const btnViewRecipe = document.getElementById('btnViewRecipe');
     const btnSpinAgain = document.getElementById('btnSpinAgain');
@@ -1042,22 +992,28 @@ document.addEventListener('DOMContentLoaded', function() {
             mealPills.forEach(p => p.classList.remove('active'));
             this.classList.add('active');
             currentSelectedMeal = this.getAttribute('data-meal');
+            if (modalMealSelect) {
+                modalMealSelect.value = currentSelectedMeal;
+            }
         });
     });
 
-    // 2. Xử lý click chọn chip mục tiêu sức khỏe
-    const goalChips = document.querySelectorAll('.goal-chip');
-    goalChips.forEach(chip => {
-        chip.addEventListener('click', function() {
-            goalChips.forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            currentSelectedGoal = this.getAttribute('data-goal');
+    if (modalMealSelect) {
+        modalMealSelect.addEventListener('change', function() {
+            currentSelectedMeal = this.value;
+            mealPills.forEach(p => {
+                if (p.getAttribute('data-meal') === currentSelectedMeal) {
+                    p.classList.add('active');
+                } else {
+                    p.classList.remove('active');
+                }
+            });
         });
-    });
+    }
 
-    // 3. Click vào thẻ trung tâm cũng kích hoạt quay
+    // 2. Click vào thẻ trung tâm cũng kích hoạt quay
     centerMysteryBox.addEventListener('click', function() {
-        if (!isSpinning && spinsLeft > 0) {
+        if (!isSpinning) {
             btnSpin.click();
         }
     });
@@ -1065,11 +1021,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 4. Hàm kích hoạt mở hộp
     btnSpin.addEventListener('click', function() {
         if (isSpinning) return;
-
-        if (spinsLeft <= 0) {
-            spinNotice.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>Bạn đã dùng hết 5 lượt mở hộp miễn phí hôm nay! Vui lòng quay lại ngày mai nhé.</span>';
-            return;
-        }
 
         isSpinning = true;
         btnSpin.disabled = true;
@@ -1103,11 +1054,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const candidates = data.candidates || [];
             const winner = data.winner;
             currentWinner = winner;
-
-            // Cập nhật số lượt còn lại & cập nhật thanh dots
-            spinsLeft = data.spins_left;
-            spinsLeftNum.innerText = spinsLeft;
-            updateSpinsDots(spinsLeft);
 
             // Guồng quay ảnh và tên món chạy tốc độ cao
             let candidateIndex = 0;
@@ -1158,6 +1104,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Mở modal kết quả sau 350ms
                 setTimeout(() => {
+                    btnAddToLog.disabled = false;
+                    btnAddToLog.classList.remove('btn-outline-success');
+                    btnAddToLog.classList.add('btn-success');
+                    btnAddToLog.innerHTML = '<i class="bi bi-journal-plus me-1"></i> Thêm vào nhật ký';
+                    if (modalMealSelect) {
+                        modalMealSelect.value = currentSelectedMeal;
+                    }
                     resultModal.show();
                 }, 350);
 
@@ -1173,41 +1126,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function stopSpinning() {
         isSpinning = false;
-        btnSpin.disabled = (spinsLeft <= 0);
+        btnSpin.disabled = false;
         btnSpin.innerHTML = '<i class="bi bi-gift-fill me-2 fs-5"></i> MỞ HỘP GỢI Ý';
         centerMysteryBox.classList.remove('card-spinning-3d');
-        if (spinsLeft <= 0) {
-            spinNotice.innerHTML = '<span class="text-warning fw-bold"><i class="bi bi-info-circle me-1"></i>Bạn đã sử dụng hết 5 lượt hôm nay. Hãy quay lại vào ngày mai nhé!</span>';
-        }
-    }
-
-    function updateSpinsDots(left) {
-        if (!spinsPillsBar) return;
-        const dots = spinsPillsBar.querySelectorAll('.spin-indicator-dot');
-        dots.forEach((dot, index) => {
-            if (index >= left) {
-                dot.classList.add('used');
-            } else {
-                dot.classList.remove('used');
-            }
-        });
     }
 
     // 5. Mở lại (đổi món khác)
     btnSpinAgain.addEventListener('click', function() {
         resultModal.hide();
         setTimeout(() => {
-            if (spinsLeft > 0) {
-                btnSpin.click();
-            } else {
-                spinNotice.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>Bạn đã dùng hết lượt mở hộp hôm nay!</span>';
-            }
+            btnSpin.click();
         }, 400);
     });
 
     // 6. Thêm món vào nhật ký bữa ăn
     btnAddToLog.addEventListener('click', function() {
         if (!currentWinner) return;
+
+        const mealTypeToSave = (modalMealSelect && modalMealSelect.value) ? modalMealSelect.value : currentSelectedMeal;
 
         btnAddToLog.disabled = true;
         btnAddToLog.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu...';
@@ -1220,23 +1156,39 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 food_id: currentWinner.id,
-                meal_type: currentSelectedMeal,
+                meal_type: mealTypeToSave,
                 log_date: '<?php echo $today; ?>'
             })
         })
         .then(res => res.json())
         .then(data => {
-            btnAddToLog.disabled = false;
-            btnAddToLog.innerHTML = '<i class="bi bi-journal-check me-1"></i> Đã thêm vào nhật ký';
-
             if (data.require_login) {
+                btnAddToLog.disabled = false;
+                btnAddToLog.innerHTML = '<i class="bi bi-journal-plus me-1"></i> Thêm vào nhật ký';
                 modalActionNotice.innerHTML = `<span class="text-warning fw-bold"><i class="bi bi-box-arrow-in-right me-1"></i>${data.message} <a href="<?php echo BASE_URL; ?>/auth/login.php" class="text-success text-decoration-underline">Đăng nhập ngay</a></span>`;
                 return;
             }
 
             if (data.success) {
-                modalActionNotice.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>${data.message} <a href="${data.log_url}" class="text-success text-decoration-underline ms-1" target="_blank">Xem nhật ký</a></span>`;
+                btnAddToLog.disabled = true;
+                btnAddToLog.classList.remove('btn-success');
+                btnAddToLog.classList.add('btn-outline-success');
+                btnAddToLog.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Đã lưu vào nhật ký';
+
+                modalActionNotice.innerHTML = `
+                    <div class="alert alert-success border-0 shadow-sm d-flex flex-column flex-sm-row align-items-sm-center justify-content-between p-3 mt-3 rounded-4 gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success fs-5 flex-shrink-0"></i>
+                            <span class="small fw-semibold text-dark">${data.message}</span>
+                        </div>
+                        <a href="${data.log_url}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold text-white text-nowrap shadow-sm d-inline-flex align-items-center gap-1">
+                            Xem ${data.meal_label || 'nhật ký'} <i class="bi bi-arrow-right-short fs-5"></i>
+                        </a>
+                    </div>
+                `;
             } else {
+                btnAddToLog.disabled = false;
+                btnAddToLog.innerHTML = '<i class="bi bi-journal-plus me-1"></i> Thêm vào nhật ký';
                 modalActionNotice.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>${data.message}</span>`;
             }
         })
@@ -1253,7 +1205,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetBtn = e.target.closest('.btn-quick-add');
         if (targetBtn) {
             const foodId = targetBtn.getAttribute('data-food-id');
-            const mealType = targetBtn.getAttribute('data-meal-type') || 'lunch';
+            let mealType = targetBtn.getAttribute('data-meal-type') || 'lunch';
+            if (mealType === 'snack') mealType = 'afternoon_snack';
 
             targetBtn.disabled = true;
             targetBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
@@ -1282,6 +1235,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     targetBtn.classList.remove('btn-success');
                     targetBtn.classList.add('btn-outline-success');
                     targetBtn.innerHTML = '<i class="bi bi-check2"></i> Đã thêm';
+                    targetBtn.title = 'Bấm để xem ' + (data.meal_label || 'nhật ký');
+                    targetBtn.disabled = false;
+                    targetBtn.onclick = function() {
+                        window.open(data.log_url, '_blank');
+                    };
                 } else {
                     alert(data.message);
                     targetBtn.disabled = false;
@@ -1333,7 +1291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <a href="${item.detail_url}" class="btn btn-sm btn-outline-success w-50 rounded-pill fw-semibold" target="_blank" title="Xem công thức">
                         <i class="bi bi-book me-1"></i>Xem
                     </a>
-                    <button type="button" class="btn btn-sm btn-success w-50 rounded-pill fw-semibold btn-quick-add" data-food-id="${item.id}" data-meal-type="${mealType}" title="Thêm vào nhật ký">
+                    <button type="button" class="btn btn-sm btn-success w-50 rounded-pill fw-semibold btn-quick-add" data-food-id="${item.id}" data-meal-type="${mealType === 'snack' ? 'afternoon_snack' : mealType}" title="Thêm vào nhật ký">
                         <i class="bi bi-plus"></i>Nhật ký
                     </button>
                 </div>

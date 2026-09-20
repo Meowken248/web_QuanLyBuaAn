@@ -512,7 +512,7 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
     <div class="col-lg-4 text-lg-end d-flex flex-wrap justify-content-lg-end align-items-center gap-2">
       <a href="<?php echo BASE_URL; ?>/mystery-box.php" class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-1" title="Mở hộp món ăn ngẫu nhiên hôm nay">
-        <i class="bi bi-gift-fill text-warning"></i> Ăn Gì Hôm Nay?
+        <i class="bi bi-gift-fill text-warning"></i> Hôm nay ăn gì?
       </a>
       <div class="d-inline-flex align-items-center gap-2 bg-white bg-opacity-75 px-3 py-2 rounded-pill border shadow-sm">
         <i class="bi bi-calendar3 text-success"></i>

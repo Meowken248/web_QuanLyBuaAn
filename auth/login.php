@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         passInput.classList.remove('is-invalid');
-        passInput.classList.add('is-valid');
+        passInput.classList.remove('is-valid');
         return true;
     }
 

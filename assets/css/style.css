@@ -42,7 +42,27 @@
     --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Base Styles */
+/* Base Styles & Global Smooth Scrolling */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+html.lenis, html.lenis body {
+    height: auto;
+}
+.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+    pointer-events: none;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--text-color);
@@ -50,7 +70,7 @@ body {
     background-image: 
         radial-gradient(at 0% 0%, rgba(52, 211, 153, 0.08) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
-    background-attachment: fixed;
+    background-attachment: scroll;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
@@ -796,6 +816,38 @@ input[type="password"]::-ms-clear {
 .btn-outline-secondary:focus i,
 .btn-outline-secondary:active i {
     color: #ffffff !important;
+}
+
+/* ==========================================================
+   PASSWORD TOGGLE & VALIDATION ICON OVERLAP FIX (BUG-FIX)
+   ========================================================== */
+.form-floating:has(.password-toggle) .form-control,
+.position-relative:has(.password-toggle) .form-control,
+.form-control.has-password-toggle {
+    padding-right: 4.5rem !important;
+}
+
+/* Tránh icon dấu tích xanh (is-valid) của Bootstrap bị đè lên icon con mắt */
+.form-floating:has(.password-toggle) .form-control.is-valid,
+.position-relative:has(.password-toggle) .form-control.is-valid,
+input[type="password"].is-valid {
+    background-image: none !important;
+}
+
+/* Nếu có lỗi (is-invalid), dịch icon dấu chấm than đỏ sang trái để không che nút mắt */
+.form-floating:has(.password-toggle) .form-control.is-invalid,
+.position-relative:has(.password-toggle) .form-control.is-invalid,
+input[type="password"].is-invalid {
+    background-position: right 2.65rem center !important;
+}
+
+.password-toggle {
+    z-index: 5 !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 
