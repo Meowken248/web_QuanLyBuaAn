@@ -264,6 +264,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                             <li><a class="dropdown-item py-2 <?php echo ($current_file === 'personal-notes.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/personal-notes.php"><i class="bi bi-journal-text me-2"></i>Nhật ký cá nhân</a></li>
                             <li><a class="dropdown-item py-2 <?php echo (in_array($current_file, ['meal-plans.php', 'meal-plan-view.php']) && $is_user_area) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/user/meal-plans.php"><i class="bi bi-book-half me-2"></i>Thực đơn Gợi ý</a></li>
                             <li><a class="dropdown-item py-2 <?php echo ($current_file === 'my-smart-menu.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/my-smart-menu.php"><i class="bi bi-stars me-2"></i>Thực đơn Của tôi</a></li>
+                            <li><a class="dropdown-item py-2 <?php echo ($current_file === 'mystery-box.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>/mystery-box.php"><i class="bi bi-gift me-2 text-success"></i>Mở Hộp Dinh Dưỡng</a></li>
 
                             <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                                 <li><hr class="dropdown-divider"></li>
@@ -294,6 +295,9 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
                 </li>
                 <li class="nav-item">
                     <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'smart-menu.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/smart-menu.php">Thực đơn Thông minh <span class="badge bg-danger rounded-pill" style="font-size: 0.65em; vertical-align: top;">AI</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'mystery-box.php') ? 'active text-success' : ''; ?>" href="<?php echo BASE_URL; ?>/mystery-box.php">Ăn Gì Hôm Nay <span class="badge bg-warning text-dark rounded-pill fw-bold" style="font-size: 0.65em; vertical-align: top;">HOT</span></a>
                 </li>
 
             </ul>

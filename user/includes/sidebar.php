@@ -5,6 +5,7 @@ $sidebar_active = match ($sidebar_page) {
     'profile.php' => 'profile',
     'meals.php', 'add-meal.php' => 'meals',
     'weight-logs.php' => 'weight',
+    'mystery-box.php' => 'mystery_box',
     'chatbot.php', 'chat-history.php' => 'chatbot',
     // 'support-chat.php' => 'support',
     default => '',
@@ -15,6 +16,7 @@ $sidebar_items = [
     ['key' => 'profile', 'url' => '/user/profile.php', 'icon' => 'bi-person-circle', 'label' => 'Hồ sơ sức khỏe'],
     ['key' => 'meals', 'url' => '/user/meals.php', 'icon' => 'bi-journal-text', 'label' => 'Nhật ký bữa ăn'],
     ['key' => 'weight', 'url' => '/user/weight-logs.php', 'icon' => 'bi-graph-up', 'label' => 'Cân nặng'],
+    ['key' => 'mystery_box', 'url' => '/mystery-box.php', 'icon' => 'bi-gift', 'label' => 'Ăn gì hôm nay'],
     ['key' => 'chatbot', 'url' => '/user/chatbot.php', 'icon' => 'bi-robot', 'label' => 'Trợ lý dinh dưỡng'],
     ['key' => 'support', 'url' => '#', 'icon' => 'bi-headset', 'label' => 'Hỗ trợ trực tuyến', 'onclick' => "document.getElementById('chatbot-window').classList.remove('d-none'); document.getElementById('admin-tab').click(); return false;"],
 ];
