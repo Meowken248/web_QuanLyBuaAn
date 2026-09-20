@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (headerMarkAllBtn) {
         headerMarkAllBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            var basePath = window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '';
+            var basePath = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL : (window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '');
             fetch(basePath + '/api/mark_notification_read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var lastKnownContactId = null;
 
     function pollUnreadCounts() {
-        var basePath = window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '';
+        var basePath = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL : (window.location.pathname.indexOf('/web_QuanLyBuaAn') !== -1 ? '/web_QuanLyBuaAn' : '');
         var apiUrl = basePath + '/api/check_unread_support.php';
 
         fetch(apiUrl)

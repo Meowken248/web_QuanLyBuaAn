@@ -8,7 +8,7 @@
         <div class="row">
             <div class="col-lg-4 mb-4">
                 <a href="<?php echo BASE_URL; ?>" class="d-inline-block mb-3" aria-label="<?php echo htmlspecialchars(APP_NAME); ?>">
-                    <img src="<?php echo BASE_URL; ?>/img/logo_cty.png" alt="<?php echo htmlspecialchars(APP_NAME); ?>" class="company-logo company-logo-footer">
+                    <img src="<?php echo BASE_URL; ?>/img/logo_cty.png" alt="<?php echo htmlspecialchars(APP_NAME); ?>" class="company-logo company-logo-footer" style="max-height: 72px; max-width: 240px; width: auto; object-fit: contain;">
                 </a>
                 <p class="text-muted">Hệ thống quản lý bữa ăn, theo dõi dinh dưỡng và chăm sóc sức khỏe cá nhân thông minh với trợ lý AI.</p>
                 <div class="mt-4">

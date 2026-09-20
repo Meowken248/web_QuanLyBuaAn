@@ -24,6 +24,11 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
     
     <!-- AOS CSS -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!-- Global Base URL for Frontend Scripts -->
+    <script>
+        window.BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+    </script>
     
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
@@ -34,7 +39,7 @@ $is_user_area = isset($_SESSION['user_id']) && str_contains($request_path, '/use
 <nav class="navbar navbar-expand-lg navbar-light glass-navbar shadow-soft sticky-top">
     <div class="container">
         <a class="navbar-brand company-brand" href="<?php echo BASE_URL; ?>" aria-label="<?php echo htmlspecialchars(APP_NAME); ?>">
-            <img src="<?php echo BASE_URL; ?>/img/logo_cty.png" alt="<?php echo htmlspecialchars(APP_NAME); ?>" class="company-logo company-logo-navbar">
+            <img src="<?php echo BASE_URL; ?>/img/logo_cty.png" alt="<?php echo htmlspecialchars(APP_NAME); ?>" class="company-logo company-logo-navbar" style="max-height: 48px; max-width: 190px; width: auto; object-fit: contain;">
         </a>
         <div class="d-flex align-items-center ms-auto order-lg-last">
                 <?php if (isset($_SESSION['user_id'])): ?>

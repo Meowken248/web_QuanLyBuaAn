@@ -2,7 +2,7 @@
 // config/gemini.php
 
 // Mặc định tĩnh ban đầu
-$defaultApiKey = 'AQ.Ab8RN6L9iLO9a4ng0YDmcRVGWKOimet4wk0uYlgHk4W4fdRbzw';
+$defaultApiKey = '';
 $defaultModel = 'gemini-3.1-flash-lite';
 
 // Tự động kiểm tra trong CSDL (system_settings) để ưu tiên key mới nhất admin đã cấu hình trong trang quản trị
