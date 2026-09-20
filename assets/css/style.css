@@ -310,34 +310,42 @@ h1, h2, h3, h4, h5, h6 {
 
 .user-sidebar-nav {
     overflow: hidden;
-    border: 1px solid #dce5e0;
-    border-radius: var(--radius-sm);
-    box-shadow: 0 8px 22px rgba(23, 72, 49, 0.08);
+    border: 1px solid rgba(220, 235, 225, 0.8);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(23, 72, 49, 0.05);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .user-sidebar-nav .list-group-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    min-height: 43px;
-    padding: 0.72rem 1rem;
-    border-color: #dce5e0;
+    gap: 0.75rem;
+    min-height: 46px;
+    padding: 0.8rem 1.15rem;
+    border-color: rgba(220, 235, 225, 0.6);
     color: var(--text-color);
     font-weight: 500;
-    background: #ffffff;
-    transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+    background: transparent;
+    transition: all 0.2s ease;
 }
 
 .user-sidebar-nav .list-group-item i {
-    width: 1.1rem;
-    color: #172554;
-    font-size: 1rem;
+    width: 1.25rem;
+    color: #2e7d32;
+    font-size: 1.05rem;
     text-align: center;
+    transition: transform 0.2s ease;
 }
 
 .user-sidebar-nav .list-group-item:hover {
-    color: var(--primary-dark);
-    background: var(--primary-bg);
+    color: #1b5e20;
+    background: rgba(232, 245, 233, 0.6);
+}
+
+.user-sidebar-nav .list-group-item:hover i {
+    transform: scale(1.15);
 }
 
 .user-sidebar-nav .list-group-item:active {
@@ -348,8 +356,9 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 1;
     color: #ffffff;
     font-weight: 600;
-    background: #1f8f5f;
-    border-color: #1f8f5f;
+    background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+    border-color: #2e7d32;
+    box-shadow: 0 4px 14px rgba(46, 125, 50, 0.3);
 }
 
 .user-sidebar-nav .list-group-item.active i {
@@ -358,17 +367,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .user-sidebar-nav .list-group-item:focus-visible {
     z-index: 2;
-    outline: 3px solid rgba(52, 211, 153, 0.35);
+    outline: 3px solid rgba(46, 125, 50, 0.35);
     outline-offset: -3px;
 }
 
 .user-sidebar-support {
     margin-top: 1.5rem;
     padding: 1.35rem;
-    border: 1px solid #dce5e0;
-    border-radius: var(--radius-md);
-    background: #ffffff;
-    box-shadow: 0 12px 28px rgba(23, 72, 49, 0.07);
+    border: 1px solid rgba(220, 235, 225, 0.8);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 25px rgba(23, 72, 49, 0.05);
 }
 
 .user-sidebar-support .btn {
