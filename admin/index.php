@@ -18,9 +18,6 @@ $stats = [
 $recent_users = $conn->query("SELECT id, full_name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
 $page_title = 'Admin Dashboard';
-// Hide public footer
-$hide_footer = true;
-// We'll use the public header, but might want to build a custom admin layout eventually
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -177,11 +174,14 @@ require_once __DIR__ . '/../includes/header.php';
                             </thead>
                             <tbody>
                                 <?php foreach ($recent_users as $u): ?>
+                                <?php 
+                                    $is_this_root = (defined('ROOT_ADMIN_EMAIL') && strtolower(trim($u['email'])) === strtolower(trim(ROOT_ADMIN_EMAIL)));
+                                ?>
                                 <tr>
                                     <td class="ps-4 fw-bold text-secondary">#<?php echo $u['id']; ?></td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center fw-bold me-2" style="width: 34px; height: 34px; font-size: 0.85rem;">
+                                            <div class="rounded-circle <?php echo $is_this_root ? 'bg-dark text-warning border border-warning' : ($u['role'] === 'admin' ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'); ?> d-flex align-items-center justify-content-center fw-bold me-2" style="width: 34px; height: 34px; font-size: 0.85rem;">
                                                 <?php echo mb_strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8'), 'UTF-8'); ?>
                                             </div>
                                             <span class="fw-semibold text-dark"><?php echo htmlspecialchars($u['full_name']); ?></span>
@@ -189,10 +189,12 @@ require_once __DIR__ . '/../includes/header.php';
                                     </td>
                                     <td class="text-secondary"><?php echo htmlspecialchars($u['email']); ?></td>
                                     <td>
-                                        <?php if ($u['role'] === 'admin'): ?>
-                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-pill px-3 py-1">Admin</span>
+                                        <?php if ($is_this_root): ?>
+                                            <span class="badge bg-dark border border-warning text-warning rounded-pill px-3 py-1"><i class="bi bi-shield-shaded me-1"></i>Root Admin</span>
+                                        <?php elseif ($u['role'] === 'admin'): ?>
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-pill px-3 py-1"><i class="bi bi-shield-lock me-1"></i>Admin</span>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle rounded-pill px-3 py-1">User</span>
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle rounded-pill px-3 py-1"><i class="bi bi-person me-1"></i>User</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('d/m/Y H:i', strtotime($u['created_at'])); ?></td>

@@ -53,7 +53,7 @@ $cal_percent = $cal_target > 0 ? ($cal_used / $cal_target) * 100 : 0;
 if ($cal_percent > 100) $cal_percent = 100;
 ?>
 
-<div class="container py-5">
+<div class="container py-3 py-md-4">
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm border-0 mb-4">

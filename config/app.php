@@ -6,8 +6,16 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Define Base URL - Tự động nhận diện linh hoạt theo mọi máy, mọi tên thư mục (WAMP, XAMPP, vhost...)
-if (!defined('BASE_URL')) {
+// ==============================================================================
+// CẤU HÌNH ĐƯỜNG DẪN (BASE_URL)
+// 1. Để trống '' : Hệ thống TỰ ĐỘNG nhận diện (chạy trên mọi máy localhost / WAMP / XAMPP)
+// 2. Điền link vào đây: Nếu bạn muốn ép buộc cố định tên miền (vd: 'https://meal.plt.pro.vn')
+// ==============================================================================
+$manualBaseUrl = ''; // <-- BẠN ĐỔI ĐƯỜNG DẪN Ở ĐÂY NẾU MUỐN ÉP LINK CỐ ĐỊNH!
+
+if (!empty($manualBaseUrl)) {
+    define('BASE_URL', rtrim($manualBaseUrl, '/'));
+} elseif (!defined('BASE_URL')) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 

@@ -25,7 +25,7 @@ if (isset($conn)) {
 </div>
 
 <!-- Sidebar / Offcanvas -->
-<div class="offcanvas-md offcanvas-start sticky-md-top" style="top: 85px; z-index: 1000;" tabindex="-1" id="adminSidebar" aria-labelledby="adminSidebarLabel">
+<div class="offcanvas-md offcanvas-start sticky-md-top admin-sidebar-offcanvas" tabindex="-1" id="adminSidebar" aria-labelledby="adminSidebarLabel">
     <div class="offcanvas-header border-bottom">
         <h5 class="offcanvas-title fw-bold" id="adminSidebarLabel">Menu Quản trị</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar" aria-label="Close"></button>

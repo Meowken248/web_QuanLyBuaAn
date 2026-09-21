@@ -27,7 +27,6 @@ $stmt = $conn->prepare("SELECT name FROM food_categories WHERE id = :id");
 $stmt->execute([':id' => $food['category_id']]);
 $category = $stmt->fetchColumn();
 
-$hide_footer = true;
 require __DIR__ . '/../includes/header.php';
 ?>
 

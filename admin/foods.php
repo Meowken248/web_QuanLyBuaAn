@@ -465,7 +465,6 @@ $foods = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $categories = $conn->query("SELECT id, name FROM food_categories WHERE status = 'active' ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
 $page_title = 'Quản lý Món ăn';
-$hide_footer = true;
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -782,146 +781,207 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<style>
+/* Custom scrollbar và hỗ trợ cuộn chuột mượt mà cho Food Form Modal */
+#foodFormModal .custom-modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #10b981 #f1f5f9;
+    overscroll-behavior: contain;
+}
+#foodFormModal .custom-modal-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+#foodFormModal .custom-modal-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+#foodFormModal .custom-modal-scroll::-webkit-scrollbar-thumb {
+    background: #10b981;
+    border-radius: 4px;
+}
+#foodFormModal .custom-modal-scroll::-webkit-scrollbar-thumb:hover {
+    background: #059669;
+}
+</style>
+
 <!-- Modal Thêm / Sửa Món Ăn (In-Page CRUD) -->
-<div class="modal fade" id="foodFormModal" tabindex="-1" aria-labelledby="foodFormModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <form method="POST" enctype="multipart/form-data" id="foodForm">
-                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
-                <input type="hidden" name="action" value="save_food">
-                <input type="hidden" name="food_id" id="food_modal_id" value="0">
+<div class="modal fade" id="foodFormModal" tabindex="-1" aria-labelledby="foodFormModalLabel" aria-hidden="true" data-lenis-prevent>
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-height: 92vh; margin-top: auto; margin-bottom: auto;">
+        <form method="POST" enctype="multipart/form-data" id="foodForm" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="max-height: 92vh; display: flex; flex-direction: column;">
+            <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+            <input type="hidden" name="action" value="save_food">
+            <input type="hidden" name="food_id" id="food_modal_id" value="0">
 
-                <div class="modal-header border-0 pb-0 bg-health text-white p-4">
-                    <h5 class="modal-title fw-bold" id="foodFormModalLabel">
-                        <i class="bi bi-egg-fried me-2"></i><span id="food_modal_title">Thêm Món Ăn Mới</span>
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <!-- Modal Header (Pinned at top) -->
+            <div class="modal-header border-0 bg-health text-white px-4 py-3 d-flex align-items-center justify-content-between shadow-sm flex-shrink-0" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-25 rounded-circle shadow-sm" style="width: 38px; height: 38px;">
+                        <i class="bi bi-egg-fried fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="foodFormModalLabel">
+                            <span id="food_modal_title">Thêm Món Ăn Mới</span>
+                        </h5>
+                        <small class="text-white text-opacity-75" style="font-size: 12px;">Quản lý và cập nhật thông tin món ăn trong hệ thống</small>
+                    </div>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold">Tên món ăn <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control rounded-3" id="food_modal_name" name="name" required placeholder="Ví dụ: Phở bò Hà Nội, Cơm gà xối mỡ..." maxlength="200" autocomplete="off">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Danh mục <span class="text-danger">*</span></label>
-                            <select class="form-select rounded-3" id="food_modal_category" name="category_id" required>
-                                <option value="">-- Chọn danh mục --</option>
-                                <?php foreach ($categories as $cat): ?>
-                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Mô tả ngắn</label>
-                            <textarea class="form-control rounded-3" id="food_modal_desc" name="description" rows="2" placeholder="Hương vị, xuất xứ, điểm nổi bật của món ăn..."></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Nguyên liệu</label>
-                            <textarea class="form-control rounded-3" id="food_modal_ingredients" name="ingredients" rows="3" placeholder="Ví dụ: Thịt bò, bánh phở, hành lá, quế, hồi..."></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Cách làm / Chế biến</label>
-                            <textarea class="form-control rounded-3" id="food_modal_instructions" name="instructions" rows="3" placeholder="Các bước sơ chế, nấu nướng và trình bày..."></textarea>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Khẩu phần <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0.01" class="form-control rounded-3" id="food_modal_serving_size" name="serving_size" required placeholder="100">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Đơn vị tính <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control rounded-3" id="food_modal_serving_unit" name="serving_unit" required placeholder="gram, đĩa, bát, tô, chén..." maxlength="50">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Trạng thái</label>
-                            <select class="form-select rounded-3" id="food_modal_status" name="status">
-                                <option value="active">Hoạt động (Hiển thị)</option>
-                                <option value="inactive">Đã ẩn (Tạm dừng)</option>
-                            </select>
-                        </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
 
-                        <!-- Mùa / Thời tiết phù hợp -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold d-flex justify-content-between align-items-center mb-1">
-                                <span><i class="bi bi-cloud-sun me-1 text-success"></i> Mùa / Thời tiết phù hợp <span class="text-muted fw-normal small">(Dùng cho Gợi ý Thực đơn Thông minh AI theo mùa)</span></span>
-                                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-success fw-bold" onclick="toggleAllSeasons()">
-                                    <i class="bi bi-check2-all me-1"></i>Chọn cả 4 mùa (Quanh năm)
-                                </button>
-                            </label>
-                            <div class="p-3 bg-light rounded-3 border d-flex flex-wrap gap-4 align-items-center">
-                                <div class="form-check form-check-inline m-0">
-                                    <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_xuan" value="xuan">
-                                    <label class="form-check-label fw-semibold" for="season_xuan">🌸 Mùa Xuân (Ấm áp)</label>
-                                </div>
-                                <div class="form-check form-check-inline m-0">
-                                    <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_he" value="he">
-                                    <label class="form-check-label fw-semibold" for="season_he">☀️ Mùa Hè (Thanh nhiệt)</label>
-                                </div>
-                                <div class="form-check form-check-inline m-0">
-                                    <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_thu" value="thu">
-                                    <label class="form-check-label fw-semibold" for="season_thu">🍂 Mùa Thu (Mát mẻ)</label>
-                                </div>
-                                <div class="form-check form-check-inline m-0">
-                                    <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_dong" value="dong">
-                                    <label class="form-check-label fw-semibold" for="season_dong">❄️ Mùa Đông (Ấm bụng)</label>
-                                </div>
+            <!-- Modal Body (Scrollable) -->
+            <div class="modal-body p-4 custom-modal-scroll" id="foodModalBody" data-lenis-prevent style="flex: 1 1 auto; min-height: 0; max-height: calc(92vh - 135px); overflow-y: auto !important; -webkit-overflow-scrolling: touch;">
+                <div class="row g-3">
+                    <!-- Thông tin cơ bản -->
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Tên món ăn <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="food_modal_name" name="name" required placeholder="Ví dụ: Phở bò Hà Nội, Cơm gà xối mỡ..." maxlength="200" autocomplete="off">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Danh mục <span class="text-danger">*</span></label>
+                        <select class="form-select rounded-3" id="food_modal_category" name="category_id" required>
+                            <option value="">-- Chọn danh mục --</option>
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Mô tả ngắn</label>
+                        <textarea class="form-control rounded-3" id="food_modal_desc" name="description" rows="2" placeholder="Hương vị, xuất xứ, điểm nổi bật của món ăn..."></textarea>
+                    </div>
+
+                    <!-- Nguyên liệu & Cách làm -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Nguyên liệu</label>
+                        <textarea class="form-control rounded-3" id="food_modal_ingredients" name="ingredients" rows="3" placeholder="Ví dụ: Thịt bò, bánh phở, hành lá, quế, hồi..."></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Cách làm / Chế biến</label>
+                        <textarea class="form-control rounded-3" id="food_modal_instructions" name="instructions" rows="3" placeholder="Các bước sơ chế, nấu nướng và trình bày..."></textarea>
+                    </div>
+                    
+                    <!-- Khẩu phần, đơn vị, trạng thái -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Khẩu phần <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0.01" class="form-control rounded-3" id="food_modal_serving_size" name="serving_size" required placeholder="100">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Đơn vị tính <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="food_modal_serving_unit" name="serving_unit" required placeholder="gram, đĩa, bát, tô, chén..." maxlength="50">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Trạng thái</label>
+                        <select class="form-select rounded-3" id="food_modal_status" name="status">
+                            <option value="active">Hoạt động (Hiển thị)</option>
+                            <option value="inactive">Đã ẩn (Tạm dừng)</option>
+                        </select>
+                    </div>
+
+                    <!-- Mùa / Thời tiết phù hợp -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold d-flex justify-content-between align-items-center mb-1">
+                            <span><i class="bi bi-cloud-sun me-1 text-success"></i> Mùa / Thời tiết phù hợp <span class="text-muted fw-normal small">(Dùng cho Gợi ý Thực đơn Thông minh AI)</span></span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-success fw-bold" onclick="toggleAllSeasons()">
+                                <i class="bi bi-check2-all me-1"></i>Chọn cả 4 mùa (Quanh năm)
+                            </button>
+                        </label>
+                        <div class="p-3 bg-light rounded-3 border d-flex flex-wrap gap-4 align-items-center">
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_xuan" value="xuan">
+                                <label class="form-check-label fw-semibold" for="season_xuan">🌸 Mùa Xuân (Ấm áp)</label>
                             </div>
-                            <div class="form-text small text-muted">Nếu chọn cả 4 mùa hoặc để trống, món ăn sẽ tự động được xếp vào thực đơn quanh năm.</div>
-                        </div>
-
-                        <!-- Các chỉ số dinh dưỡng -->
-                        <div class="col-12 mt-4">
-                            <h6 class="fw-bold text-success border-bottom pb-2 mb-3">
-                                <i class="bi bi-heart-pulse me-2"></i>Thành phần dinh dưỡng (trên 1 khẩu phần)
-                            </h6>
-                            <div class="row g-2 text-center">
-                                <div class="col-6 col-md">
-                                    <label class="form-label small fw-bold text-danger">Calories (kcal)</label>
-                                    <input type="number" step="0.01" min="0" class="form-control text-center fw-bold bg-light text-danger rounded-3" id="food_modal_calories" name="calories" placeholder="0.00" readonly title="Tự động tính từ Protein, Carbs, Fat">
-                                    <div class="form-text" style="font-size: 11px;">Tự động tính</div>
-                                </div>
-                                <div class="col-6 col-md">
-                                    <label class="form-label small fw-bold text-primary">Protein (g) <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" min="0" class="form-control text-center rounded-3 food-macro-input" id="food_modal_protein" name="protein" required placeholder="0.00">
-                                    <div class="form-text" style="font-size: 11px;">× 4 kcal</div>
-                                </div>
-                                <div class="col-6 col-md">
-                                    <label class="form-label small fw-bold text-warning">Carbs (g) <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" min="0" class="form-control text-center rounded-3 food-macro-input" id="food_modal_carbs" name="carbs" required placeholder="0.00">
-                                    <div class="form-text" style="font-size: 11px;">× 4 kcal</div>
-                                </div>
-                                <div class="col-6 col-md">
-                                    <label class="form-label small fw-bold text-info">Fat (g) <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" min="0" class="form-control text-center rounded-3 food-macro-input" id="food_modal_fat" name="fat" required placeholder="0.00">
-                                    <div class="form-text" style="font-size: 11px;">× 9 kcal</div>
-                                </div>
-                                <div class="col-6 col-md">
-                                    <label class="form-label small fw-bold text-success">Chất xơ (g)</label>
-                                    <input type="number" step="0.01" min="0" class="form-control text-center rounded-3" id="food_modal_fiber" name="fiber" placeholder="0.00">
-                                    <div class="form-text" style="font-size: 11px;">Chất xơ</div>
-                                </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_he" value="he">
+                                <label class="form-check-label fw-semibold" for="season_he">☀️ Mùa Hè (Thanh nhiệt)</label>
+                            </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_thu" value="thu">
+                                <label class="form-check-label fw-semibold" for="season_thu">🍂 Mùa Thu (Mát mẻ)</label>
+                            </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input season-checkbox" type="checkbox" name="season[]" id="season_dong" value="dong">
+                                <label class="form-check-label fw-semibold" for="season_dong">❄️ Mùa Đông (Ấm bụng)</label>
                             </div>
                         </div>
+                        <div class="form-text small text-muted">Nếu chọn cả 4 mùa hoặc để trống, món ăn sẽ tự động được xếp vào thực đơn quanh năm.</div>
+                    </div>
 
-                        <div class="col-12 mt-3">
-                            <label class="form-label fw-bold">Hình ảnh minh họa</label>
-                            <input type="file" class="form-control rounded-3" id="food_modal_image" name="image" accept="image/jpeg,image/png,image/webp,image/gif">
-                            <div id="food_current_img_wrapper" class="mt-2 d-none d-flex align-items-center gap-2">
-                                <img id="food_current_img" src="" alt="Thumbnail" class="rounded border shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
-                                <span class="text-muted small">Ảnh hiện tại (để trống nếu không muốn đổi ảnh)</span>
+                    <!-- Các chỉ số dinh dưỡng -->
+                    <div class="col-12 mt-2">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-2">
+                            <i class="bi bi-heart-pulse text-danger me-1"></i>Thành phần dinh dưỡng (trên 1 khẩu phần)
+                        </label>
+                        <div class="row g-2 text-center">
+                            <div class="col-6 col-md">
+                                <div class="p-2 rounded-3 border text-center h-100" style="background: #fef2f2; border-color: #fecaca !important;">
+                                    <label class="form-label small fw-bold text-danger mb-1">Calories (kcal)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control text-center fw-bold bg-white text-danger rounded-3" id="food_modal_calories" name="calories" placeholder="0.00" readonly title="Tự động tính từ Protein, Carbs, Fat">
+                                    <div class="text-muted mt-1" style="font-size: 11px;">Tự động tính</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md">
+                                <div class="p-2 rounded-3 border text-center h-100" style="background: #eff6ff; border-color: #bfdbfe !important;">
+                                    <label class="form-label small fw-bold text-primary mb-1">Protein (g) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.01" min="0" class="form-control text-center bg-white rounded-3 food-macro-input" id="food_modal_protein" name="protein" required placeholder="0.00">
+                                    <div class="text-muted mt-1" style="font-size: 11px;">× 4 kcal</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md">
+                                <div class="p-2 rounded-3 border text-center h-100" style="background: #fffbeb; border-color: #fde68a !important;">
+                                    <label class="form-label small fw-bold text-warning-emphasis mb-1">Carbs (g) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.01" min="0" class="form-control text-center bg-white rounded-3 food-macro-input" id="food_modal_carbs" name="carbs" required placeholder="0.00">
+                                    <div class="text-muted mt-1" style="font-size: 11px;">× 4 kcal</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md">
+                                <div class="p-2 rounded-3 border text-center h-100" style="background: #ecfeff; border-color: #a5f3fc !important;">
+                                    <label class="form-label small fw-bold text-info-emphasis mb-1">Fat (g) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.01" min="0" class="form-control text-center bg-white rounded-3 food-macro-input" id="food_modal_fat" name="fat" required placeholder="0.00">
+                                    <div class="text-muted mt-1" style="font-size: 11px;">× 9 kcal</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md">
+                                <div class="p-2 rounded-3 border text-center h-100" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
+                                    <label class="form-label small fw-bold text-success mb-1">Chất xơ (g)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control text-center bg-white rounded-3" id="food_modal_fiber" name="fiber" placeholder="0.00">
+                                    <div class="text-muted mt-1" style="font-size: 11px;">Chất xơ</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hình ảnh minh họa -->
+                    <div class="col-12 mt-2">
+                        <label class="form-label fw-bold small text-secondary text-uppercase mb-1">Hình ảnh minh họa</label>
+                        <div class="d-flex flex-column flex-sm-row gap-3 align-items-start align-items-sm-center p-3 bg-light rounded-3 border">
+                            <div class="flex-grow-1 w-100">
+                                <input type="file" class="form-control rounded-3" id="food_modal_image" name="image" accept="image/jpeg,image/png,image/webp,image/gif">
+                                <div class="form-text small text-muted mb-0">Hỗ trợ JPG, PNG, WEBP, GIF (tối đa 5MB). Để trống nếu không muốn đổi ảnh hiện tại.</div>
+                            </div>
+                            <div id="food_current_img_wrapper" class="d-none d-flex align-items-center gap-2 flex-shrink-0 bg-white p-2 rounded-3 border shadow-sm">
+                                <img id="food_current_img" src="" alt="Thumbnail" class="rounded" style="width: 52px; height: 52px; object-fit: cover;">
+                                <span class="text-muted small pe-1">Xem trước</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+            </div>
+
+            <!-- Modal Footer (Pinned at bottom) -->
+            <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle text-success me-1"></i>Các mục có dấu <span class="text-danger fw-bold">*</span> là bắt buộc
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        Hủy
+                    </button>
                     <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" id="food_modal_submit_btn">
                         <i class="bi bi-check-circle me-1"></i>Lưu Món Ăn
                     </button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1038,6 +1098,44 @@ function toggleAllSeasons() {
     const allChecked = Array.from(seasonCheckboxes).every(cb => cb.checked);
     seasonCheckboxes.forEach(cb => { cb.checked = !allChecked; });
 }
+
+// Xem trước ảnh ngay khi chọn tệp mới
+document.getElementById('food_modal_image')?.addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('food_current_img');
+            const wrapper = document.getElementById('food_current_img_wrapper');
+            if (preview && wrapper) {
+                preview.src = e.target.result;
+                wrapper.classList.remove('d-none');
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Đảm bảo cuộn chuột luôn hoạt động mượt mà trong Food Form Modal
+(function() {
+    const foodModalEl = document.getElementById('foodFormModal');
+    const foodModalBody = document.getElementById('foodModalBody');
+
+    if (foodModalEl && foodModalBody) {
+        // Chuyển mọi sự kiện lăn chuột trên modal (kể cả khi chuột ở trên header/footer) vào modal-body
+        foodModalEl.addEventListener('wheel', function(e) {
+            if (e.target !== foodModalBody && !foodModalBody.contains(e.target)) {
+                foodModalBody.scrollTop += e.deltaY;
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Ngăn chặn Lenis hoặc các thư viện khác nuốt sự kiện wheel trong modal body
+        foodModalBody.addEventListener('wheel', function(e) {
+            e.stopPropagation();
+        }, { passive: true });
+    }
+})();
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

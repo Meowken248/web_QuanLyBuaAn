@@ -322,14 +322,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 /* Shared user navigation */
 .user-global-sidebar {
-    width: 288px;
-    position: sticky;
-    top: 90px;
-    z-index: 10;
+    position: static;
 }
 
 .user-sidebar-nav {
-    overflow: hidden;
     border: 1px solid rgba(220, 235, 225, 0.8);
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(23, 72, 49, 0.05);
@@ -410,6 +406,7 @@ h1, h2, h3, h4, h5, h6 {
     .user-global-sidebar {
         position: sticky !important;
         top: 90px !important;
+        width: 288px !important;
         height: max-content;
         max-height: calc(100vh - 114px);
         overflow-y: auto;
@@ -418,6 +415,10 @@ h1, h2, h3, h4, h5, h6 {
         align-self: flex-start;
         margin-left: 24px;
         z-index: 10;
+    }
+
+    .user-sidebar-nav {
+        overflow: hidden;
     }
 
     body.user-area > main > .container,
@@ -432,38 +433,86 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 991.98px) {
     .user-global-sidebar {
-        width: auto;
-        margin: 1rem 1rem 0;
+        position: static !important;
+        top: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0.5rem 0 1rem 0 !important;
+        padding: 0 12px !important;
+        z-index: 1 !important;
     }
     .user-sidebar-nav {
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        white-space: nowrap;
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-        border-radius: 12px;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        white-space: nowrap !important;
+        scrollbar-width: none !important;
+        border-radius: 16px !important;
+        padding: 8px !important;
+        gap: 8px !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(220, 235, 225, 0.9) !important;
+        box-shadow: 0 3px 12px rgba(23, 72, 49, 0.05) !important;
     }
     .user-sidebar-nav::-webkit-scrollbar {
-        display: none; /* Chrome, Safari and Opera */
+        display: none !important;
     }
     .user-sidebar-nav .list-group-item {
-        border-right: 1px solid #dce5e0;
-        border-bottom: none;
-        border-radius: 0;
-        flex: 0 0 auto;
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: max-content !important;
+        min-height: auto !important;
+        padding: 0.5rem 0.95rem !important;
+        font-size: 0.86rem !important;
+        font-weight: 500 !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(220, 235, 225, 0.6) !important;
+        background: #f8faf9 !important;
+        color: var(--text-color) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.45rem !important;
+        white-space: nowrap !important;
+        box-shadow: none !important;
     }
-    .user-sidebar-nav .list-group-item:first-child {
-        border-top-left-radius: 12px;
-        border-bottom-left-radius: 12px;
+    .user-sidebar-nav .list-group-item i {
+        font-size: 0.95rem !important;
+        width: auto !important;
     }
-    .user-sidebar-nav .list-group-item:last-child {
-        border-right: none;
-        border-top-right-radius: 12px;
-        border-bottom-right-radius: 12px;
+    .user-sidebar-nav .list-group-item.active {
+        background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border-color: #2e7d32 !important;
+        box-shadow: 0 2px 8px rgba(46, 125, 50, 0.28) !important;
+    }
+    .user-sidebar-nav .list-group-item.active i {
+        color: #ffffff !important;
     }
     .user-sidebar-support {
-        display: none;
+        display: none !important;
+    }
+}
+
+/* Admin Offcanvas Mobile Clickable & Visibility Fix */
+@media (max-width: 767.98px) {
+    .admin-sidebar-offcanvas {
+        top: 0 !important;
+        z-index: 1055 !important;
+        background-color: #ffffff !important;
+    }
+    .admin-sidebar-offcanvas .offcanvas-body {
+        padding: 1rem !important;
+        overflow-y: auto !important;
+    }
+}
+@media (min-width: 768px) {
+    .admin-sidebar-offcanvas {
+        top: 85px !important;
+        z-index: 1000 !important;
     }
 }
 
@@ -497,6 +546,20 @@ h1, h2, h3, h4, h5, h6 {
     #chatbot-toggle-btn {
         width: 55px !important;
         height: 55px !important;
+    }
+    .floating-back-btn {
+        bottom: 15px !important;
+        left: 12px !important;
+    }
+    .floating-back-btn button {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    .floating-back-btn button i {
+        font-size: 1rem !important;
+    }
+    footer {
+        padding-bottom: 3.5rem !important;
     }
 }
 
@@ -821,23 +884,23 @@ input[type="password"]::-ms-clear {
 /* ==========================================================
    PASSWORD TOGGLE & VALIDATION ICON OVERLAP FIX (BUG-FIX)
    ========================================================== */
-.form-floating:has(.password-toggle) .form-control,
-.position-relative:has(.password-toggle) .form-control,
-.form-control.has-password-toggle {
+.form-floating:has(.password-toggle.is-visible) .form-control,
+.position-relative:has(.password-toggle.is-visible) .form-control,
+.form-control.has-visible-toggle {
     padding-right: 4.5rem !important;
 }
 
 /* Tránh icon dấu tích xanh (is-valid) của Bootstrap bị đè lên icon con mắt */
-.form-floating:has(.password-toggle) .form-control.is-valid,
-.position-relative:has(.password-toggle) .form-control.is-valid,
-input[type="password"].is-valid {
+.form-floating:has(.password-toggle.is-visible) .form-control.is-valid,
+.position-relative:has(.password-toggle.is-visible) .form-control.is-valid,
+.form-control.has-visible-toggle.is-valid {
     background-image: none !important;
 }
 
-/* Nếu có lỗi (is-invalid), dịch icon dấu chấm than đỏ sang trái để không che nút mắt */
-.form-floating:has(.password-toggle) .form-control.is-invalid,
-.position-relative:has(.password-toggle) .form-control.is-invalid,
-input[type="password"].is-invalid {
+/* Nếu có lỗi (is-invalid), dịch icon dấu chấm than đỏ sang trái chỉ khi con mắt đang hiển thị */
+.form-floating:has(.password-toggle.is-visible) .form-control.is-invalid,
+.position-relative:has(.password-toggle.is-visible) .form-control.is-invalid,
+.form-control.has-visible-toggle.is-invalid {
     background-position: right 2.65rem center !important;
 }
 
@@ -848,6 +911,7 @@ input[type="password"].is-invalid {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.2s ease;
 }
 
 

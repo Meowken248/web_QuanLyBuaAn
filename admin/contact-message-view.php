@@ -37,7 +37,6 @@ if ($msg['status'] === 'new') {
 }
 
 $page_title = 'Chi tiết Liên hệ';
-$hide_footer = true;
 require_once __DIR__ . '/../includes/header.php';
 ?>
 

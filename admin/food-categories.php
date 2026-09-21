@@ -242,7 +242,6 @@ $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $page_title = 'Quản lý Danh mục Món ăn';
-$hide_footer = true;
 require_once __DIR__ . '/../includes/header.php';
 ?>
 

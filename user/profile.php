@@ -104,17 +104,17 @@ $page_title = 'Hồ sơ cá nhân';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="container py-5">
+<div class="container py-3 py-md-5">
     <div class="row">
         <div class="col-12">
             <div class="card glass-panel border-0" data-aos="fade-up">
-                <div class="card-header bg-white bg-opacity-75 p-4 border-0 d-flex align-items-center rounded-top-4">
+                <div class="card-header bg-white bg-opacity-75 p-3 p-md-4 border-0 d-flex align-items-center rounded-top-4">
                     <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                         <i class="bi bi-person-gear fs-4"></i>
                     </div>
                     <h4 class="mb-0 fw-bold text-dark">Thiết lập Hồ sơ Sức khỏe</h4>
                 </div>
-                <div class="card-body p-4 p-lg-5">
+                <div class="card-body p-3 p-md-4 p-lg-5">
                     <?php display_flash_message(); ?>
 
                     <form method="POST" action="">
@@ -235,8 +235,8 @@ require_once __DIR__ . '/../includes/header.php';
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end" data-aos="fade-up" data-aos-delay="300">
-                            <button type="submit" class="btn btn-success btn-glow px-5 py-3 rounded-pill fw-bold text-uppercase shadow-sm">
+                        <div class="d-grid d-sm-flex justify-content-sm-end" data-aos="fade-up" data-aos-delay="300">
+                            <button type="submit" class="btn btn-success btn-glow px-4 px-sm-5 py-3 rounded-pill fw-bold text-uppercase shadow-sm w-100 w-sm-auto">
                                 <i class="bi bi-save me-2"></i>Lưu hồ sơ & Tính toán
                             </button>
                         </div>

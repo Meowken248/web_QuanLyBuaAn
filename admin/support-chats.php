@@ -41,7 +41,6 @@ if ($target_user_id) {
 }
 
 $page_title = 'Hỗ trợ trực tuyến';
-$hide_footer = true;
 require_once __DIR__ . '/../includes/header.php';
 
 // Fetch chats with their latest message

@@ -826,7 +826,7 @@ body {
                                     </span>
                                 </div>
                                 <div class="mt-auto d-flex gap-1">
-                                    <a href="<?php echo BASE_URL; ?>/food-detail.php?id=<?php echo $hist['food_id']; ?>" class="btn btn-sm btn-outline-success w-50 rounded-pill fw-semibold" target="_blank" title="Xem công thức">
+                                    <a href="<?php echo BASE_URL; ?>/food-detail.php?id=<?php echo $hist['food_id']; ?>" class="btn btn-sm btn-outline-success w-50 rounded-pill fw-semibold" title="Xem công thức">
                                         <i class="bi bi-book me-1"></i>Xem
                                     </a>
                                     <button type="button" class="btn btn-sm btn-success w-50 rounded-pill fw-semibold btn-quick-add" data-food-id="<?php echo $hist['food_id']; ?>" data-meal-type="<?php echo htmlspecialchars($hist['meal_type'] === 'snack' ? 'afternoon_snack' : $hist['meal_type']); ?>" title="Thêm vào nhật ký">
@@ -933,7 +933,7 @@ body {
                             <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm flex-grow-1" id="btnAddToLog">
                                 <i class="bi bi-journal-plus me-1"></i> Thêm vào nhật ký
                             </button>
-                            <a href="#" target="_blank" class="btn btn-outline-success rounded-pill px-3 py-2 fw-semibold" id="btnViewRecipe">
+                            <a href="#" class="btn btn-outline-success rounded-pill px-3 py-2 fw-semibold" id="btnViewRecipe">
                                 <i class="bi bi-book me-1"></i> Xem công thức
                             </a>
                             <button type="button" class="btn btn-light rounded-pill px-3 py-2 fw-semibold border" id="btnSpinAgain">
@@ -1181,7 +1181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-check-circle-fill text-success fs-5 flex-shrink-0"></i>
                             <span class="small fw-semibold text-dark">${data.message}</span>
                         </div>
-                        <a href="${data.log_url}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold text-white text-nowrap shadow-sm d-inline-flex align-items-center gap-1">
+                        <a href="${data.log_url}" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold text-white text-nowrap shadow-sm d-inline-flex align-items-center gap-1">
                             Xem ${data.meal_label || 'nhật ký'} <i class="bi bi-arrow-right-short fs-5"></i>
                         </a>
                     </div>
@@ -1238,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     targetBtn.title = 'Bấm để xem ' + (data.meal_label || 'nhật ký');
                     targetBtn.disabled = false;
                     targetBtn.onclick = function() {
-                        window.open(data.log_url, '_blank');
+                        window.location.href = data.log_url;
                     };
                 } else {
                     alert(data.message);
@@ -1288,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </span>
                 </div>
                 <div class="mt-auto d-flex gap-1">
-                    <a href="${item.detail_url}" class="btn btn-sm btn-outline-success w-50 rounded-pill fw-semibold" target="_blank" title="Xem công thức">
+                    <a href="${item.detail_url}" class="btn btn-sm btn-outline-success w-50 rounded-pill fw-semibold" title="Xem công thức">
                         <i class="bi bi-book me-1"></i>Xem
                     </a>
                     <button type="button" class="btn btn-sm btn-success w-50 rounded-pill fw-semibold btn-quick-add" data-food-id="${item.id}" data-meal-type="${mealType === 'snack' ? 'afternoon_snack' : mealType}" title="Thêm vào nhật ký">

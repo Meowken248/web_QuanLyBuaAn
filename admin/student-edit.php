@@ -100,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Sửa Thông Tin Sinh Viên';
-$hide_footer = true;
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <div class="container-fluid py-4">

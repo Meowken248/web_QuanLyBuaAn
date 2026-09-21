@@ -12,6 +12,47 @@ document.addEventListener('DOMContentLoaded', function() {
         var input = document.getElementById(button.getAttribute('data-password-toggle'));
         if (!input) return;
 
+        function updateToggleVisibility() {
+            var hasVal = input.value && input.value.length > 0;
+            if (hasVal) {
+                button.style.display = 'inline-flex';
+                button.classList.add('is-visible');
+                input.classList.add('has-visible-toggle');
+            } else {
+                button.style.display = 'none';
+                button.classList.remove('is-visible');
+                input.classList.remove('has-visible-toggle');
+                if (input.type === 'text') {
+                    input.type = 'password';
+                    var icon = button.querySelector('i');
+                    if (icon) {
+                        icon.classList.add('bi-eye');
+                        icon.classList.remove('bi-eye-slash');
+                    }
+                    button.setAttribute('aria-pressed', 'false');
+                    button.setAttribute('aria-label', 'Hiện mật khẩu');
+                }
+            }
+        }
+
+        // Initialize visibility
+        updateToggleVisibility();
+
+        // Check again for browser autofill delays
+        setTimeout(updateToggleVisibility, 50);
+        setTimeout(updateToggleVisibility, 200);
+        setTimeout(updateToggleVisibility, 600);
+
+        input.addEventListener('input', updateToggleVisibility);
+        input.addEventListener('change', updateToggleVisibility);
+        input.addEventListener('keyup', updateToggleVisibility);
+        input.addEventListener('paste', function() {
+            setTimeout(updateToggleVisibility, 10);
+        });
+        input.addEventListener('cut', function() {
+            setTimeout(updateToggleVisibility, 10);
+        });
+
         button.addEventListener('click', function () {
             var isVisible = input.type === 'text';
             input.type = isVisible ? 'password' : 'text';

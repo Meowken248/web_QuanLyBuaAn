@@ -98,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = $is_edit ? 'Sửa Danh mục' : 'Thêm Danh mục mới';
-$hide_footer = true;
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
