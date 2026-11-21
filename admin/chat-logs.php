@@ -8,8 +8,8 @@ $database = new Database();
 $conn = $database->getConnection();
 $csrf_token = generate_csrf_token();
 
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = 20;
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = 10;
 $offset = ($page - 1) * $limit;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
@@ -60,8 +60,11 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         
         <div class="col-md-9 col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <h2 class="fw-bold mb-0">Quản lý Lịch sử Chatbot AI</h2>
+                <a href="<?php echo BASE_URL; ?>/admin/ai-settings.php" class="btn btn-success rounded-pill px-3 fw-bold shadow-sm">
+                    <i class="bi bi-key-fill me-1"></i> Cấu hình API Key AI
+                </a>
             </div>
 
             <?php if (isset($_SESSION['success'])): ?>
@@ -78,13 +81,13 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card glass-card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-hover align-middle mb-0 text-nowrap">
+                            <thead style="background: rgba(243, 244, 246, 0.7);">
                                 <tr>
-                                    <th>ID</th>
+                                    <th class="ps-4">ID</th>
                                     <th>Người dùng</th>
                                     <th>Chủ đề cuộc trò chuyện</th>
                                     <th>Cập nhật lúc</th>
@@ -94,24 +97,24 @@ require_once __DIR__ . '/../includes/header.php';
                             <tbody>
                                 <?php foreach ($chats as $chat): ?>
                                 <tr>
-                                    <td>#<?php echo $chat['id']; ?></td>
+                                    <td class="ps-4">#<?php echo $chat['id']; ?></td>
                                     <td>
-                                        <div class="fw-bold"><?php echo htmlspecialchars($chat['full_name']); ?></div>
-                                        <div class="text-muted small"><?php echo htmlspecialchars($chat['email']); ?></div>
+                                        <strong><?php echo htmlspecialchars($chat['full_name']); ?></strong><br>
+                                        <small class="text-muted"><?php echo htmlspecialchars($chat['email']); ?></small>
                                     </td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px;" title="<?php echo htmlspecialchars($chat['title']); ?>">
+                                        <span class="d-inline-block text-truncate" style="max-width: 300px;">
                                             <?php echo htmlspecialchars($chat['title']); ?>
                                         </span>
                                     </td>
                                     <td><?php echo date('d/m/Y H:i', strtotime($chat['updated_at'])); ?></td>
                                     <td>
-                                        <button class="btn btn-sm btn-info text-white" onclick="viewChat(<?php echo $chat['id']; ?>)">Xem</button>
+                                        <button class="btn btn-sm btn-outline-info rounded-pill" onclick="viewChat(<?php echo $chat['id']; ?>)"><i class="bi bi-eye me-1"></i>Xem</button>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hội thoại này không?');">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo (int)$chat['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -150,12 +153,12 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Chi tiết cuộc trò chuyện</h5>
+            <div class="modal-header bg-health text-white">
+                <h5 class="modal-title"><i class="bi bi-chat-dots me-2"></i>Chi tiết cuộc trò chuyện</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body bg-light" id="chatContent">
-                <div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>
+                <div class="text-center"><div class="spinner-border text-success" role="status"></div></div>
             </div>
         </div>
     </div>

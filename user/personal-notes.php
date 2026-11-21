@@ -15,13 +15,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'save_note') {
-        $note_date = $_POST['note_date'];
+        $note_date = $_POST['note_date'] ?? '';
         $content = trim($_POST['content'] ?? '');
         $mood = $_POST['mood'] ?? 'normal';
         $hunger_level = (int)($_POST['hunger_level'] ?? 5);
         $exercise_status = $_POST['exercise_status'] ?? 'none';
         
-        if (!empty($note_date) && !empty($content)) {
+        $field_errors = [];
+        if (empty($note_date)) $field_errors['note_date'] = 'Vui lòng chọn ngày.';
+        if (empty($content)) $field_errors['content'] = 'Vui lòng nhập nội dung ghi chú.';
+
+        if (empty($field_errors)) {
             // Kiểm tra xem ngày này đã có ghi chú chưa
             $stmtCheck = $conn->prepare("SELECT id FROM personal_notes WHERE user_id = :user_id AND note_date = :note_date");
             $stmtCheck->execute([':user_id' => $user_id, ':note_date' => $note_date]);
@@ -52,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = 'Đã lưu Nhật ký thành công.';
             }
         } else {
-            $_SESSION['error'] = 'Vui lòng nhập nội dung ghi chú.';
+            $_SESSION['error'] = 'Vui lòng kiểm tra lại thông tin nhập liệu.';
         }
     } elseif ($_POST['action'] === 'delete') {
         $id = (int)$_POST['id'];
@@ -120,14 +124,15 @@ require_once __DIR__ . '/../includes/header.php';
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ngày</label>
-                            <input type="date" class="form-control" name="note_date" value="<?php echo date('Y-m-d'); ?>" required max="<?php echo date('Y-m-d'); ?>" id="note_date_input">
+                            <input type="date" class="form-control <?php echo isset($field_errors['note_date']) ? 'is-invalid' : ''; ?>" name="note_date" value="<?php echo old('note_date', date('Y-m-d')); ?>" required max="<?php echo date('Y-m-d'); ?>" id="note_date_input">
+                            <?php if(isset($field_errors['note_date'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['note_date']; ?></div><?php endif; ?>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">Tâm trạng</label>
                             <select class="form-select" name="mood" id="mood_input">
                                 <?php foreach ($mood_icons as $key => $val): ?>
-                                    <option value="<?php echo $key; ?>" <?php echo $key == 'normal' ? 'selected' : ''; ?>><?php echo $val['label']; ?></option>
+                                    <option value="<?php echo $key; ?>" <?php echo old('mood', 'normal') == $key ? 'selected' : ''; ?>><?php echo $val['label']; ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -136,14 +141,14 @@ require_once __DIR__ . '/../includes/header.php';
                             <label class="form-label fw-bold">Vận động hôm nay</label>
                             <select class="form-select" name="exercise_status" id="exercise_input">
                                 <?php foreach ($exercise_labels as $key => $label): ?>
-                                    <option value="<?php echo $key; ?>"><?php echo $label; ?></option>
+                                    <option value="<?php echo $key; ?>" <?php echo old('exercise_status', 'none') == $key ? 'selected' : ''; ?>><?php echo $label; ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">Đánh giá mức độ đói (1-10)</label>
-                            <input type="range" class="form-range" min="1" max="10" name="hunger_level" id="hunger_input" value="5">
+                            <input type="range" class="form-range" min="1" max="10" name="hunger_level" id="hunger_input" value="<?php echo old('hunger_level', '5'); ?>">
                             <div class="d-flex justify-content-between small text-muted">
                                 <span>No bụng</span>
                                 <span>Rất đói</span>
@@ -152,7 +157,8 @@ require_once __DIR__ . '/../includes/header.php';
 
                         <div class="mb-4">
                             <label class="form-label fw-bold">Ghi chép chi tiết <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="content" id="content_input" rows="4" placeholder="Hôm nay bạn cảm thấy thế nào? Ăn uống ra sao?..." required></textarea>
+                            <textarea class="form-control <?php echo isset($field_errors['content']) ? 'is-invalid' : ''; ?>" name="content" id="content_input" rows="4" placeholder="Hôm nay bạn cảm thấy thế nào? Ăn uống ra sao?..." required><?php echo old('content'); ?></textarea>
+                            <?php if(isset($field_errors['content'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['content']; ?></div><?php endif; ?>
                         </div>
                         
                         <button type="submit" class="btn btn-primary w-100 fw-bold" id="btn_submit_note">Lưu Nhật ký</button>

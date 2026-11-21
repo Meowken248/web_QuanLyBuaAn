@@ -44,8 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'add_meal') {
         $type = $_POST['meal_type'];
         $title = trim($_POST['title']);
-        $stmt = $conn->prepare("INSERT INTO meal_plan_meals (meal_plan_id, meal_type, title, sort_order) VALUES (:pid, :type, :title, 0)");
-        $stmt->execute([':pid' => $id, ':type' => $type, ':title' => $title]);
+        $start_time = $_POST['start_time'] ?? '';
+        $end_time = $_POST['end_time'] ?? '';
+        $time_frame = '';
+        if ($start_time && $end_time) {
+            $time_frame = $start_time . ' - ' . $end_time;
+        } elseif ($start_time) {
+            $time_frame = $start_time;
+        }
+        
+        $stmt = $conn->prepare("INSERT INTO meal_plan_meals (meal_plan_id, meal_type, title, time_frame, sort_order) VALUES (:pid, :type, :title, :time_frame, 0)");
+        $stmt->execute([':pid' => $id, ':type' => $type, ':title' => $title, ':time_frame' => $time_frame]);
         $_SESSION['success'] = 'Đã thêm bữa ăn mới.';
         
     } elseif ($_POST['action'] === 'delete_meal') {
@@ -130,7 +139,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <h2 class="fw-bold mb-1">Xây dựng Thực đơn</h2>
                     <h5 class="text-success"><?php echo htmlspecialchars($plan['name']); ?></h5>
                 </div>
-                <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="btn btn-outline-secondary">Quay lại danh sách</a>
+                <a href="<?php echo BASE_URL; ?>/admin/meal-plans.php" class="btn btn-sm btn-outline-secondary rounded-pill">Quay lại danh sách</a>
             </div>
 
             <?php if (isset($_SESSION['success'])): ?>
@@ -141,7 +150,7 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endif; ?>
 
             <!-- Bảng tổng hợp Dinh dưỡng của toàn Thực đơn -->
-            <div class="card shadow-sm border-0 mb-4 bg-success text-white">
+            <div class="card glass-card border-0 rounded-4 shadow-sm mb-4 bg-success text-white">
                 <div class="card-body py-3">
                     <div class="row text-center">
                         <div class="col-md-2 border-end border-light border-opacity-25">
@@ -172,17 +181,20 @@ require_once __DIR__ . '/../includes/header.php';
                 <!-- Danh sách các bữa ăn -->
                 <div class="col-lg-8">
                     <?php foreach ($meals as $m): ?>
-                        <div class="card shadow-sm border-0 mb-4">
-                            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                        <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
+                            <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
                                 <h5 class="fw-bold mb-0 text-primary">
                                     <i class="bi bi-clock me-2"></i><?php echo $meal_types[$m['meal_type']] ?? $m['meal_type']; ?> 
                                     - <?php echo htmlspecialchars($m['title']); ?>
+                                    <?php if (!empty($m['time_frame'])): ?>
+                                        <span class="badge bg-secondary ms-2" style="font-size: 0.8rem;"><i class="bi bi-alarm me-1"></i><?php echo htmlspecialchars($m['time_frame']); ?></span>
+                                    <?php endif; ?>
                                 </h5>
                                 <form method="POST" class="m-0" onsubmit="return confirm('Bạn có chắc muốn xóa bữa ăn này cùng các món ăn bên trong?');">
                                     <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                     <input type="hidden" name="action" value="delete_meal">
                                     <input type="hidden" name="meal_id" value="<?php echo $m['id']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Xóa bữa</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i> Xóa bữa</button>
                                 </form>
                             </div>
                             <div class="card-body p-0">
@@ -191,8 +203,8 @@ require_once __DIR__ . '/../includes/header.php';
                                     $stmtItems->execute([':mid' => $m['id']]);
                                     $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
                                 ?>
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
+                                <table class="table table-hover align-middle mb-0 text-nowrap">
+                                    <thead style="background: rgba(243, 244, 246, 0.7);">
                                         <tr>
                                             <th>Món ăn</th>
                                             <th>Khối lượng</th>
@@ -233,7 +245,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <div class="fw-bold text-dark">Tổng cộng bữa này: <span class="text-success ms-2 fs-5"><?php echo round($meal_cal); ?> kcal</span></div>
                                                     
                                                     <!-- Nút mở form thêm món -->
-                                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal<?php echo $m['id']; ?>">
+                                                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill" data-bs-toggle="modal" data-bs-target="#addItemModal<?php echo $m['id']; ?>">
                                                         <i class="bi bi-plus"></i> Thêm món ăn
                                                     </button>
                                                 </div>
@@ -248,8 +260,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="modal fade" id="addItemModal<?php echo $m['id']; ?>" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog">
                                 <div class="modal-content">
-                                    <form method="POST">
-                                        <div class="modal-header bg-primary text-white">
+                                    <form method="POST" class="form-add-item" novalidate>
+                                        <div class="modal-header bg-health text-white">
                                             <h5 class="modal-title">Thêm món vào <?php echo htmlspecialchars($m['title']); ?></h5>
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
@@ -259,24 +271,25 @@ require_once __DIR__ . '/../includes/header.php';
                                             <input type="hidden" name="meal_id" value="<?php echo $m['id']; ?>">
                                             
                                             <div class="mb-3">
-                                                <label class="form-label fw-bold">Chọn món ăn từ thư viện</label>
-                                                <!-- Sử dụng Select2 nếu có, ở đây dùng select thường -->
-                                                <select class="form-select" name="food_id" required>
+                                                <label class="form-label fw-bold">Chọn món ăn từ thư viện <span class="text-danger">*</span></label>
+                                                <select class="form-select food-select" name="food_id" required>
                                                     <option value="">-- Chọn món ăn --</option>
                                                     <?php foreach ($foods as $f): ?>
                                                         <option value="<?php echo $f['id']; ?>"><?php echo htmlspecialchars($f['name']); ?> (<?php echo round($f['calories']); ?> kcal/100g)</option>
                                                     <?php endforeach; ?>
                                                 </select>
+                                                <div class="invalid-feedback food-error">Vui lòng chọn một món ăn.</div>
                                             </div>
                                             
                                             <div class="mb-3">
-                                                <label class="form-label fw-bold">Khối lượng (gram)</label>
-                                                <input type="number" class="form-control" name="quantity" min="1" max="5000" value="100" required>
+                                                <label class="form-label fw-bold">Khối lượng (gram) <span class="text-danger">*</span></label>
+                                                <input type="number" class="form-control quantity-input" name="quantity" min="1" max="5000" value="100" required>
+                                                <div class="invalid-feedback qty-error">Khối lượng phải từ 1g đến 5000g.</div>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                            <button type="submit" class="btn btn-primary">Lưu món ăn</button>
+                                            <button type="submit" class="btn btn-success">Lưu món ăn</button>
                                         </div>
                                     </form>
                                 </div>
@@ -295,12 +308,12 @@ require_once __DIR__ . '/../includes/header.php';
                 
                 <!-- Form tạo bữa ăn mới -->
                 <div class="col-lg-4">
-                    <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
-                        <div class="card-header bg-white py-3">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm position-sticky overflow-hidden" style="top: 20px;">
+                        <div class="card-header bg-transparent border-bottom py-3">
                             <h5 class="fw-bold mb-0">Thêm Bữa ăn Mới</h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST">
+                            <form method="POST" id="formAddMeal" novalidate>
                                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                                 <input type="hidden" name="action" value="add_meal">
                                 
@@ -313,12 +326,22 @@ require_once __DIR__ . '/../includes/header.php';
                                     </select>
                                 </div>
                                 
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">Tên gợi nhớ (Tùy chọn)</label>
-                                    <input type="text" class="form-control" name="title" id="meal_title_input" value="Bữa sáng" required placeholder="VD: Bữa sáng nhẹ">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tên gợi nhớ <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="title" id="meal_title_input" value="" required placeholder="VD: Bữa sáng nhẹ">
+                                    <div class="invalid-feedback" id="meal_title_error">Vui lòng nhập tên gợi nhớ cho bữa ăn (tối thiểu 2 ký tự).</div>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-success w-100 fw-bold">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Khung giờ (Tùy chọn)</label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="time" class="form-control" name="start_time">
+                                        <span class="mx-2 fw-bold text-muted">-</span>
+                                        <input type="time" class="form-control" name="end_time">
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-outline-success rounded-pill w-100 fw-bold">
                                     <i class="bi bi-plus-circle"></i> Tạo Bữa Ăn
                                 </button>
                             </form>
@@ -331,13 +354,114 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-    const typeSelect = document.getElementById('meal_type_select');
-    const titleInput = document.getElementById('meal_title_input');
-    
-    typeSelect.addEventListener('change', function() {
-        const text = this.options[this.selectedIndex].text;
-        titleInput.value = text;
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Quản lý Modal Thêm món ăn vào bữa: Auto-reset và Simultaneous validation
+    document.querySelectorAll('[id^="addItemModal"]').forEach(modalEl => {
+        const form = modalEl.querySelector('form.form-add-item');
+        if (!form) return;
+
+        const foodSelect = form.querySelector('.food-select');
+        const qtyInput = form.querySelector('.quantity-input');
+
+        function resetModal() {
+            if (foodSelect) {
+                foodSelect.value = '';
+                foodSelect.classList.remove('is-invalid', 'is-valid');
+            }
+            if (qtyInput) {
+                qtyInput.value = '100';
+                qtyInput.defaultValue = '100';
+                qtyInput.classList.remove('is-invalid', 'is-valid');
+            }
+        }
+
+        modalEl.addEventListener('hidden.bs.modal', resetModal);
+        modalEl.addEventListener('hide.bs.modal', resetModal);
+        modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetModal);
+        });
+
+        function validateFood() {
+            if (!foodSelect.value) {
+                foodSelect.classList.add('is-invalid');
+                foodSelect.classList.remove('is-valid');
+                return false;
+            }
+            foodSelect.classList.remove('is-invalid');
+            foodSelect.classList.add('is-valid');
+            return true;
+        }
+
+        function validateQty() {
+            const val = parseFloat(qtyInput.value);
+            if (isNaN(val) || val < 1 || val > 5000) {
+                qtyInput.classList.add('is-invalid');
+                qtyInput.classList.remove('is-valid');
+                return false;
+            }
+            qtyInput.classList.remove('is-invalid');
+            qtyInput.classList.add('is-valid');
+            return true;
+        }
+
+        if (foodSelect) {
+            foodSelect.addEventListener('change', validateFood);
+        }
+        if (qtyInput) {
+            qtyInput.addEventListener('input', validateQty);
+            qtyInput.addEventListener('blur', validateQty);
+        }
+
+        form.addEventListener('submit', function(e) {
+            const isFoodOk = validateFood();
+            const isQtyOk = validateQty();
+
+            if (!isFoodOk || !isQtyOk) {
+                e.preventDefault();
+                e.stopPropagation();
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
     });
+
+    // 2. Validation cho Form Tạo Bữa Ăn Mới
+    const formAddMeal = document.getElementById('formAddMeal');
+    if (formAddMeal) {
+        const titleInput = document.getElementById('meal_title_input');
+        const titleError = document.getElementById('meal_title_error');
+
+        function validateTitle() {
+            const val = titleInput.value.trim();
+            if (!val) {
+                titleInput.classList.add('is-invalid');
+                titleInput.classList.remove('is-valid');
+                if (titleError) titleError.textContent = 'Vui lòng nhập tên gợi nhớ cho bữa ăn.';
+                return false;
+            }
+            if (val.length < 2) {
+                titleInput.classList.add('is-invalid');
+                titleInput.classList.remove('is-valid');
+                if (titleError) titleError.textContent = 'Tên gợi nhớ phải có ít nhất 2 ký tự.';
+                return false;
+            }
+            titleInput.classList.remove('is-invalid');
+            titleInput.classList.add('is-valid');
+            return true;
+        }
+
+        titleInput.addEventListener('input', validateTitle);
+        titleInput.addEventListener('blur', validateTitle);
+
+        formAddMeal.addEventListener('submit', function(e) {
+            if (!validateTitle()) {
+                e.preventDefault();
+                e.stopPropagation();
+                titleInput.focus();
+            }
+        });
+    }
+});
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

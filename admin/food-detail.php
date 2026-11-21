@@ -27,7 +27,6 @@ $stmt = $conn->prepare("SELECT name FROM food_categories WHERE id = :id");
 $stmt->execute([':id' => $food['category_id']]);
 $category = $stmt->fetchColumn();
 
-$hide_footer = true;
 require __DIR__ . '/../includes/header.php';
 ?>
 
@@ -40,15 +39,15 @@ require __DIR__ . '/../includes/header.php';
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="fw-bold mb-0">Chi tiết Món ăn: <?php echo htmlspecialchars($food['name']); ?></h3>
                 <div>
-                    <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-2"></i>Quay lại</a>
-                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $food['id']; ?>" class="btn btn-primary"><i class="bi bi-pencil me-2"></i>Sửa món ăn</a>
+                    <a href="<?php echo BASE_URL; ?>/admin/foods.php" class="btn btn-sm btn-outline-secondary rounded-pill me-2"><i class="bi bi-arrow-left me-2"></i>Quay lại</a>
+                    <a href="<?php echo BASE_URL; ?>/admin/food-edit.php?id=<?php echo $food['id']; ?>" class="btn btn-sm btn-outline-success rounded-pill"><i class="bi bi-pencil me-2"></i>Sửa món ăn</a>
                 </div>
             </div>
 
             <div class="row g-4">
                 <!-- Hình ảnh & Thông tin cơ bản -->
                 <div class="col-md-4">
-                    <div class="card shadow-sm border-0 h-100">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden h-100">
                         <?php if (!empty($food['image'])): ?>
                             <img src="<?php echo food_image_url($food['image']); ?>" class="card-img-top" alt="Image" style="height: 250px; object-fit: cover;">
                         <?php else: ?>
@@ -59,9 +58,26 @@ require __DIR__ . '/../includes/header.php';
                         <div class="card-body">
                             <h5 class="fw-bold"><?php echo htmlspecialchars($food['name']); ?></h5>
                             <p class="text-muted mb-2">Danh mục: <span class="badge bg-success"><?php echo htmlspecialchars($category ?: 'Không xác định'); ?></span></p>
+                            <p class="text-muted mb-2">Mùa phù hợp: 
+                                <?php 
+                                $fSeasons = !empty($food['season']) ? explode(',', $food['season']) : ['xuan','he','thu','dong'];
+                                $isAll = (count($fSeasons) >= 4 || in_array('all', $fSeasons) || in_array('bon_mua', $fSeasons));
+                                if ($isAll) {
+                                    echo '<span class="badge bg-success-subtle text-success border border-success-subtle">Bốn mùa (Quanh năm)</span>';
+                                } else {
+                                    $sMap = ['xuan' => '🌸 Xuân', 'he' => '☀️ Hè', 'thu' => '🍂 Thu', 'dong' => '❄️ Đông'];
+                                    foreach ($fSeasons as $s) {
+                                        $s = trim($s);
+                                        if (isset($sMap[$s])) {
+                                            echo '<span class="badge bg-light text-dark border me-1">' . $sMap[$s] . '</span>';
+                                        }
+                                    }
+                                }
+                                ?>
+                            </p>
                             <p class="text-muted mb-3">Trạng thái: 
                                 <?php if (isset($food['status']) && $food['status'] === 'active'): ?>
-                                    <span class="badge bg-primary">Hoạt động</span>
+                                    <span class="badge bg-success">Hoạt động</span>
                                 <?php else: ?>
                                     <span class="badge bg-secondary">Ẩn</span>
                                 <?php endif; ?>
@@ -75,8 +91,8 @@ require __DIR__ . '/../includes/header.php';
 
                 <!-- Thành phần dinh dưỡng -->
                 <div class="col-md-8">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-white border-bottom py-3">
+                    <div class="card glass-card border-0 rounded-4 shadow-sm overflow-hidden h-100">
+                        <div class="card-header bg-transparent border-bottom py-3">
                             <h5 class="fw-bold mb-0 text-success"><i class="bi bi-heart-pulse me-2"></i>Thành phần dinh dưỡng</h5>
                         </div>
                         <div class="card-body">
@@ -107,23 +123,25 @@ require __DIR__ . '/../includes/header.php';
                                 </div>
                             </div>
                             
-                            <table class="table table-bordered align-middle mt-4">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th colspan="2" class="text-center">Chi tiết bổ sung</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="w-50 text-muted"><i class="bi bi-asterisk text-success me-2"></i>Chất xơ (Fiber)</td>
-                                        <td class="fw-bold"><?php echo floatval($food['fiber'] ?? 0); ?>g</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted"><i class="bi bi-asterisk text-success me-2"></i>Đường (Sugar)</td>
-                                        <td class="fw-bold"><?php echo floatval($food['sugar'] ?? 0); ?>g</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mt-4 text-nowrap">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th colspan="2" class="text-center">Chi tiết bổ sung</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="w-50 text-muted"><i class="bi bi-asterisk text-success me-2"></i>Chất xơ (Fiber)</td>
+                                            <td class="fw-bold"><?php echo floatval($food['fiber'] ?? 0); ?>g</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted"><i class="bi bi-asterisk text-success me-2"></i>Đường (Sugar)</td>
+                                            <td class="fw-bold"><?php echo floatval($food['sugar'] ?? 0); ?>g</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -72,21 +72,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
             $values[$field] = filter_var($raw, FILTER_VALIDATE_FLOAT);
         }
 
-        $invalid = $name === '' || $serving_size === false || $serving_size <= 0 || $serving_unit === ''
-            || !is_valid_date($fdate) || !in_array($fmtype, $valid_meal_types, true);
-        foreach ($values as $value) {
-            if ($value === false || $value < 0) $invalid = true;
+        $custom_food_errors = [];
+        if ($name === '') $custom_food_errors['name'] = 'Vui lòng nhập tên món ăn.';
+        if ($serving_size === false || $serving_size <= 0) $custom_food_errors['serving_size'] = 'Khẩu phần không hợp lệ.';
+        if ($serving_unit === '') $custom_food_errors['serving_unit'] = 'Vui lòng nhập đơn vị.';
+        
+        foreach ($values as $k => $value) {
+            if ($value === false || $value < 0) $custom_food_errors[$k] = 'Giá trị không hợp lệ.';
         }
+        
         $macro_total = $values['protein'] + $values['carbs'] + $values['fat'] + $values['fiber'];
-        if (in_array(mb_strtolower($serving_unit), ['g', 'gram', 'grams'], true) && $macro_total > $serving_size + 0.01) $invalid = true;
+        if (in_array(mb_strtolower($serving_unit), ['g', 'gram', 'grams'], true) && $macro_total > $serving_size + 0.01) {
+            $custom_food_errors['serving_size'] = 'Tổng macros và chất xơ không vượt quá khẩu phần.';
+        }
         $estimated_calories = $values['protein'] * 4 + $values['carbs'] * 4 + $values['fat'] * 9;
         if ($estimated_calories > 0 && abs($values['calories'] - $estimated_calories) > max(20, $estimated_calories * 0.2)) {
-            set_flash_message('danger', 'Calories lệch nhiều so với macros (ước tính ' . round($estimated_calories, 1) . ' kcal).');
-            $invalid = true;
+            $custom_food_errors['calories'] = 'Calories lệch nhiều so với macros (ước tính ' . round($estimated_calories, 1) . ' kcal).';
         }
 
-        if ($invalid) {
-            if (empty($_SESSION['flash_message'])) set_flash_message('danger', 'Dữ liệu món ăn không hợp lệ. Kiểm tra khẩu phần, đơn vị và các chỉ số dinh dưỡng.');
+        if (!empty($custom_food_errors)) {
+            $show_custom_food_modal = true;
+            if (empty($_SESSION['flash_message'])) set_flash_message('danger', 'Dữ liệu không hợp lệ. Vui lòng kiểm tra các ô báo đỏ.');
         } else {
             $image_path = null;
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK && $_FILES['image']['size'] <= 5 * 1024 * 1024) {
@@ -141,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                 }
                 error_log("Lỗi tạo món ăn: " . $e->getMessage());
                 set_flash_message('danger', 'Không thể tạo món ăn: ' . $e->getMessage());
+                $show_custom_food_modal = true;
             }
         }
     }
@@ -279,7 +286,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="modal fade" id="createFoodModal" tabindex="-1" aria-labelledby="createFoodModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <form method="POST" action="" enctype="multipart/form-data">
+            <form method="POST" action="" enctype="multipart/form-data" id="createFoodForm" novalidate>
                 <div class="modal-header bg-success bg-opacity-10 border-0 p-4">
                     <h5 class="modal-title text-success fw-bold d-flex align-items-center" id="createFoodModalLabel">
                         <i class="bi bi-plus-circle me-2 fs-4"></i>Tạo món ăn của riêng bạn
@@ -295,28 +302,31 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row g-4">
                         <div class="col-12">
                             <label class="form-label text-muted fw-bold">Tên món ăn <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-lg bg-light border-0" name="name" required placeholder="VD: Cơm tấm sườn sành điệu...">
+                            <input type="text" class="form-control form-control-lg bg-light <?php echo isset($custom_food_errors['name']) ? 'is-invalid border-danger' : 'border-0'; ?>" id="cf_name" name="name" required placeholder="VD: Cơm tấm sườn sành điệu..." value="<?php echo old('name'); ?>">
+                            <div class="invalid-feedback" id="cf_name_error"><?php echo $custom_food_errors['name'] ?? 'Vui lòng nhập tên món ăn (tối thiểu 2 ký tự).'; ?></div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted fw-bold">Tải ảnh lên (Tùy chọn)</label>
-                            <input type="file" class="form-control bg-light border-0" name="image" accept="image/*">
+                            <input type="file" class="form-control bg-light border-0" id="cf_image" name="image" accept="image/*">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Khẩu phần <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0.01" class="form-control bg-light border-0" name="serving_size" value="100" required>
+                            <input type="number" step="0.01" min="0.01" class="form-control bg-light <?php echo isset($custom_food_errors['serving_size']) ? 'is-invalid border-danger' : 'border-0'; ?>" id="cf_serving_size" name="serving_size" value="<?php echo old('serving_size', '100'); ?>" required>
+                            <div class="invalid-feedback" id="cf_serving_size_error"><?php echo $custom_food_errors['serving_size'] ?? 'Khẩu phần phải lớn hơn 0.'; ?></div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-muted fw-bold">Đơn vị <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control bg-light border-0" name="serving_unit" value="gram" required>
+                            <input type="text" class="form-control bg-light <?php echo isset($custom_food_errors['serving_unit']) ? 'is-invalid border-danger' : 'border-0'; ?>" id="cf_serving_unit" name="serving_unit" value="<?php echo old('serving_unit', 'gram'); ?>" required>
+                            <div class="invalid-feedback" id="cf_serving_unit_error"><?php echo $custom_food_errors['serving_unit'] ?? 'Vui lòng nhập đơn vị khẩu phần.'; ?></div>
                         </div>
                         
                         <div class="col-md-6">
                             <label class="form-label text-muted fw-bold">Nguyên liệu</label>
-                            <textarea class="form-control bg-light border-0" name="ingredients" rows="3" placeholder="VD: 100g sườn, 1 muỗng mật ong..."></textarea>
+                            <textarea class="form-control bg-light border-0" id="cf_ingredients" name="ingredients" rows="3" placeholder="VD: 100g sườn, 1 muỗng mật ong..."><?php echo old('ingredients'); ?></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted fw-bold">Cách làm</label>
-                            <textarea class="form-control bg-light border-0" name="instructions" rows="3" placeholder="VD: Ướp sườn trong 30 phút, nướng ở 180 độ..."></textarea>
+                            <textarea class="form-control bg-light border-0" id="cf_instructions" name="instructions" rows="3" placeholder="VD: Ướp sườn trong 30 phút, nướng ở 180 độ..."><?php echo old('instructions'); ?></textarea>
                         </div>
                         
                         <div class="col-12">
@@ -327,7 +337,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php foreach (['calories'=>'Calories ','protein'=>'Protein (g)','carbs'=>'Carbs (g)','fat'=>'Fat (g)','fiber'=>'Chất xơ (g)'] as $field => $label): ?>
                         <div class="col">
                             <label class="form-label text-muted fw-bold"><?php echo $label; ?> <?php if($field !== 'calories'): ?><span class="text-danger">*</span><?php endif; ?></label>
-                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light border-0 <?php echo $field === 'calories' ? 'text-muted fw-bold shadow-none' : ''; ?>" name="<?php echo $field; ?>" placeholder="0.00" <?php echo $field === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>>
+                            <input type="number" step="0.01" min="0" data-clear-zero class="form-control bg-light <?php echo isset($custom_food_errors[$field]) ? 'is-invalid border-danger' : 'border-0'; ?> <?php echo $field === 'calories' ? 'text-muted fw-bold shadow-none' : ''; ?>" id="cf_<?php echo $field; ?>" name="<?php echo $field; ?>" placeholder="0.00" value="<?php echo old($field, '0.00'); ?>" <?php echo $field === 'calories' ? 'readonly tabindex="-1"' : 'required'; ?>>
+                            <div class="invalid-feedback" id="cf_<?php echo $field; ?>_error"><?php echo $custom_food_errors[$field] ?? 'Giá trị không hợp lệ (>= 0).'; ?></div>
                         </div>
                         <?php endforeach; ?>
                         <div class="col-12"><div class="form-text">Calories = Protein × 4 + Carbs × 4 + Fat × 9. Tổng macros và chất xơ không được vượt khẩu phần nếu tính theo gram.</div></div>
@@ -344,6 +355,162 @@ require_once __DIR__ . '/../includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const createFoodModalEl = document.getElementById('createFoodModal');
+    const createFoodForm = document.getElementById('createFoodForm');
+
+    const cfName = document.getElementById('cf_name');
+    const cfServingSize = document.getElementById('cf_serving_size');
+    const cfServingUnit = document.getElementById('cf_serving_unit');
+    const cfProtein = document.getElementById('cf_protein');
+    const cfCarbs = document.getElementById('cf_carbs');
+    const cfFat = document.getElementById('cf_fat');
+    const cfFiber = document.getElementById('cf_fiber');
+    const cfCalories = document.getElementById('cf_calories');
+    const cfIngredients = document.getElementById('cf_ingredients');
+    const cfInstructions = document.getElementById('cf_instructions');
+    const cfImage = document.getElementById('cf_image');
+
+    const cfNameErr = document.getElementById('cf_name_error');
+    const cfSizeErr = document.getElementById('cf_serving_size_error');
+    const cfUnitErr = document.getElementById('cf_serving_unit_error');
+    const cfProtErr = document.getElementById('cf_protein_error');
+    const cfCarbErr = document.getElementById('cf_carbs_error');
+    const cfFatErr = document.getElementById('cf_fat_error');
+    const cfFibErr = document.getElementById('cf_fiber_error');
+
+    function validateCfName() {
+        const val = cfName.value.trim();
+        if (!val) {
+            cfName.classList.add('is-invalid', 'border-danger');
+            cfName.classList.remove('is-valid');
+            if (cfNameErr) cfNameErr.textContent = 'Vui lòng nhập tên món ăn.';
+            return false;
+        }
+        if (val.length < 2) {
+            cfName.classList.add('is-invalid', 'border-danger');
+            cfName.classList.remove('is-valid');
+            if (cfNameErr) cfNameErr.textContent = 'Tên món ăn phải có ít nhất 2 ký tự.';
+            return false;
+        }
+        cfName.classList.remove('is-invalid', 'border-danger');
+        cfName.classList.add('is-valid');
+        return true;
+    }
+
+    function validateCfSize() {
+        const val = parseFloat(cfServingSize.value);
+        if (isNaN(val) || val <= 0) {
+            cfServingSize.classList.add('is-invalid', 'border-danger');
+            cfServingSize.classList.remove('is-valid');
+            if (cfSizeErr) cfSizeErr.textContent = 'Khẩu phần phải là số lớn hơn 0.';
+            return false;
+        }
+        cfServingSize.classList.remove('is-invalid', 'border-danger');
+        cfServingSize.classList.add('is-valid');
+        return true;
+    }
+
+    function validateCfUnit() {
+        const val = cfServingUnit.value.trim();
+        if (!val) {
+            cfServingUnit.classList.add('is-invalid', 'border-danger');
+            cfServingUnit.classList.remove('is-valid');
+            if (cfUnitErr) cfUnitErr.textContent = 'Vui lòng nhập đơn vị khẩu phần.';
+            return false;
+        }
+        cfServingUnit.classList.remove('is-invalid', 'border-danger');
+        cfServingUnit.classList.add('is-valid');
+        return true;
+    }
+
+    function validateMacro(input, errEl, label) {
+        const val = parseFloat(input.value);
+        if (isNaN(val) || val < 0) {
+            input.classList.add('is-invalid', 'border-danger');
+            input.classList.remove('is-valid');
+            if (errEl) errEl.textContent = label + ' phải là số >= 0.';
+            return false;
+        }
+        input.classList.remove('is-invalid', 'border-danger');
+        input.classList.add('is-valid');
+        return true;
+    }
+
+    if (cfName) {
+        cfName.addEventListener('input', validateCfName);
+        cfName.addEventListener('blur', validateCfName);
+    }
+    if (cfServingSize) {
+        cfServingSize.addEventListener('input', validateCfSize);
+        cfServingSize.addEventListener('blur', validateCfSize);
+    }
+    if (cfServingUnit) {
+        cfServingUnit.addEventListener('input', validateCfUnit);
+        cfServingUnit.addEventListener('blur', validateCfUnit);
+    }
+    if (cfProtein) {
+        cfProtein.addEventListener('input', () => validateMacro(cfProtein, cfProtErr, 'Protein'));
+        cfProtein.addEventListener('blur', () => validateMacro(cfProtein, cfProtErr, 'Protein'));
+    }
+    if (cfCarbs) {
+        cfCarbs.addEventListener('input', () => validateMacro(cfCarbs, cfCarbErr, 'Carbs'));
+        cfCarbs.addEventListener('blur', () => validateMacro(cfCarbs, cfCarbErr, 'Carbs'));
+    }
+    if (cfFat) {
+        cfFat.addEventListener('input', () => validateMacro(cfFat, cfFatErr, 'Fat'));
+        cfFat.addEventListener('blur', () => validateMacro(cfFat, cfFatErr, 'Fat'));
+    }
+    if (cfFiber) {
+        cfFiber.addEventListener('input', () => validateMacro(cfFiber, cfFibErr, 'Chất xơ'));
+        cfFiber.addEventListener('blur', () => validateMacro(cfFiber, cfFibErr, 'Chất xơ'));
+    }
+
+    if (createFoodForm) {
+        createFoodForm.addEventListener('submit', function(e) {
+            const isNameOk = validateCfName();
+            const isSizeOk = validateCfSize();
+            const isUnitOk = validateCfUnit();
+            const isProtOk = validateMacro(cfProtein, cfProtErr, 'Protein');
+            const isCarbOk = validateMacro(cfCarbs, cfCarbErr, 'Carbs');
+            const isFatOk = validateMacro(cfFat, cfFatErr, 'Fat');
+            const isFibOk = validateMacro(cfFiber, cfFibErr, 'Chất xơ');
+
+            if (!isNameOk || !isSizeOk || !isUnitOk || !isProtOk || !isCarbOk || !isFatOk || !isFibOk) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const firstInvalid = createFoodForm.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
+    }
+
+    function resetCreateFoodModal() {
+        if (!createFoodForm) return;
+        if (cfName) { cfName.value = ''; cfName.defaultValue = ''; cfName.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfServingSize) { cfServingSize.value = '100'; cfServingSize.defaultValue = '100'; cfServingSize.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfServingUnit) { cfServingUnit.value = 'gram'; cfServingUnit.defaultValue = 'gram'; cfServingUnit.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfIngredients) { cfIngredients.value = ''; cfIngredients.defaultValue = ''; }
+        if (cfInstructions) { cfInstructions.value = ''; cfInstructions.defaultValue = ''; }
+        if (cfImage) { cfImage.value = ''; }
+        if (cfProtein) { cfProtein.value = '0.00'; cfProtein.defaultValue = '0.00'; cfProtein.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfCarbs) { cfCarbs.value = '0.00'; cfCarbs.defaultValue = '0.00'; cfCarbs.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfFat) { cfFat.value = '0.00'; cfFat.defaultValue = '0.00'; cfFat.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfFiber) { cfFiber.value = '0.00'; cfFiber.defaultValue = '0.00'; cfFiber.classList.remove('is-invalid', 'is-valid', 'border-danger'); }
+        if (cfCalories) { cfCalories.value = '0.00'; cfCalories.defaultValue = '0.00'; }
+    }
+
+    if (createFoodModalEl) {
+        createFoodModalEl.addEventListener('hidden.bs.modal', resetCreateFoodModal);
+        createFoodModalEl.addEventListener('hide.bs.modal', resetCreateFoodModal);
+        createFoodModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', resetCreateFoodModal);
+        });
+        document.querySelectorAll('[data-bs-target="#createFoodModal"]').forEach(btn => {
+            btn.addEventListener('click', resetCreateFoodModal);
+        });
+    }
+
     document.querySelectorAll('[data-clear-zero]').forEach(input => {
         input.addEventListener('focus', () => { if (parseFloat(input.value) === 0 && !input.readOnly) input.value = ''; });
         input.addEventListener('blur', () => { if (input.value === '') input.value = '0.00'; });
@@ -379,5 +546,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<?php if (!empty($show_custom_food_modal)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var createFoodModal = new bootstrap.Modal(document.getElementById('createFoodModal'));
+    createFoodModal.show();
+});
+</script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

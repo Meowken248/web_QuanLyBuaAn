@@ -2,6 +2,7 @@
 // smart-menu.php
 require_once __DIR__ . '/config/app.php';
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/models/FoodModel.php';
 require_once __DIR__ . '/includes/smart-menu-functions.php';
 
@@ -14,15 +15,21 @@ $ketQua = null;
 $loaiKetQua = null;
 
 $hasActiveMenu = false;
+$activeMenuId = null;
+$activeMenuCompletedDays = [];
 if (isset($_SESSION['user_id'])) {
     $db = new Database();
     $conn = $db->getConnection();
-    $stmt = $conn->prepare("SELECT id FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' LIMIT 1");
+    $stmt = $conn->prepare("SELECT id, completed_days FROM user_smart_menus WHERE user_id = :user_id AND status = 'active' LIMIT 1");
     $stmt->execute([':user_id' => $_SESSION['user_id']]);
-    if ($stmt->fetch()) {
+    if ($rowActive = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $hasActiveMenu = true;
+        $activeMenuId = $rowActive['id'];
+        $activeMenuCompletedDays = json_decode($rowActive['completed_days'] ?? '[]', true) ?: [];
     }
 }
+
+$error_smart_menu = null;
 
 if (isset($_GET['che_do'])) {
     switch ($che_do) {
@@ -33,9 +40,15 @@ if (isset($_GET['che_do'])) {
             break;
 
         case 'theo_muc_tieu':
+            $soNgayRaw = trim($_GET['so_ngay'] ?? '');
+            if ($soNgayRaw === '' || !is_numeric($soNgayRaw) || (int)$soNgayRaw < 1 || (int)$soNgayRaw > 30) {
+                $error_smart_menu = "Vui lòng nhập Số ngày áp dụng hợp lệ (từ 1 đến 30 ngày).";
+                $ketQua = null;
+                $loaiKetQua = null;
+                break;
+            }
             $mucTieu = $_GET['muc_tieu'] ?? '';
-            $soNgay = (int) ($_GET['so_ngay'] ?? 3);
-            $soNgay = max(1, min(30, $soNgay));
+            $soNgay = (int)$soNgayRaw;
             $soBua = (int) ($_GET['so_bua'] ?? 4);
             $soBua = max(1, min(6, $soBua));
             $ketQua = taoThucDonTheoMucTieu($mucTieu, $soNgay, $soBua);
@@ -174,8 +187,46 @@ if (isset($_GET['che_do'])) {
     color: white;
     box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
 }
+.custom-day-pills .nav-link.is-completed {
+    background: linear-gradient(135deg, #81c784 0%, #a5d6a7 100%);
+    color: #1b5e20;
+    box-shadow: 0 4px 10px rgba(129, 199, 132, 0.2);
+}
+.custom-day-pills .nav-link.is-completed:hover {
+    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+    color: #1b5e20;
+}
+.custom-day-pills .nav-link.is-completed.active {
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.35);
+}
 .border-dashed {
     border-style: dashed !important;
+}
+.pagination .page-link {
+    color: #2e7d32;
+    border-color: #e0e0e0;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.pagination .page-link:hover {
+    background-color: #e8f5e9;
+    border-color: #a5d6a7;
+    color: #1b5e20;
+}
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+    border-color: #2e7d32;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.25);
+}
+.pagination .page-item.disabled .page-link {
+    color: #adb5bd;
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
 }
 </style>
 
@@ -189,6 +240,15 @@ if (isset($_GET['che_do'])) {
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
+            <?php if (!empty($error_smart_menu)): ?>
+                <div class="alert alert-danger shadow-sm rounded-4 mb-4 d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+                    <div>
+                        <strong>Lỗi nhập liệu:</strong> <?= htmlspecialchars($error_smart_menu) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <?php if ($hasActiveMenu): ?>
                 <div class="alert alert-info shadow-sm rounded-4 mb-4 d-flex flex-column flex-md-row align-items-center" role="alert">
                     <i class="bi bi-info-circle-fill fs-3 me-md-3 mb-2 mb-md-0 text-info"></i>
@@ -255,9 +315,9 @@ if (isset($_GET['che_do'])) {
                                     <div class="mt-2 text-muted small" id="mo_ta_muc_tieu"><i class="bi bi-info-circle me-1"></i> <span></span></div>
                                 </div>
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Số ngày áp dụng:</label>
+                                    <label class="form-label fw-bold">Số ngày áp dụng <span class="text-danger">*</span>:</label>
                                     <div class="input-group">
-                                        <input type="number" name="so_ngay" class="form-control form-control-custom" min="1" max="30" value="<?= (int) ($_GET['so_ngay'] ?? 3) ?>">
+                                        <input type="number" name="so_ngay" id="input_so_ngay" class="form-control form-control-custom" min="1" max="30" value="<?= isset($_GET['so_ngay']) && $_GET['so_ngay'] !== '' ? htmlspecialchars($_GET['so_ngay']) : '3' ?>" required placeholder="Từ 1 đến 30 ngày">
                                         <span class="input-group-text bg-white border-start-0">ngày</span>
                                     </div>
                                 </div>
@@ -354,12 +414,40 @@ if (isset($_GET['che_do'])) {
                     </div>
 
                 <?php elseif ($loaiKetQua === 'thu_vien'): ?>
+                    <?php
+                        $perPage = 6;
+                        $totalItems = count($ketQua);
+                        $totalPages = (int)ceil($totalItems / $perPage);
+                        $currentPage = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
+                        $offset = ($currentPage - 1) * $perPage;
+                        $pagedKetQua = array_slice($ketQua, $offset, $perPage);
+
+                        $makePageUrl = function($p) {
+                            $params = $_GET;
+                            $params['page'] = $p;
+                            return 'smart-menu.php?' . http_build_query($params) . '#results';
+                        };
+                    ?>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <div class="text-muted small">
+                            <i class="bi bi-funnel me-1 text-success"></i>Hiển thị <strong><?= count($pagedKetQua) ?></strong> / <strong><?= $totalItems ?></strong> món ăn phù hợp
+                        </div>
+                        <?php if ($totalPages > 1): ?>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                Trang <?= $currentPage ?> / <?= $totalPages ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
                     <div class="row g-4">
-                        <?php foreach ($ketQua as $mon): ?>
+                        <?php foreach ($pagedKetQua as $mon): ?>
                             <div class="col-md-6 col-lg-4">
                                 <div class="card result-card h-100">
-                                    <?php if (!empty($mon['image']) && file_exists(__DIR__ . '/uploads/foods/' . $mon['image'])): ?>
-                                        <img src="<?= BASE_URL . '/uploads/foods/' . $mon['image'] ?>" class="card-img-top" alt="<?= htmlspecialchars($mon['name']) ?>" style="height: 200px; object-fit: cover;">
+                                    <?php 
+                                    $imgUrl = food_image_url($mon['image'] ?? '');
+                                    if ($imgUrl && !str_ends_with($imgUrl, 'bg1.jpg')): ?>
+                                        <img src="<?= htmlspecialchars($imgUrl) ?>" class="card-img-top" alt="<?= htmlspecialchars($mon['name']) ?>" style="height: 200px; object-fit: cover;">
                                     <?php else: ?>
                                         <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                             <i class="bi bi-image text-muted fs-1"></i>
@@ -367,6 +455,23 @@ if (isset($_GET['che_do'])) {
                                     <?php endif; ?>
                                     
                                     <div class="card-body">
+                                        <div class="mb-2">
+                                            <?php 
+                                            $sList = !empty($mon['season']) ? explode(',', $mon['season']) : [];
+                                            $sMap = ['xuan' => '🌸 Mùa Xuân', 'he' => '☀️ Mùa Hè', 'thu' => '🍂 Mùa Thu', 'dong' => '❄️ Mùa Đông'];
+                                            if (count($sList) >= 4 || in_array('all', $sList) || in_array('bon_mua', $sList)) {
+                                                echo '<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-calendar4-week me-1"></i>Bốn mùa (Quanh năm)</span>';
+                                            } else {
+                                                foreach ($sList as $s) {
+                                                    $s = trim($s);
+                                                    if (isset($sMap[$s])) {
+                                                        echo '<span class="badge bg-light text-dark border small me-1">' . $sMap[$s] . '</span>';
+                                                    }
+                                                }
+                                            }
+                                            ?>
+                                        </div>
+
                                         <h5 class="card-title fw-bold text-dark mb-3">
                                             <a href="<?= BASE_URL ?>/food-detail.php?id=<?= $mon['id'] ?>" class="text-decoration-none text-dark stretched-link">
                                                 <?= htmlspecialchars($mon['name']) ?>
@@ -392,6 +497,58 @@ if (isset($_GET['che_do'])) {
                         <?php endforeach; ?>
                     </div>
 
+                    <?php if ($totalPages > 1): ?>
+                        <nav aria-label="Phân trang món ăn" class="mt-5">
+                            <ul class="pagination justify-content-center flex-wrap gap-1">
+                                <li class="page-item <?= ($currentPage <= 1) ? 'disabled' : '' ?>">
+                                    <a class="page-link shadow-sm rounded-pill px-3" href="<?= $makePageUrl($currentPage - 1) ?>" aria-label="Trang trước">
+                                        <i class="bi bi-chevron-left me-1"></i>Trước
+                                    </a>
+                                </li>
+                                
+                                <?php
+                                $startPage = max(1, $currentPage - 2);
+                                $endPage = min($totalPages, $currentPage + 2);
+                                if ($currentPage <= 3) {
+                                    $endPage = min($totalPages, 5);
+                                }
+                                if ($currentPage >= $totalPages - 2) {
+                                    $startPage = max(1, $totalPages - 4);
+                                }
+
+                                if ($startPage > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" href="<?= $makePageUrl(1) ?>">1</a>
+                                    </li>
+                                    <?php if ($startPage > 2): ?>
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <li class="page-item <?= ($currentPage == $i) ? 'active' : '' ?>">
+                                        <a class="page-link shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" href="<?= $makePageUrl($i) ?>"><?= $i ?></a>
+                                    </li>
+                                <?php endfor; ?>
+
+                                <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                        <li class="page-item disabled"><span class="page-link border-0 bg-transparent">...</span></li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" href="<?= $makePageUrl($totalPages) ?>"><?= $totalPages ?></a>
+                                    </li>
+                                <?php endif; ?>
+
+                                <li class="page-item <?= ($currentPage >= $totalPages) ? 'disabled' : '' ?>">
+                                    <a class="page-link shadow-sm rounded-pill px-3" href="<?= $makePageUrl($currentPage + 1) ?>" aria-label="Trang sau">
+                                        Sau<i class="bi bi-chevron-right ms-1"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    <?php endif; ?>
+
                 <?php elseif ($loaiKetQua === 'ai_thuc_don'): ?>
                     <div class="row g-4">
                         <!-- Sidebar Days -->
@@ -404,8 +561,12 @@ if (isset($_GET['che_do'])) {
                             <div class="collapse d-md-block" id="dayListCollapse">
                                 <div class="nav flex-column flex-nowrap nav-pills custom-day-pills shadow-sm rounded-4 bg-white p-2" id="v-pills-tab" role="tablist" aria-orientation="vertical" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                                     <?php foreach ($ketQua as $index => $ngay): ?>
-                                        <button class="nav-link <?= $index === 0 ? 'active' : '' ?> fw-bold mb-2 text-start" id="v-pills-day<?= $ngay['ngay'] ?>-tab" data-bs-toggle="pill" data-bs-target="#v-pills-day<?= $ngay['ngay'] ?>" type="button" role="tab" aria-controls="v-pills-day<?= $ngay['ngay'] ?>" aria-selected="<?= $index === 0 ? 'true' : 'false' ?>">
-                                            <i class="bi bi-calendar-event me-2"></i>Ngày <?= $ngay['ngay'] ?>
+                                        <?php $isDone = in_array((int)$ngay['ngay'], $activeMenuCompletedDays); ?>
+                                        <button class="nav-link <?= $index === 0 ? 'active' : '' ?> <?= $isDone ? 'is-completed' : '' ?> fw-bold mb-2 text-start position-relative" id="v-pills-day<?= $ngay['ngay'] ?>-tab" data-bs-toggle="pill" data-bs-target="#v-pills-day<?= $ngay['ngay'] ?>" type="button" role="tab" aria-controls="v-pills-day<?= $ngay['ngay'] ?>" aria-selected="<?= $index === 0 ? 'true' : 'false' ?>">
+                                            <i class="bi <?= $isDone ? 'bi-check-circle-fill' : 'bi-calendar-event' ?> me-2"></i>Ngày <?= $ngay['ngay'] ?>
+                                            <?php if ($isDone): ?>
+                                                <span class="badge bg-success text-white ms-auto float-end">Xong</span>
+                                            <?php endif; ?>
                                         </button>
                                     <?php endforeach; ?>
                                 </div>
@@ -416,10 +577,11 @@ if (isset($_GET['che_do'])) {
                         <div class="col-md-9">
                             <div class="tab-content" id="v-pills-tabContent">
                                 <?php foreach ($ketQua as $index => $ngay): ?>
+                                    <?php $isDone = in_array((int)$ngay['ngay'], $activeMenuCompletedDays); ?>
                                     <div class="tab-pane fade <?= $index === 0 ? 'show active' : '' ?>" id="v-pills-day<?= $ngay['ngay'] ?>" role="tabpanel" aria-labelledby="v-pills-day<?= $ngay['ngay'] ?>-tab" tabindex="0">
                                         <div class="card result-card p-4 h-100 border-0 shadow-sm rounded-4 bg-white">
                                             <div class="day-header d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom">
-                                                <h4 class="mb-0 fw-bold text-success"><i class="bi bi-calendar-check me-2"></i>Thực đơn Ngày <?= $ngay['ngay'] ?></h4>
+                                                <h4 class="mb-0 fw-bold <?= $isDone ? 'text-secondary' : 'text-success' ?>"><i class="bi bi-calendar-check me-2"></i>Thực đơn Ngày <?= $ngay['ngay'] ?></h4>
                                                 <div class="mt-2 mt-sm-0">
                                                     <span class="badge bg-warning text-dark fs-6 rounded-pill me-2"><i class="bi bi-fire me-1"></i> <?= $ngay['tong_calo'] ?> kcal</span>
                                                     <span class="badge bg-info text-dark fs-6 rounded-pill"><i class="bi bi-egg-fried me-1"></i> <?= $ngay['tong_protein'] ?>g Protein</span>
@@ -448,9 +610,15 @@ if (isset($_GET['che_do'])) {
                                             </div>
                                             
                                             <div class="text-end mt-auto pt-3 border-top">
-                                                <button class="btn btn-success btn-lg px-4 fw-bold shadow-sm complete-day-btn rounded-pill" data-day="<?= $ngay['ngay'] ?>">
-                                                    <i class="bi bi-check2-all me-2"></i>Đánh dấu Hoàn thành Ngày <?= $ngay['ngay'] ?>
-                                                </button>
+                                                <?php if (!$isDone): ?>
+                                                    <button class="btn btn-success btn-lg px-4 fw-bold shadow-sm complete-day-btn rounded-pill" data-day="<?= $ngay['ngay'] ?>">
+                                                        <i class="bi bi-check2-all me-2"></i>Đánh dấu Hoàn thành Ngày <?= $ngay['ngay'] ?>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button class="btn btn-secondary btn-lg px-4 fw-bold shadow-sm rounded-pill" disabled>
+                                                        <i class="bi bi-check-circle-fill me-2"></i>Ngày Này Đã Hoàn Thành
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -482,6 +650,24 @@ function hienThiMoTaMucTieu() {
 document.addEventListener("DOMContentLoaded", function() {
     hienThiMoTaMucTieu();
     
+    // Validate form thuc don (BUG-10)
+    const formThucDon = document.getElementById('form-thuc-don');
+    if (formThucDon) {
+        formThucDon.addEventListener('submit', function(e) {
+            const cheDo = document.getElementById('input_che_do').value;
+            if (cheDo === 'theo_muc_tieu') {
+                const soNgayInput = document.getElementById('input_so_ngay');
+                const val = soNgayInput ? soNgayInput.value.trim() : '';
+                if (!val || isNaN(val) || parseInt(val) < 1 || parseInt(val) > 30) {
+                    e.preventDefault();
+                    alert('Vui lòng nhập Số ngày áp dụng hợp lệ (từ 1 đến 30 ngày).');
+                    if (soNgayInput) soNgayInput.focus();
+                    return false;
+                }
+            }
+        });
+    }
+
     // Auto-close sidebar on mobile when a day is selected
     const dayTabs = document.querySelectorAll('#dayListCollapse .nav-link');
     const dayListCollapse = document.getElementById('dayListCollapse');
@@ -498,7 +684,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Complete Day Logic
+    // Complete Day Logic (BUG-11, BUG-12)
     const completeBtns = document.querySelectorAll('.complete-day-btn');
     completeBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -509,26 +695,45 @@ document.addEventListener("DOMContentLoaded", function() {
             this.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang xử lý...`;
             this.disabled = true;
 
+            const payload = {
+                day: day,
+                menu_id: <?= json_encode($activeMenuId) ?>,
+                menu_data: <?= json_encode($ketQua) ?>
+            };
+
             fetch('<?= BASE_URL ?>/api/complete_smart_menu_day.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ day: day })
+                body: JSON.stringify(payload)
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
                     this.classList.remove('btn-success');
                     this.classList.add('btn-secondary');
-                    this.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>Đã Hoàn Thành (Lưu thành công)`;
+                    this.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>Ngày Này Đã Hoàn Thành`;
                     
+                    // BUG-11: Cập nhật ngay lập tức giao diện tab bên trái
+                    const dayTab = document.getElementById('v-pills-day' + day + '-tab');
+                    if (dayTab) {
+                        dayTab.classList.add('is-completed');
+                        const icon = dayTab.querySelector('i');
+                        if (icon) {
+                            icon.className = 'bi bi-check-circle-fill me-2';
+                        }
+                        if (!dayTab.querySelector('.badge')) {
+                            dayTab.insertAdjacentHTML('beforeend', '<span class="badge bg-success text-white ms-auto float-end">Xong</span>');
+                        }
+                    }
+
                     // Show a quick success alert
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-4 shadow';
                     alertDiv.style.zIndex = 9999;
                     alertDiv.innerHTML = `
-                        <strong>Tuyệt vời!</strong> Bạn đã hoàn thành xuất sắc ngày ${day}. Thông báo đã được gửi.
+                        <strong>Tuyệt vời!</strong> Bạn đã hoàn thành xuất sắc ngày ${day}. Tiến độ đã được lưu vào Thực đơn của tôi.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     `;
                     document.body.appendChild(alertDiv);

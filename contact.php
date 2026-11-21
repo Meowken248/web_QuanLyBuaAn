@@ -13,18 +13,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject = trim($_POST['subject'] ?? '');
     $message = trim($_POST['message'] ?? '');
 
+    $field_errors = [];
+
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         $error_msg = 'Yêu cầu không hợp lệ. Vui lòng thử lại.';
-    } elseif ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $subject === '' || $message === '') {
-        $error_msg = 'Vui lòng nhập đầy đủ họ tên, email hợp lệ, chủ đề và nội dung.';
-    } elseif (mb_strlen($name) > 150 || mb_strlen($subject) > 200 || mb_strlen($message) > 5000) {
-        $error_msg = 'Nội dung liên hệ vượt quá độ dài cho phép.';
     } else {
-        $conn = (new Database())->getConnection();
-        $stmt = $conn->prepare("INSERT INTO contact_messages (full_name, email, subject, message, status) VALUES (:name, :email, :subject, :message, 'new')");
-        $stmt->execute([':name' => $name, ':email' => $email, ':subject' => $subject, ':message' => $message]);
-        $success_msg = 'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.';
-        $_POST = [];
+        if ($name === '') {
+            $field_errors['name'] = 'Vui lòng nhập họ tên.';
+        } elseif (mb_strlen($name) > 150) {
+            $field_errors['name'] = 'Họ tên không được vượt quá 150 ký tự.';
+        }
+        
+        if ($email === '') {
+            $field_errors['email'] = 'Vui lòng nhập email.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $field_errors['email'] = 'Email không hợp lệ.';
+        }
+        
+        if ($subject === '') {
+            $field_errors['subject'] = 'Vui lòng nhập chủ đề.';
+        } elseif (mb_strlen($subject) > 200) {
+            $field_errors['subject'] = 'Chủ đề không được vượt quá 200 ký tự.';
+        }
+        
+        if ($message === '') {
+            $field_errors['message'] = 'Vui lòng nhập nội dung.';
+        } elseif (mb_strlen($message) > 5000) {
+            $field_errors['message'] = 'Nội dung không được vượt quá 5000 ký tự.';
+        }
+
+        if (empty($field_errors)) {
+            $conn = (new Database())->getConnection();
+            $stmt = $conn->prepare("INSERT INTO contact_messages (full_name, email, subject, message, status) VALUES (:name, :email, :subject, :message, 'new')");
+            $stmt->execute([':name' => $name, ':email' => $email, ':subject' => $subject, ':message' => $message]);
+            $contact_id = (int)$conn->lastInsertId();
+
+            // Tạo thông báo cho toàn bộ Admin về thư liên hệ mới
+            try {
+                $stmtAdmins = $conn->query("SELECT id FROM users WHERE role = 'admin' AND status = 'active'");
+                $admins = $stmtAdmins->fetchAll(PDO::FETCH_COLUMN);
+
+                if (!empty($admins)) {
+                    $notif_title = '📩 Thư liên hệ mới: ' . mb_substr($subject, 0, 80, 'UTF-8');
+                    $notif_message = '[MID:' . $contact_id . '] [Từ ' . $name . ' (' . $email . ')]: ' . mb_substr($message, 0, 200, 'UTF-8');
+
+                    $stmtInsertNotif = $conn->prepare("INSERT INTO notifications (user_id, title, message, type, is_read) VALUES (:uid, :title, :message, 'info', 0)");
+                    foreach ($admins as $admin_id) {
+                        $stmtInsertNotif->execute([
+                            ':uid' => $admin_id,
+                            ':title' => $notif_title,
+                            ':message' => $notif_message
+                        ]);
+                    }
+                }
+            } catch (Exception $notifEx) {
+                // Tránh lỗi thông báo làm gián đoạn gửi liên hệ
+            }
+
+            $success_msg = 'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.';
+            $_POST = [];
+        } else {
+            $error_msg = 'Vui lòng kiểm tra lại thông tin nhập liệu.';
+        }
     }
 }
 require_once __DIR__ . '/includes/header.php';
@@ -37,10 +87,26 @@ require_once __DIR__ . '/includes/header.php';
 <?php if ($error_msg): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error_msg); ?></div><?php endif; ?>
 <form method="POST" action="">
 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
-<div class="mb-3"><label class="form-label">Họ và tên</label><input type="text" class="form-control" name="name" maxlength="150" value="<?php echo old('name'); ?>" required></div>
-<div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" name="email" value="<?php echo old('email'); ?>" required></div>
-<div class="mb-3"><label class="form-label">Chủ đề</label><input type="text" class="form-control" name="subject" maxlength="200" value="<?php echo old('subject'); ?>" required></div>
-<div class="mb-4"><label class="form-label">Nội dung tin nhắn</label><textarea class="form-control" name="message" rows="5" maxlength="5000" required><?php echo old('message'); ?></textarea></div>
+<div class="mb-3">
+    <label class="form-label">Họ và tên</label>
+    <input type="text" class="form-control <?php echo isset($field_errors['name']) ? 'is-invalid' : ''; ?>" name="name" maxlength="150" value="<?php echo old('name'); ?>" required>
+    <?php if(isset($field_errors['name'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['name']; ?></div><?php endif; ?>
+</div>
+<div class="mb-3">
+    <label class="form-label">Email</label>
+    <input type="email" class="form-control <?php echo isset($field_errors['email']) ? 'is-invalid' : ''; ?>" name="email" value="<?php echo old('email'); ?>" required>
+    <?php if(isset($field_errors['email'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['email']; ?></div><?php endif; ?>
+</div>
+<div class="mb-3">
+    <label class="form-label">Chủ đề</label>
+    <input type="text" class="form-control <?php echo isset($field_errors['subject']) ? 'is-invalid' : ''; ?>" name="subject" maxlength="200" value="<?php echo old('subject'); ?>" required>
+    <?php if(isset($field_errors['subject'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['subject']; ?></div><?php endif; ?>
+</div>
+<div class="mb-4">
+    <label class="form-label">Nội dung tin nhắn</label>
+    <textarea class="form-control <?php echo isset($field_errors['message']) ? 'is-invalid' : ''; ?>" name="message" rows="5" maxlength="5000" required><?php echo old('message'); ?></textarea>
+    <?php if(isset($field_errors['message'])): ?><div class="invalid-feedback d-block"><?php echo $field_errors['message']; ?></div><?php endif; ?>
+</div>
 <button type="submit" class="btn btn-success w-100 fw-bold py-2">Gửi tin nhắn</button>
 </form></div></div>
 <div class="row mt-5 text-center">

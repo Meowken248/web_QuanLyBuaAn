@@ -22,7 +22,7 @@ echo '<div class="chat-history-container">';
 foreach ($msgs as $m) {
     if ($m['sender'] === 'user') {
         echo '<div class="d-flex mb-3 justify-content-end">';
-        echo '<div class="bg-primary text-white p-3 rounded shadow-sm text-end" style="max-width: 80%;">' . htmlspecialchars($m['message']) . '</div>';
+        echo '<div class="bg-health text-white p-3 rounded shadow-sm text-end" style="max-width: 80%;">' . htmlspecialchars($m['message']) . '</div>';
         echo '<div class="ms-2"><i class="bi bi-person-circle fs-3 text-secondary"></i></div>';
         echo '</div>';
     } elseif ($m['sender'] === 'assistant') {

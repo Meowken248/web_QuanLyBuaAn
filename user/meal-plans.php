@@ -115,66 +115,74 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
     <?php endif; ?>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        <?php foreach ($plans as $plan): ?>
-            <?php $isFav = in_array($plan['id'], $favorites); ?>
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0 card-hover overflow-hidden">
-                    <div class="position-relative">
-                        <img src="<?php echo htmlspecialchars(meal_plan_image_url($plan['image']), ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($plan['name']); ?>" style="height: 200px; object-fit: cover;">
+    <?php if (empty($plans)): ?>
+        <div class="card border-0 shadow-sm rounded-4 text-center py-5 my-4">
+            <div class="card-body py-5">
+                <div class="text-muted mb-3" style="font-size: 3.5rem;">
+                    <i class="bi bi-search"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Không tìm thấy thực đơn nào phù hợp</h4>
+                <p class="text-muted mb-4">Hãy thử chọn mục tiêu khác hoặc xóa bộ lọc để khám phá thêm nhiều thực đơn dinh dưỡng phong phú.</p>
+                <a href="<?php echo BASE_URL; ?>/user/meal-plans.php" class="btn btn-outline-success rounded-pill px-4 fw-bold">
+                    <i class="bi bi-arrow-repeat me-1"></i> Xem tất cả thực đơn
+                </a>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <?php foreach ($plans as $plan): ?>
+                <?php $isFav = in_array($plan['id'], $favorites); ?>
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 card-hover overflow-hidden">
+                        <div class="position-relative">
+                            <img src="<?php echo htmlspecialchars(meal_plan_image_url($plan['image']), ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($plan['name']); ?>" style="height: 200px; object-fit: cover;">
 
-                        <!-- Badges -->
-                        <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
+                            <!-- Badges -->
+                            <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
 
-                            <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill"><?php echo round($plan['total_calories']); ?> kcal</span>
+                                <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill"><?php echo round($plan['total_calories']); ?> kcal</span>
+                            </div>
+
+                            <!-- Favorite Button -->
+                            <form method="POST" action="<?php echo BASE_URL; ?>/user/meal-plans.php<?php echo $goalFilter ? '?goal=' . urlencode($goalFilter) : ''; ?>" class="position-absolute top-0 end-0 m-3">
+                                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                                <input type="hidden" name="action" value="toggle_favorite">
+                                <input type="hidden" name="plan_id" value="<?php echo $plan['id']; ?>">
+                                <button type="submit" class="btn btn-light rounded-circle shadow-sm text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi <?php echo $isFav ? 'bi-heart-fill' : 'bi-heart'; ?> fs-5"></i>
+                                </button>
+                            </form>
                         </div>
 
-                        <!-- Favorite Button -->
-                        <form method="POST" action="<?php echo BASE_URL; ?>/user/meal-plans.php<?php echo $goalFilter ? '?goal=' . urlencode($goalFilter) : ''; ?>" class="position-absolute top-0 end-0 m-3">
-                            <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
-                            <input type="hidden" name="action" value="toggle_favorite">
-                            <input type="hidden" name="plan_id" value="<?php echo $plan['id']; ?>">
-                            <button type="submit" class="btn btn-light rounded-circle shadow-sm text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi <?php echo $isFav ? 'bi-heart-fill' : 'bi-heart'; ?> fs-5"></i>
-                            </button>
-                        </form>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="mb-2 d-flex justify-content-between align-items-center">
-                            <span class="text-uppercase small fw-bold text-muted"><?php echo htmlspecialchars($plan['diet_type']); ?></span>
-                            <?php
-                                $bg = 'bg-secondary';
-                                if($plan['goal_type'] == 'lose_weight') $bg = 'bg-info text-dark';
-                                if($plan['goal_type'] == 'gain_muscle') $bg = 'bg-danger text-white';
-                                if($plan['goal_type'] == 'maintain_weight') $bg = 'bg-success text-white';
-                            ?>
-                            <span class="badge <?php echo $bg; ?>"><?php echo $plan['goal_type']; ?></span>
+                        <div class="card-body">
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <span class="text-uppercase small fw-bold text-muted"><?php echo htmlspecialchars($plan['diet_type']); ?></span>
+                                <?php
+                                    $bg = 'bg-secondary';
+                                    if($plan['goal_type'] == 'lose_weight') $bg = 'bg-info text-dark';
+                                    if($plan['goal_type'] == 'gain_muscle') $bg = 'bg-danger text-white';
+                                    if($plan['goal_type'] == 'maintain_weight') $bg = 'bg-success text-white';
+                                ?>
+                                <span class="badge <?php echo $bg; ?>"><?php echo $plan['goal_type']; ?></span>
+                            </div>
+                            <h5 class="card-title fw-bold mb-3"><?php echo htmlspecialchars($plan['name']); ?></h5>
+                            <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                <?php echo htmlspecialchars($plan['description'] ?: 'Không có mô tả cho thực đơn này.'); ?>
+                            </p>
                         </div>
-                        <h5 class="card-title fw-bold mb-3"><?php echo htmlspecialchars($plan['name']); ?></h5>
-                        <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                            <?php echo htmlspecialchars($plan['description'] ?: 'Không có mô tả cho thực đơn này.'); ?>
-                        </p>
-                    </div>
-                    <div class="card-footer bg-white border-0 pt-0 pb-3">
-                        <div class="row text-center mb-3 g-1 small">
-                            <div class="col-4"><div class="p-1 rounded bg-light"><strong><?php echo round($plan['total_protein']); ?>g</strong><br><span class="text-muted" style="font-size:0.75rem">Protein</span></div></div>
-                            <div class="col-4"><div class="p-1 rounded bg-light"><strong><?php echo round($plan['total_carbs']); ?>g</strong><br><span class="text-muted" style="font-size:0.75rem">Carbs</span></div></div>
-                            <div class="col-4"><div class="p-1 rounded bg-light"><strong><?php echo round($plan['total_fat']); ?>g</strong><br><span class="text-muted" style="font-size:0.75rem">Fat</span></div></div>
+                        <div class="card-footer bg-white border-0 pt-0 pb-3">
+                            <div class="row text-center mb-3 g-1 small">
+                                <div class="col-4"><div class="p-1 rounded bg-light"><strong><?php echo round($plan['total_protein']); ?>g</strong><br><span class="text-muted" style="font-size:0.75rem">Protein</span></div></div>
+                                <div class="col-4"><div class="p-1 rounded bg-light"><strong><?php echo round($plan['total_carbs']); ?>g</strong><br><span class="text-muted" style="font-size:0.75rem">Carbs</span></div></div>
+                                <div class="col-4"><div class="p-1 rounded bg-light"><strong><?php echo round($plan['total_fat']); ?>g</strong><br><span class="text-muted" style="font-size:0.75rem">Fat</span></div></div>
+                            </div>
+                            <a href="<?php echo BASE_URL; ?>/user/meal-plan-view.php?id=<?php echo $plan['id']; ?>" class="btn btn-success w-100 fw-bold">Xem Chi tiết <i class="bi bi-arrow-right"></i></a>
                         </div>
-                        <a href="<?php echo BASE_URL; ?>/user/meal-plan-view.php?id=<?php echo $plan['id']; ?>" class="btn btn-success w-100 fw-bold">Xem Chi tiết <i class="bi bi-arrow-right"></i></a>
                     </div>
                 </div>
-            </div>
-        <?php endforeach; ?>
-
-        <?php if (empty($plans)): ?>
-            <div class="col-12 text-center py-5">
-                <i class="bi bi-search text-muted mb-3" style="font-size: 3rem;"></i>
-                <h4 class="text-muted">Không tìm thấy thực đơn nào phù hợp.</h4>
-            </div>
-        <?php endif; ?>
-    </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </div>
 
 <style>
